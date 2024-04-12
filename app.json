@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "ureboque-client",
+    "slug": "ureboque-client",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ]
+    ],
+    "android": {
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.ureboque.client",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBqPFzMJ7TgohKLMZ8Q0Z1iRVmk63OWWpk"
+        }
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "cc5066c3-fb2c-4e58-a5bc-f080a0b08b69"
+      }
+    },
+    "owner": "joseazevedojsm"
+  }
+}

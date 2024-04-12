@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="372" height="20" viewBox="0 0 372 20">
+  <g id="text" transform="translate(-17.5 -398)">
+    <text id="Iniciar_sessão" data-name="Iniciar sessão" transform="translate(152.5 414)" fill="#181818" font-size="15" font-family="SegoeUI, Segoe UI" opacity="0.41"><tspan x="0" y="0">Iniciar sessão</tspan></text>
+    <line id="Linha_1" data-name="Linha 1" x2="113.5" transform="translate(276 408.5)" fill="none" stroke="#eee" stroke-width="3"/>
+    <line id="Linha_40" data-name="Linha 40" x2="113.5" transform="translate(17.5 408.5)" fill="none" stroke="#eee" stroke-width="3"/>
+  </g>
+</svg>
