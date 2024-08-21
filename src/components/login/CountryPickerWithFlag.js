@@ -19,13 +19,14 @@ const CountryPickerWithFlag = ({ onCallingCodeSelect }) => {
   return (
     <View >
       <CountryPicker
-        withFlag
-        withFilter
-        withAlphaFilter
+        withFlag={true}
+        withFilter={true}
+        withAlphaFilter={true}
         onSelect={handleCountrySelect}
         countryCode={country?.cca2 ?? "AO"}
         selectedItem={country}
         translation="por"
+        withEmoji={false}
         />
     </View>
   );

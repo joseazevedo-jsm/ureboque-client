@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Image,
   Modal,
@@ -35,6 +35,8 @@ import UserCarInfo from "../components/views/userCarInfo";
 import PreCancelationModal from "../components/modals/Cancel/PreCancelationModal";
 import CancelationModal from "../components/modals/Cancel/CancelationModal";
 import DetailsItem from "../components/cards/detailsItem";
+import PaymentOptions from "../components/map/paymentOptions";
+import CustomMarker from "../components/map/customMarker";
 
 const MapScreen = () => {
   const { models, operations } = useMapScreen();
@@ -45,41 +47,53 @@ const MapScreen = () => {
   );
   const renderMapMarker = () => {
     return models.mapMarkers.map((item, index) => {
-      if (models.driver && index === 0)
-        if (models.driverLocation)
-          return (
-            <Marker.Animated
-              ref={models.markerAnimated}
-              coordinate={{
-                latitude: models.driverLocation.latitude,
-                longitude: models.driverLocation.longitude,
+      if (models.driver && index === 0 && models.driverLocation) {
+        return (
+          <Marker.Animated
+            ref={models.markerAnimated}
+            coordinate={{
+              latitude: models.driverLocation.latitude,
+              longitude: models.driverLocation.longitude,
+            }}
+            key={`${models.driverLocation.latitude}-${models.driverLocation.longitude}`}
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
+            <Image
+              source={require("../../resources/icons/UREB_TOPVIEW.png")}
+              style={{
+                width: 50,
+                height: 50,
+                transform: [
+                  {
+                    rotate: `${
+                      models?.driverLocation?.heading
+                        ? models?.driverLocation?.heading
+                        : "0"
+                    }deg`,
+                  },
+                ],
               }}
-              key={{
-                latitude: models.driverLocation.latitude,
-                longitude: models.driverLocation.longitude,
-              }}
-              anchor={{ x: 0.5, y: 0.5 }}
-            >
-              <Image
-                source={require("../../resources/icons/UREB_TOPVIEW.png")}
-                style={{
-                  width: 50,
-                  height: 50,
-                  transform: [
-                    {
-                      rotate: `${
-                        models?.driverLocation?.heading
-                          ? models?.driverLocation?.heading
-                          : "0"
-                      }deg`,
-                    },
-                  ],
-                }}
-                resizeMode="contain"
-              />
-            </Marker.Animated>
-          );
-      return <Marker.Animated coordinate={item} key={index} />;
+              resizeMode="contain"
+            />
+          </Marker.Animated>
+        );
+      }
+
+      return (
+        <Marker.Animated coordinate={item} key={index}>
+          <CustomMarker
+            title={index === 0 ? models.originCity : models.destinationCity}
+            time={
+              index === 0
+                ? models.tripDuration
+                  ? operations.formatDuration(models.tripDuration)
+                  : 0
+                : null
+            }
+            color={index === 0 ? "#0089FF" : "#FF005E"}
+          />
+        </Marker.Animated>
+      );
     });
   };
 
@@ -153,7 +167,7 @@ const MapScreen = () => {
             fillColor="rgba(0, 0, 255, 0.2)"
           />
         )}
-         
+
         {renderMapMarker()}
         {models.isRouteVisible && (
           <MapViewDirections
@@ -171,19 +185,20 @@ const MapScreen = () => {
           />
         )}
 
-        {!models?.service && models.carsAround.map((item, index) => (
-          <Marker coordinate={item} key={index.toString()}>
-            <Image
-              source={require("../../resources/icons/UREB_TOPVIEW.png")}
-              style={{
-                width: 50,
-                height: 50,
-                transform: [{ rotate: "-90deg" }],
-              }}
-              resizeMode="contain"
-            />
-          </Marker>
-        ))}
+        {!models?.service &&
+          models.carsAround.map((item, index) => (
+            <Marker coordinate={item} key={index.toString()}>
+              <Image
+                source={require("../../resources/icons/UREB_TOPVIEW.png")}
+                style={{
+                  width: 50,
+                  height: 50,
+                  transform: [{ rotate: "-90deg" }],
+                }}
+                resizeMode="contain"
+              />
+            </Marker>
+          ))}
       </MapView>
 
       <LocationPermissionsService />
@@ -192,7 +207,7 @@ const MapScreen = () => {
         <Icon name="menu" size={scale(30)} color="#0089FF" />
       </TouchableOpacity>
 
-      {(models.isRouteVisible && !models.service) &&  (
+      {models.isRouteVisible && !models.service && (
         <TouchableOpacity onPress={operations.handleBackButtonPress}>
           <View style={styles.back}>
             <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
@@ -226,11 +241,11 @@ const MapScreen = () => {
       )}
 
       <BottomSheetModalProvider>
+
         <BottomSheetModal
           ref={models.bottomSheetModalRef}
           index={0}
           snapPoints={[scale(220)]}
-          enablePanDownToClose={false}
         >
           <View style={styles.svgContainer}>
             <Icon name="my-location" size={scale(18)} color="#0089FF" />
@@ -249,8 +264,9 @@ const MapScreen = () => {
             contentContainerStyle={{ marginHorizontal: scale(15) }}
           />
         </BottomSheetModal>
+
         <BottomSheetModal
-          ref={models.bottomSheetModalRef2}
+          ref={models.carTypeSelectionSheetRef}
           index={0}
           snapPoints={[scale(260)]}
           enablePanDownToClose={false}
@@ -272,12 +288,15 @@ const MapScreen = () => {
             keyExtractor={(item) => item._id.toString()}
           />
         </BottomSheetModal>
+
         <BottomSheetModal
-          ref={models.bottomSheetModalRef3}
+          ref={models.userCarInfoSheetRef}
           index={0}
-          snapPoints={[scale(260)]}
-          keyboardBehavior={Platform.OS === "ios" ? "interactive" : "padding"}
+          snapPoints={[scale(260), scale(300)]}
+          keyboardBehavior="interactive"
+          android_keyboardInputMode="adjustResize"
           enablePanDownToClose={false}
+          enableDismissOnClose={false}
         >
           <UserCarInfo
             handleBrandInputValueChange={operations.handleBrandInputValueChange}
@@ -289,86 +308,17 @@ const MapScreen = () => {
             handleConfirmButtonPress={operations.handleConfirmButtonPress}
           />
         </BottomSheetModal>
+
         <BottomSheetModal
-          ref={models.bottomSheetModalRef4}
+          ref={models.paymentOptionsSheetRef}
           index={1}
           snapPoints={snapPoints}
           enablePanDownToClose={false}
         >
-          <View>
-            <View>
-              <CarTypes
-                typeCar={models.typeCar}
-                descr={`${models.brand} ${models.model}`}
-                descr2={`${models.color}, ${models.license}`}
-                route={models.mapDirections}
-                price={models.ridePrice}
-              />
-            </View>
-
-            <Text
-              style={{
-                fontSize: scale(18),
-                color: "#0089FF",
-                fontWeight: "900",
-                marginBottom: scale(5),
-                marginLeft: scale(20),
-              }}
-            >
-              COMO É QUE VAI PAGAR?
-            </Text>
-            <View style={{}}>
-              <TouchableOpacity
-                onPress={operations.handleConfirmPaymentPress("DINHEIRO")}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingHorizontal: scale(20),
-                  }}
-                >
-                  <Icon name="money" size={scale(50)} color="#000" />
-                  <Text
-                    style={{
-                      color: "#000",
-                      fontSize: scale(18),
-                      fontWeight: "700",
-                      marginLeft: scale(20),
-                    }}
-                  >
-                    CASH
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={operations.handleConfirmPaymentPress("MULTICAIXA")}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingHorizontal: scale(20),
-                  }}
-                >
-                  <Icon name="credit-card" size={scale(50)} color="#000" />
-                  <Text
-                    style={{
-                      color: "#000",
-                      fontSize: scale(18),
-                      fontWeight: "700",
-                      marginLeft: scale(20),
-                    }}
-                  >
-                    MULTICAIXA
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <PaymentOptions operations={operations}  models={models}/>
         </BottomSheetModal>
         <BottomSheetModal
-          ref={models.bottomSheetModalRef5}
+          ref={models.rideSearchSheetRef}
           index={0}
           snapPoints={[scale(235), scale(300)]}
           onChange={operations.handleBottomSheetSearchExtended}
@@ -382,8 +332,9 @@ const MapScreen = () => {
             accepted={models.driverConnected}
           />
         </BottomSheetModal>
+
         <BottomSheetModal
-          ref={models.bottomSheetModalRef6}
+          ref={models.tripStartedSheetRef}
           index={0}
           snapPoints={[scale(312), scale(435)]}
           enablePanDownToClose={false}
@@ -397,11 +348,12 @@ const MapScreen = () => {
             onCancelTrip={operations.handlePreCancelButtonPress}
             onDetailsTrip={operations.handleDetailsForm}
             onMessageDriver={operations.handleMessageDriver}
-            bttmSheetRef={models.bottomSheetModalRef6}
+            bttmSheetRef={models.tripStartedSheetRef}
           />
         </BottomSheetModal>
+
         <BottomSheetModal
-          ref={models.bottomSheetModalRef7}
+          ref={models.driverArrivingSheetRef}
           index={0}
           snapPoints={[scale(310), scale(425)]}
           enablePanDownToClose={false}
@@ -415,11 +367,12 @@ const MapScreen = () => {
             onCancelTrip={operations.handleCancelTrip}
             onDetailsTrip={operations.handleDetailsForm}
             onMessageDriver={operations.handleMessageDriver}
-            bttmSheetRef={models.bottomSheetModalRef7}
+            bttmSheetRef={models.driverArrivingSheetRef}
           />
         </BottomSheetModal>
+
         <BottomSheetModal
-          ref={models.bottomSheetModalRef8}
+          ref={models.tripEndingSheetRef}
           index={0}
           snapPoints={[scale(320), scale(380)]}
           enablePanDownToClose={false}
@@ -433,9 +386,10 @@ const MapScreen = () => {
             onCancelTrip={operations.handleCancelTrip}
             onDetailsTrip={operations.handleDetailsForm}
             onMessageDriver={operations.handleMessageDriver}
-            bttmSheetRef={models.bottomSheetModalRef7}
+            bttmSheetRef={models.driverArrivingSheetRef}
           />
         </BottomSheetModal>
+
         <BottomSheetModal
           ref={models.bottomSheetModalRefDetails}
           index={0}
@@ -450,69 +404,38 @@ const MapScreen = () => {
             />
           )}
         </BottomSheetModal>
+
         <BottomSheetModal
           ref={models.bottomSheetModalDragMarker}
           index={0}
           snapPoints={snapPoints}
           enablePanDownToClose={false}
         >
-          <View style={{ marginHorizontal: scale(20) }}>
-            <Text
-              style={{
-                fontSize: scale(18),
-                color: "#0089FF",
-                fontWeight: "900",
-                marginTop: scale(15),
-                marginBottom: scale(25),
-              }}
-            >
-              {models.inputLocationObject === 0
-                ? "DE ONDE VAI PARTIR?"
-                : "PARA ONDE ESTÁ INDO?"}
-            </Text>
-            <View
-              style={{
-                borderRadius: scale(7),
-                borderWidth: scale(3),
-                borderColor: "#0089FF",
-                fontSize: scale(18),
-                padding: scale(8),
-                marginBottom: scale(25),
-                flexDirection: "row",
-              }}
-            >
-              <Icon name="search" size={scale(20)} color="#ccc" />
-              <TouchableOpacity
-                style={{
-                  paddingHorizontal: scale(10),
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: scale(16),
-                    color: "#808080",
-                  }}
-                >
-                  {models.markerCity}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity
-              style={{
-                backgroundColor: "#0089ff",
-                borderRadius: scale(7),
-                height: scale(40),
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              onPress={operations.handleConfirmDraggablePress}
-            >
-              <Text style={{ color: "#fff", fontSize: scale(18) }}>
-                Confirmar
+            <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>
+            {models.inputLocationObject === 0
+              ? "DE ONDE VAI PARTIR?"
+              : "PARA ONDE ESTÁ INDO?"}
+          </Text>
+          <View style={styles.searchContainer}>
+            <Icon name="search" size={scale(20)} color="#ccc" />
+            <TouchableOpacity style={styles.searchTextContainer}>
+              <Text style={styles.searchText}>
+                {models.markerCity}
               </Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={operations.handleConfirmDraggablePress}
+          >
+            <Text style={styles.confirmButtonText}>
+              Confirmar
+            </Text>
+          </TouchableOpacity>
+        </View>
         </BottomSheetModal>
+
       </BottomSheetModalProvider>
 
       <DestinationModal
@@ -718,6 +641,43 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     top: scale(250),
     borderRadius: scale(20),
+  },
+  modalContent: {
+    marginHorizontal: scale(20),
+  },
+  modalTitle: {
+    fontSize: scale(18),
+    color: "#0089FF",
+    fontWeight: "900",
+    marginTop: scale(15),
+    marginBottom: scale(25),
+  },
+  searchContainer: {
+    borderRadius: scale(7),
+    borderWidth: scale(3),
+    borderColor: "#0089FF",
+    fontSize: scale(18),
+    padding: scale(8),
+    marginBottom: scale(25),
+    flexDirection: "row",
+  },
+  searchTextContainer: {
+    paddingHorizontal: scale(10),
+  },
+  searchText: {
+    fontSize: scale(16),
+    color: "#808080",
+  },
+  confirmButton: {
+    backgroundColor: "#0089ff",
+    borderRadius: scale(7),
+    height: scale(40),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmButtonText: {
+    color: "#fff",
+    fontSize: scale(18),
   },
 });
 export default MapScreen;

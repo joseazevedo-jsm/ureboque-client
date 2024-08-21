@@ -1,0 +1,123 @@
+import { StyleSheet } from "react-native";
+import { scale } from "react-native-size-matters";
+
+const commonStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  button: {
+    backgroundColor: "#0089ff",
+    borderRadius: scale(7),
+    alignItems: "center",
+    padding: scale(10),
+    marginHorizontal: scale(10),
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: scale(18),
+  },
+  input: {
+    flex: 1,
+    width: scale(318),
+    height: scale(50),
+    borderRadius: scale(7),
+    borderWidth: scale(4),
+    borderColor: "#0089ff",
+    overflow: "hidden",
+    marginHorizontal: scale(10),
+    paddingHorizontal: scale(10),
+  },
+  row: {
+    flexDirection: "row",
+    marginBottom: scale(20),
+  },
+  headerText: {
+    fontSize: scale(18),
+    alignSelf: "center",
+    color: "#0089FF",
+    fontWeight: "900",
+    marginBottom: scale(10),
+  },
+  divider: {
+    borderBottomColor: "#000",
+    borderWidth: scale(0.2),
+    width: scale(300),
+    marginRight: scale(50),
+    marginVertical: scale(15),
+  },
+  circle: {
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(75),
+    borderColor: "#0089ff",
+    borderWidth: scale(2),
+    backgroundColor: "#0089ff",
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "center",
+    marginHorizontal: scale(18),
+    marginTop: scale(20),
+  }, 
+});
+
+const mapScreenStyles = StyleSheet.create({
+  map: {
+    flex: 1,
+  },
+  details: {
+    width: scale(40),
+    height: scale(40),
+    position: "absolute",
+    borderRadius: scale(7),
+    backgroundColor: "#fff",
+    top: scale(35),
+    alignItems: "center",
+    justifyContent: "center",
+    left: scale(20),
+    shadowColor: "#000",
+    shadowOffset: { width: scale(2), height: scale(2) },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+  },
+  back: {
+    width: scale(30),
+    borderRadius: scale(45 / 2),
+    backgroundColor: "#fff",
+    bottom: scale(260),
+    alignItems: "center",
+    justifyContent: "center",
+    left: scale(20),
+    shadowColor: "#000",
+    shadowOffset: { width: scale(2), height: scale(2) },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+  },
+  backDetails: {
+    width: scale(30),
+    borderRadius: scale(45 / 2),
+    backgroundColor: "#fff",
+    bottom: scale(530),
+    alignItems: "center",
+    justifyContent: "center",
+    left: scale(20),
+    shadowColor: "#000",
+    shadowOffset: { width: scale(2), height: scale(2) },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+  },
+  svgContainer: {
+    width: scale(318),
+    height: scale(50),
+    borderRadius: scale(7),
+    borderWidth: scale(4),
+    borderColor: "#0089ff",
+    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: scale(15),
+    paddingHorizontal: scale(16),
+    marginVertical: scale(10),
+  },
+});
+
+export { commonStyles, mapScreenStyles }; 

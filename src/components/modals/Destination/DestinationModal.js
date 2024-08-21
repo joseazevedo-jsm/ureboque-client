@@ -6,12 +6,14 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StatusBar
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import FlatListHeader from "./components/FlatListHeader";
 import { useDestinationModal } from "./components/useDestinationModal";
 import PlaceItem from "../../cards/placeItem";
+
 const DestinationModal = ({
   visible,
   closeModal,
@@ -23,10 +25,10 @@ const DestinationModal = ({
   inputCurr,
 }) => {
   const { models, operations } = useDestinationModal();
-  const handeBackButtonPress = () => {
+
+  const handleBackButtonPress = () => {
     closeModal();
   };
-  // console.log("MODAL",origin,destination)
 
   const renderFlatListItem = ({ item }) => {
     if (item.place_id === -1) {
@@ -77,7 +79,6 @@ const DestinationModal = ({
             models.textInputDestinationRef
           );
           models.inputIndex === 0 && operations.handleOnIsCurrLocation(false);
-          
         }}
         saved={false}
       />
@@ -87,28 +88,12 @@ const DestinationModal = ({
   return (
     <Modal onRequestClose={closeModal} visible={visible} animationType="slide">
       <View style={styles.container}>
-        <TouchableOpacity style={styles.goback} onPress={handeBackButtonPress}>
+        <StatusBar barStyle="dark-content" />
+        <TouchableOpacity style={styles.goback} onPress={handleBackButtonPress}>
           <Icon name="close" size={scale(25)} />
         </TouchableOpacity>
-        <Text
-          style={{
-            fontSize: scale(20),
-            alignSelf: "center",
-            top: scale(60),
-            color: "#0089FF",
-            fontWeight: "700",
-          }}
-        >
-          REBOCAR
-        </Text>
-        <View
-          style={{
-            alignItems: "center",
-            width: "100%",
-            top: scale(80),
-            height: "88%",
-          }}
-        >
+        <Text style={styles.title}>REBOCAR</Text>
+        <View style={styles.listContainer}>
           <FlatList
             stickyHeaderIndices={[0]}
             data={models.queryResponseData}
@@ -155,5 +140,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     left: scale(20),
   },
+  title: {
+    fontSize: scale(20),
+    alignSelf: "center",
+    top: scale(60),
+    color: "#0089FF",
+    fontWeight: "700",
+  },
+  listContainer: {
+    alignItems: "center",
+    width: "100%",
+    top: scale(80),
+    height: "88%",
+  },
 });
+
 export default DestinationModal;

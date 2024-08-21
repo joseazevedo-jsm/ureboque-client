@@ -107,7 +107,8 @@ const AddressModal = ({
             marginBottom: scale(30),
           }}
           placeholderTextColor="#808080"
-          defaultValue={name !== "" ? name : "Nome"}
+          placeholder="Nome do endereço"
+          defaultValue={name !== "" ? name : ""}
           // value={models.name ? models.name : "Nome"}
           onChangeText={operations.handleNameChangeText}
         />
@@ -149,8 +150,9 @@ const AddressModal = ({
             marginBottom: scale(180),
           }}
           placeholderTextColor="#808080"
+          placeholder="Instruções para o motorista"
           defaultValue={
-            description !== "" ? description : "Instruções para o motorista"
+            description !== "" ? description : ""
           }
         />
 

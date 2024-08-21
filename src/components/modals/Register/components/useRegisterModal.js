@@ -23,6 +23,9 @@ export const useRegisterModal = (OTPChange) => {
   const [errors, setErrors] = useState([]);
   const [errorsUser, setErrorsUser] = useState([]);
 
+  const [otp, setOtp] = useState(["", "", "", ""]);
+  const inputRefs = useRef([]);
+
   const validationRules = [
     {
       key: "length",
@@ -145,17 +148,52 @@ export const useRegisterModal = (OTPChange) => {
       case 2:
         if (text.length === 1) {
           inputRef3.current.focus();
+        } else if (text.length === 0) {
+          inputRef1.current.focus();
+          inputRef2.current.clear();
         }
         break;
       case 3:
         if (text.length === 1) {
           inputRef4.current.focus();
+        } else if (text.length === 0) {
+          inputRef2.current.focus();
+          inputRef3.current.clear();
+        }
+        break;
+      case 4:
+        if (text.length === 0) {
+          inputRef3.current.focus();
+          inputRef4.current.clear();
         }
         break;
       default:
         break;
     }
-  }
+  };
+
+  const handleOtpChange = (text, index) => {
+    
+    const newOtp = [...otp];
+    newOtp[index] = text;
+    setOtp(newOtp);
+
+    // Auto-focus on the next input if the current one is filled
+    if (text && index < 3) {
+      inputRefs.current[index + 1].focus();
+    }
+    // Verify OTP if all 4 digits are entered
+    else if (text && index === 3) {
+      // onVerify(newOtp.join(""));
+      OTPChange(newOtp.join(""));
+    }
+  };
+
+
+   // CHANGE TO INDIVIDUAL PACKAGES
+  const handleResend = () => {
+    resendOTP(); // Call the function passed from the parent component
+  };
 
   return {
     models: {
@@ -166,6 +204,8 @@ export const useRegisterModal = (OTPChange) => {
       inputRef2,
       inputRef3,
       inputRef4,
+      otp,
+      inputRefs,
     },
     operations: {
       handleOnGoModalRegisterInfoVisible,
@@ -175,7 +215,9 @@ export const useRegisterModal = (OTPChange) => {
       onEmailTextChange,
       onSurnameTextChange,
       handleCreateUser,
-      handleOTPInputChange
+      handleOTPInputChange,
+      handleResend,
+      handleOtpChange,
     },
   };
 };

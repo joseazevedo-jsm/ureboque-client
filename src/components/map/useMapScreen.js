@@ -15,35 +15,71 @@ Geocoder.init("AIzaSyBqPFzMJ7TgohKLMZ8Q0Z1iRVmk63OWWpk");
 
 const LATITUDE_DELTA = 0.0022;
 const LONGITUDE_DELTA = 0.005;
+const DEFAULT_TIMER_DURATION = 180; // 3 minutes in seconds
 
 export const useMapScreen = () => {
+  // --- Refs ---
   const mapRef = useRef(null);
   const bottomSheetModalRef = useRef(null);
-  const bottomSheetModalRef2 = useRef(null);
-  const bottomSheetModalRef3 = useRef(null);
-  const bottomSheetModalRef4 = useRef(null);
-  const bottomSheetModalRef5 = useRef(null);
-  const bottomSheetModalRef6 = useRef(null);
-  const bottomSheetModalRef7 = useRef(null);
-  const bottomSheetModalRef8 = useRef(null);
-  const bottomSheetModalRefDetails = useRef(null);
-  const bottomSheetModalDragMarker = useRef(null);
-  const markerAnimated = useRef(null);
 
+  // Modals
   const [modalVisible, setModalVisible] = useState(false);
   const [modalSavedPlacesVisible, setModalSavedPlacesVisible] = useState(false);
   const [modalCancelVisible, setModalCancelVisible] = useState(false);
   const [modalPreCancelVisible, setModalPreCancelVisible] = useState(false);
   const [modalChatVisible, setModalChatVisible] = useState(false);
+  const [modalConfirmationVisible, setModalConfirmationVisible] =
+    useState(null);
+
+  // Bottom Sheets
+  const carTypeSelectionSheetRef = useRef(null);
+  const userCarInfoSheetRef = useRef(null);
+  const paymentOptionsSheetRef = useRef(null);
+  const rideSearchSheetRef = useRef(null);
+  const tripStartedSheetRef = useRef(null);
+  const driverArrivingSheetRef = useRef(null);
+  const tripEndingSheetRef = useRef(null);
+  const bottomSheetModalRefDetails = useRef(null);
+  const bottomSheetModalDragMarker = useRef(null);
+
+  // Map and Markers
   const [mapMarkers, setMapMarkers] = useState([]);
   const [mapDirections, setMapDirections] = useState(null);
+  const [carsAround, setCarsAround] = useState([]);
+  const [driverLocation, setDriverLocation] = useState(null);
+  const [isSearchingNearby, setIsSearchingNearby] = useState(false);
+  const [markerVisible, setMarkerVisible] = useState();
+  const [markerCity, setMarkerCity] = useState();
+  const [hasCentered, setHasCentered] = useState(false);
+
+  // User Input
+  const [originCity, setOriginCity] = useState(null);
+  const [destinationCity, setDestinationCity] = useState(null);
+  const [originCoords, setOriginCoords] = useState(null);
+  const [destinationCoords, setDestinationCoords] = useState(null);
+  const [isCurrLocation, setIsCurrLocation] = useState(null);
+
+  // Car and Trip Details
   const [typeCar, setTypeCar] = useState("Turismo");
   const [ridePrice, setRidePrice] = useState("25,300");
   const [brand, setBrand] = useState("Toyota");
   const [model, setModel] = useState("Corolla");
   const [license, setLicense] = useState("LD-SOM");
   const [color, setColor] = useState("Preto");
+  const [tripDuration, setTripDuration] = useState(null);
+  const [inputLocationObject, setInputLocationObject] = useState(null);
 
+  // Service and Driver
+  const [service, setService] = useState(null);
+  const [driver, setDriver] = useState(null);
+  const [driverConnected, setDriverConnected] = useState(false);
+  const [detailsInfo, setDetailsInfo] = useState();
+
+  // Timer
+  const [timer, setTimer] = useState(DEFAULT_TIMER_DURATION);
+  const [isActive, setIsActive] = useState(false);
+
+  // --- Context ---
   const {
     socket,
     user,
@@ -52,27 +88,25 @@ export const useMapScreen = () => {
     serviceStatus,
     setServiceStatus,
     prices,
-    fetchPrices
+    fetchPrices,
   } = useContext(UserContext);
-  const [service, setService] = useState(null);
-  const [driver, setDriver] = useState(null);
-  const [driverConnected, setDriverConnected] = useState(false);
-  const [favPlaces, setFavPlaces] = useState([]);
-  const [tripDuration, setTripDuration] = useState(null);
-  const [modalConfirmationVisible, setModalConfirmationVisible] =
-    useState(null);
-  const [detailsInfo, setDetailsInfo] = useState();
-  const [markerVisible, setMarkerVisible] = useState();
-  const [inputLocationObject, setInputLocationObject] = useState();
-  const [markerCity, setMarkerCity] = useState();
-  const [originCity, setOriginCity] = useState();
-  const [destinationCity, setDestinationCity] = useState();
-  const [originCoords, setOriginCoords] = useState();
-  const [destinationCoords, setDestinationCoords] = useState();
-  const [isCurrLocation, setIsCurrLocation] = useState();
-  const [driverLocation, setDriverLocation] = useState();
-  const [carsAround, setCarsAround] = useState([]);
+
   const { userLocation, setUserLocation } = useUserLocationStateContext();
+
+  // Marker for animation
+  const markerAnimated = useRef(null);
+
+  // Saved Places
+  const [favPlaces, setFavPlaces] = useState([]);
+  const [newSavedPlaceAddress, setNewSavedPlaceAddress] = useState({
+    pos: 0,
+    city: "",
+  });
+
+  // --- Derived State ---
+  const isRouteVisible = mapMarkers.length === 2;
+
+  // Cancellation Reasons
   const [questions, setQuestions] = useState([
     { key: 0, question: "O motorista não vem" },
     { key: 1, question: "O motorista se recusou a conduzir" },
@@ -81,334 +115,8 @@ export const useMapScreen = () => {
     { key: 4, question: "Ponto de partida incorreto" },
     { key: 5, question: "Outro" },
   ]);
-
-  // const carsAround = [
-  //   { latitude: -26.207487, longitude: 28.236226 },
-  //   { latitude: -26.202616, longitude: 28.227718 },
-  //   { latitude: -26.202424, longitude: 28.236612 },
-  //   { latitude: -26.208565, longitude: 28.237191 },
-  //   { latitude: -26.203598, longitude: 28.239509 },
-  //   { latitude: 37.4263889, longitude: -122.0805556 },
-  //   { latitude: 37.4142059, longitude: -122.0772066 },
-  //   { latitude: 37.422, longitude: -122.0840575 },
-  // ];
-
-  // const getNearbyDrivers = async () => {
-  //   // Make an API request to fetch nearby drivers
-  //   // Update the nearbyDrivers state with the response data
-  //   // For example:
-  //   try {
-  //     // console.log("getNearbyDrivers", userLocation?.longitude, userLocation?.latitude);
-  //     const params = {
-  //       latitude: userLocation?.latitude,
-  //       longitude: userLocation?.longitude,
-  //       maxDistance: 5000,
-  //     };
-  //     const resp = await axios.get(`${IP}/drivers/nearby`, {
-  //       params: params,
-  //     });
-
-  //     const nearbyDrivers = resp.data.map((driver) => ({
-  //       latitude: driver.location.coordinates[1], // Assuming latitude is the second element
-  //       longitude: driver.location.coordinates[0], // Assuming longitude is the first element
-  //     }));
-
-  //     console.log(nearbyDrivers);
-  //     setCarsAround(nearbyDrivers);
-  //   } catch (error) {
-  //     console.error(error);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   // Set up a timer to call getNearbyDrivers every 20 seconds
-  //   const intervalId = setInterval(() => {
-  //     getNearbyDrivers();
-  //   }, 20000);
-
-  //   // Clean up the interval when the component unmounts
-  //   return () => {
-  //     clearInterval(intervalId);
-  //   };
-  // }, [userLocation?.longitude && userLocation?.latitude]);
-
-  const [isSearchingNearby, setIsSearchingNearby] = useState(false);
-  const getNearbyDrivers = async () => {
-    try {
-      if (isSearchingNearby) return;
-      // console.log("isSearchingNearby", isSearchingNearby);
-      // console.log("getNearbyDrivers", userLocation?.longitude, userLocation?.latitude);
-      const params = {
-        latitude: userLocation?.latitude,
-        longitude: userLocation?.longitude,
-        maxDistance: 5000,
-      };
-      const resp = await axios.get(`${IP}/drivers/nearby`, {
-        params: params,
-      });
-
-      console.log("NEARBY", resp.data);
-
-      const nearbyDrivers = resp.data.map((driver) => ({
-        latitude: driver.location.coordinates[1],
-        longitude: driver.location.coordinates[0],
-      }));
-
-      console.log("A PROCURAR... ", nearbyDrivers);
-      setCarsAround(nearbyDrivers); //nearbyDrivers
-      setIsSearchingNearby(true);
-
-      if (!service) {
-        // Continue searching if a service doesn't exist
-        setTimeout(getNearbyDrivers, 20000);
-      }
-
-      console.log("PROCURA CONCLUIDA... ");
-    } catch (error) {
-      console.error(error);
-      if (!service) {
-        // Retry after a delay if a service doesn't exist
-        setTimeout(getNearbyDrivers, 20000);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (!service && userLocation && !isSearchingNearby) {
-      getNearbyDrivers();
-    }
-
-    return () => {
-      setIsSearchingNearby(true);
-    };
-  }, [userLocation, isSearchingNearby]);
-
-  const isRouteVisible = mapMarkers.length === 2;
-
-  useEffect(() => {
-    bottomSheetModalRef.current.present();
-  }, []);
-
-  useEffect(() => {
-    const addFavouriteCard = {
-      _id: "fav",
-      place: {
-        name: "Adicionar Favorito",
-        description: "",
-      },
-    };
-    const data = [...(user?.saved_places || [])];
-    if (!data.includes(addFavouriteCard)) data.push(addFavouriteCard);
-
-    setFavPlaces(data);
-  }, [user?.saved_places]);
-
-  useEffect(() => {
-    if (mapDirections?.coordinates) {
-      mapRef.current?.fitToCoordinates(mapDirections?.coordinates, {
-        edgePadding: {
-          bottom: scale(250),
-          top: scale(50),
-          left: scale(20),
-          right: scale(20),
-        },
-      });
-    }
-  }, [mapDirections?.coordinates]);
-
-  const centerToUserLocation = useCallback(() => {
-    if (userLocation && !driver) {
-      // when user moves it centers
-      mapRef.current?.animateToRegion({
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude,
-        latitudeDelta: LATITUDE_DELTA,
-        longitudeDelta: LONGITUDE_DELTA,
-      });
-      console.log(userLocation?.latitude, userLocation?.longitude);
-    }
-  }, [userLocation?.latitude, userLocation?.longitude]);
-
-  useEffect(() => {
-    centerToUserLocation();
-  }, [centerToUserLocation]);
-
-  const handleUserLocationChange = ({ nativeEvent: { coordinate } }) => {
-    if (coordinate && !modalVisible && !isRouteVisible) {
-      setUserLocation(coordinate);
-    }
-  };
-
-  const closeDestinationModal = () => {
-    setModalVisible(false);
-    bottomSheetModalRef.current.present();
-  };
-
-  const closeSavedPlacesModal = () => {
-    setModalSavedPlacesVisible(false);
-  };
-
-  const closeConfirmationModal = () => {
-    resetToInitialState();
-  };
-
-  const closeCancelModal = () => {
-    setModalCancelVisible(false);
-  };
-  const closePreCancelModal = () => {
-    setModalPreCancelVisible(false);
-  };
-
-  const handleMapSearchBarPress = () => {
-    getAddressFromCoordinates(userLocation?.latitude, userLocation?.longitude);
-    setOriginCity(markerCity);
-    setOriginCoords({
-      latitude: userLocation?.latitude,
-      longitude: userLocation?.longitude,
-    });
-    if (markerCity) {
-      setModalVisible(true);
-      setIsCurrLocation({
-        latitude: userLocation?.latitude,
-        longitude: userLocation?.longitude,
-      });
-    }
-  };
-
-  const handlePreCancelButtonPress = () => {
-    setModalPreCancelVisible(true);
-  };
-
-  const handleAddFavouriteButtonPress = () => {
-    setModalSavedPlacesVisible(true);
-  };
-
-  const handleOnFavouriteButtonPress = (item) => {
-    return () => {
-      setOriginCity(item.place.name);
-      setOriginCoords({
-        latitude: item.place.coordinates.latitude,
-        longitude: item.place.coordinates.longitude,
-      });
-      setModalVisible(true);
-      setInputLocationObject(true);
-      setIsCurrLocation();
-    };
-  };
-
-  const handleBackButtonPress = () => {
-    // when user goes back it restart the menu it should go back to previous men
-
-    if (isRouteVisible) {
-      setMapMarkers([]);
-      setOriginCity();
-      setDestinationCity();
-      setOriginCoords();
-      setDestinationCoords();
-      setMapDirections();
-      centerToUserLocation();
-      bottomSheetModalRef.current.present();
-      bottomSheetModalRef2.current.dismiss();
-      bottomSheetModalRef3.current.dismiss();
-      bottomSheetModalRef4.current.dismiss();
-    }
-  };
-
-  const handleBackDetailsButtonPress = () => {
-    const { bottomSheet } = detailsInfo;
-    if (detailsInfo) {
-      setDetailsInfo();
-      bottomSheetModalRefDetails.current.dismiss();
-      bottomSheet.current.present();
-    }
-  };
-
-  const handlePressItemPress = (coords, address, inputRef) => {
-    // if (userLocation) {
-    //   console.log("AQUI",userLocation);
-    //   const { latitude, longitude } = userLocation;
-    //   setMapMarkers([{ latitude, longitude }, coords]);
-    //   setModalVisible(false);
-    //   bottomSheetModalRef.current.dismiss();
-    //   bottomSheetModalRef2.current.present();
-    // }
-    if (inputLocationObject === 0) {
-      console.log("orign ", coords);
-      setOriginCoords(coords);
-      setOriginCity(address);
-      setIsCurrLocation();
-      inputRef.current.focus();
-      console.log(inputLocationObject, coords, address);
-    } else if (inputLocationObject === 1) {
-      console.log("dest ", coords);
-      console.log(inputLocationObject, coords, address);
-
-      if (address === "CurrLocation") {
-        coords = {
-          latitude: userLocation?.latitude,
-          longitude: userLocation?.longitude,
-        };
-
-        address = markerCity;
-      }
-      // setDestinationCoords(coords);
-      fetchPrices();
-      setDestinationCity(address);
-      // console.log("AQUI", type);
-      setMapMarkers([originCoords, coords]);
-      setModalVisible(false);
-      bottomSheetModalRef.current.dismiss();
-      bottomSheetModalRef2.current.present();
-    }
-  };
-
-  const handlePressSelectTypeRoad = (type) => {
-    setTypeCar(type);
-  };
-
-  const handleMapDirectionsReady = (routeInfo) => {
-    console.log(routeInfo.coordinates);
-    setMapDirections(routeInfo);
-    setTripDuration(routeInfo?.duration);
-  };
-
-  const handleMarkerDragPress = () => {
-    return () => {
-      console.log("AQUI");
-      setModalVisible(false);
-      setMarkerVisible(true);
-      bottomSheetModalRef.current.dismiss();
-      bottomSheetModalDragMarker.current.present();
-    };
-  };
-
-  const handleMarkerDragSavedPlaces = () => {
-    console.log("AQUI");
-    setNewSavedPlaceAddress({ pos: 1, city: "", callback: false });
-    setModalSavedPlacesVisible(false);
-    setMarkerVisible(true);
-    bottomSheetModalRef2.current.dismiss();
-    bottomSheetModalDragMarker.current.present();
-  };
-
-  const handleMarkerDragEnd = ({ latitude, longitude }) => {
-    getAddressFromCoordinates(latitude, longitude);
-    console.log("AQUI 2", latitude, longitude, newSavedPlaceAddress);
-
-    if (newSavedPlaceAddress.pos > 0) {
-      setNewSavedPlaceAddress({
-        pos: newSavedPlaceAddress.pos,
-        city: "",
-        coordinates: { latitude, longitude },
-        callback: false,
-      });
-    } else if (inputLocationObject === 0) {
-      setOriginCoords({ latitude, longitude });
-    } else if (inputLocationObject === 1) {
-      fetchPrices();
-      setDestinationCoords({ latitude, longitude });
-    }
-  };
+  
+  // --- Helper Functions ---
 
   const getAddressFromCoordinates = async (lat, lng) => {
     try {
@@ -421,128 +129,83 @@ export const useMapScreen = () => {
     }
   };
 
-  const [newSavedPlaceAddress, setNewSavedPlaceAddress] = useState({
-    pos: 0,
-    city: "",
-  });
+  const getDistanceInKm = (pickup, drop) => {
+    const { lat1, lon1 } = { lat1: pickup.latitude, lon1: pickup.longitude };
+    const { lat2, lon2 } = { lat2: drop.latitude, lon2: drop.longitude };
 
-  const handleConfirmDraggablePress = () => {
-    if (newSavedPlaceAddress.pos > 0) {
-      setModalSavedPlacesVisible(true);
-      setNewSavedPlaceAddress({
-        pos: newSavedPlaceAddress.pos,
-        city: markerCity,
-        coordinates: newSavedPlaceAddress.coordinates,
-        callback: true,
-      });
-      setMarkerVisible(false);
-      bottomSheetModalDragMarker.current.dismiss();
-      return;
-    }
+    const earthRadius = 6371; // Radius of the Earth in kilometers
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
 
-    setModalVisible(true);
-    if (inputLocationObject === 0) {
-      console.log(inputLocationObject, originCoords);
-      setOriginCity(markerCity);
-      if (destinationCity != null) {
-        setMapMarkers([originCoords, destinationCoords]);
-        setModalVisible(false);
-        bottomSheetModalRef.current.dismiss();
-        bottomSheetModalRef2.current.present();
-      }
-    } else if (inputLocationObject === 1) {
-      console.log(inputLocationObject, destinationCoords);
-      setDestinationCity(markerCity);
-      if (originCity != null) {
-        setMapMarkers([originCoords, destinationCoords]);
-        setModalVisible(false);
-        bottomSheetModalRef.current.dismiss();
-        bottomSheetModalRef2.current.present();
-      }
-    }
-    setMarkerVisible(false);
-    bottomSheetModalDragMarker.current.dismiss();
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) *
+        Math.cos(toRadians(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = earthRadius * c;
 
-    // const { latitude, longitude } = userLocation;
-    // setMapMarkers([{ latitude, longitude }, markerCoordinate]);
-    // bottomSheetModalDragMarker.current.dismiss();
-    // bottomSheetModalRef2.current.present();
+    return distance;
   };
 
-  const handleLocationTextInputFocus = (value) => {
-    console.log(value);
-    setInputLocationObject(value);
+  function toRadians(degrees) {
+    return (degrees * Math.PI) / 180;
+  }
+
+  const formatDuration = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = Math.floor(minutes % 60);
+
+    if (hours > 0) {
+      return `${hours} h ${remainingMinutes} mins`;
+    } else {
+      return `${remainingMinutes} mins`;
+    }
   };
 
-  const handleTypeCarPress = (type, price) => {
-    return () => {
-      console.log(type, price);
-      setTypeCar(type);
-      setRidePrice(price);
-      bottomSheetModalRef2.current.dismiss();
-      bottomSheetModalRef3.current.present();
+  // --- Map Manipulation Functions ---
+
+  const animateMarker = (newLatitude, newLongitude, animationDuration) => {
+    const destination = {
+      latitude: newLatitude,
+      longitude: newLongitude,
     };
+
+    markerAnimated.current?.animateMarkerToCoordinate(
+      destination,
+      animationDuration
+    );
   };
 
-  const handleConfirmButtonPress = () => {
-    bottomSheetModalRef3.current.dismiss();
-    bottomSheetModalRef4.current.present();
+  const simulateMovement = (newLatitude, newLongitude) => {
+    animateMarker(newLatitude, newLongitude, 7000);
+
+    // Call the function again after a delay
+    setTimeout(simulateMovement, 7000);
   };
 
-  const handleBrandInputValueChange = (brand) => {
-    setBrand(brand);
-  };
-
-  const handleModelInputValueChange = (model) => {
-    setModel(model);
-  };
-
-  const handleLicenseInputValueChange = (license) => {
-    setLicense(license);
-  };
-
-  const handleColorInputValueChange = (color) => {
-    setColor(color);
-  };
-
-  /**** PROGRESS BAR
-   */
-  const [timer, setTimer] = useState(180); // 3 minutes in seconds
-  const [isActive, setIsActive] = useState(false);
-
-  useEffect(() => {
-    let interval = null;
-
-    if (isActive) {
-      interval = setInterval(() => {
-        setTimer((prevTimer) => prevTimer - 1);
-      }, 1000);
-    } else if (!isActive && timer !== 0) {
-      clearInterval(interval);
-    }
-
-    if (timer === 0) {
-      // Timer has reached 0, perform any action you need here
-      console.log("Timer has reached 0!");
-      clearInterval(interval);
-
-      if (driver) return;
-
-      const complaints = {
-        title: "TimeOver",
-        description: "Waiting time finish",
-        idUser: user.id,
-      };
-
-      onConfirmCancelTrip({
-        complaints,
+  const centerToUserLocation = useCallback(() => {
+    if (userLocation && !driver && !hasCentered) {
+      // when user moves it centers
+      mapRef.current?.animateToRegion({
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        latitudeDelta: LATITUDE_DELTA,
+        longitudeDelta: LONGITUDE_DELTA,
       });
-
-      Alert.alert("Não há um motorista disponível");
+      console.log(userLocation?.latitude, userLocation?.longitude);
+      setHasCentered(true);
     }
+  }, [userLocation?.latitude, userLocation?.longitude, hasCentered]);
 
-    return () => clearInterval(interval);
-  }, [isActive, timer, service, user, driver]);
+  const handleUserLocationChange = ({ nativeEvent: { coordinate } }) => {
+    if (coordinate && !modalVisible && !isRouteVisible) {
+      setUserLocation(coordinate);
+    }
+  };
+
+  // --- Timer Functions ---
 
   const startTimer = () => {
     setIsActive(true);
@@ -565,32 +228,9 @@ export const useMapScreen = () => {
   const calculateProgress = () => {
     return 1 - timer / 180; // Calculate the progress as a decimal value
   };
+  // --- Socket Event Handlers ---
 
-  /****  SERVER TRIGGERS
-   * CLIENT
-   * DRIVER
-   */
-
-  const animateMarker = (newLatitude, newLongitude, animationDuration) => {
-    const destination = {
-      latitude: newLatitude,
-      longitude: newLongitude,
-    };
-
-    markerAnimated.current?.animateMarkerToCoordinate(
-      destination,
-      animationDuration
-    );
-  };
-
-  const simulateMovement = (newLatitude, newLongitude) => {
-    animateMarker(newLatitude, newLongitude, 7000);
-
-    // Call the function again after a delay
-    setTimeout(simulateMovement, 7000);
-  };
-
-  useEffect(() => {
+  const handleSocketEvents = () => {
     // Handle events from the server
 
     const handleBestDriver = (data) => {
@@ -604,11 +244,19 @@ export const useMapScreen = () => {
 
     const handleNoDriver = (data) => {
       try {
-        const { idUser } = data;
-        if (idUser === user.id) {
-          console.log("noDriver event:");
-          Alert.alert("Não há um motorista disponível");
-        }
+        console.log("noDriver event:");
+        Alert.alert(
+          "Não há um motorista disponível",
+          "Tente novamente mais tarde",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                resetToInitialState();
+              },
+            },
+          ]
+        );
       } catch (error) {
         console.error("Error handling noDriver event:", error);
       }
@@ -678,8 +326,8 @@ export const useMapScreen = () => {
               );
               if (distance < 0.3) {
                 setMapDirections();
-                bottomSheetModalRef6.current.dismiss();
-                bottomSheetModalRef7.current.present();
+                tripStartedSheetRef.current.dismiss();
+                driverArrivingSheetRef.current.present();
               }
               break;
             }
@@ -700,8 +348,8 @@ export const useMapScreen = () => {
     const handleServiceStarted = (data) => {
       try {
         if (data && data.status === "in-progress") {
-          bottomSheetModalRef7.current.dismiss();
-          bottomSheetModalRef8.current.present();
+          driverArrivingSheetRef.current.dismiss();
+          tripEndingSheetRef.current.present();
         }
       } catch (error) {
         console.error("Error handling serviceStarted event:", error);
@@ -711,7 +359,7 @@ export const useMapScreen = () => {
     const handleServiceEnded = (data) => {
       try {
         if (data && data.status === "completed") {
-          bottomSheetModalRef8.current.dismiss();
+          tripEndingSheetRef.current.dismiss();
           setModalConfirmationVisible(true);
 
           console.log("Trip completed:", user);
@@ -723,18 +371,16 @@ export const useMapScreen = () => {
 
     const handleServiceCancelled = (data) => {
       try {
-        
         console.log("serviceCancelled event:", data);
         // Handle the service cancellation here
-        Alert.alert("Serviço cancelado", "O motorista cancelou o serviço",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                resetToInitialState();
-              },
+        Alert.alert("Serviço cancelado", "O motorista cancelou o serviço", [
+          {
+            text: "OK",
+            onPress: () => {
+              resetToInitialState();
             },
-          ]);
+          },
+        ]);
       } catch (error) {
         console.error("Error handling serviceCancelled event:", error);
       }
@@ -753,24 +399,299 @@ export const useMapScreen = () => {
       // Clean up the socket connection
       socket.disconnect();
     };
-  }, []);
-
-  const handleDriverConnect = (driverLocation, coords) => {
-    console.log("MAPMARKERS: ", coords);
-    setMapMarkers([driverLocation, coords]);
   };
 
-  const handleDriverAccepted = async (data) => {
-    try {
-      bottomSheetModalRef5.current.dismiss();
-      bottomSheetModalRef6.current.present();
-      // await AsyncStorage.setItem("appState", {
-      //   status: "in-progress",
-      //   service: { data },
-      // });
-    } catch (error) {
-      console.error("Error saving app state: ", error);
+  // --- Effect Hooks ---
+
+  // Effect - Center map on user location initially
+  useEffect(() => {
+    centerToUserLocation();
+  }, [centerToUserLocation]);
+
+  // Effect - Update favorite places when user's saved places change
+  useEffect(() => {
+    const addFavouriteCard = {
+      _id: "fav",
+      place: {
+        name: "Adicionar Favorito",
+        description: "",
+      },
+    };
+    const data = [...(user?.saved_places || [])];
+    if (!data.includes(addFavouriteCard)) data.push(addFavouriteCard);
+
+    setFavPlaces(data);
+  }, [user?.saved_places]);
+
+  // Effect - Fit map to route coordinates when they change
+  useEffect(() => {
+    if (mapDirections?.coordinates) {
+      mapRef.current?.fitToCoordinates(mapDirections?.coordinates, {
+        edgePadding: {
+          bottom: scale(250),
+          top: scale(50),
+          left: scale(20),
+          right: scale(20),
+        },
+      });
     }
+  }, [mapDirections?.coordinates]);
+
+  // Effect - Manage the countdown timer
+  useEffect(() => {
+    let interval = null;
+
+    if (isActive) {
+      interval = setInterval(() => {
+        setTimer((prevTimer) => prevTimer - 1);
+      }, 1000);
+    } else if (!isActive && timer !== 0) {
+      clearInterval(interval);
+    }
+
+    if (timer === 0) {
+      // Timer has reached 0, perform any action you need here
+      console.log("Timer has reached 0!");
+      clearInterval(interval);
+
+      if (driver) return;
+
+      const complaints = {
+        title: "TimeOver",
+        description: "Waiting time finish",
+        idUser: user.id,
+      };
+
+      onConfirmCancelTrip({
+        complaints,
+      });
+
+      Alert.alert(
+        "Não há um motorista disponível",
+        "Tente novamente mais tarde",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              resetToInitialState();
+            },
+          },
+        ]
+      );
+    }
+
+    return () => clearInterval(interval);
+  }, [isActive, timer, service, user, driver]);
+
+  // Effect: Handle Socket Events - Attach/Detach listeners
+  useEffect(() => {
+    // Attach Socket Event listeners
+    const cleanup = handleSocketEvents();
+
+    // Cleanup function will be called when component unmounts
+    return cleanup;
+  }, [socket, user]);
+
+  // Effect - Show initial bottom sheet and fetch nearby drivers
+  useEffect(() => {
+    bottomSheetModalRef.current.present();
+  }, []);
+
+  // Effect - Fetch nearby drivers when the component mounts and when service is null
+  useEffect(() => {
+    // Check if a service is not active before fetching nearby drivers
+    if (!service && userLocation && !isSearchingNearby) {
+      getNearbyDrivers();
+    }
+
+    return () => {
+      setIsSearchingNearby(true);
+    };
+  }, [userLocation, isSearchingNearby]);
+
+  // Effect - Manage service status updates
+  useEffect(() => {
+    console.log("SERVICE STATUS", serviceStatus);
+    if (
+      !serviceStatus ||
+      serviceStatus?.service?.status === "nodriver" ||
+      serviceStatus?.service?.status === "cancelled"
+    )
+      return;
+    const { service, car } = serviceStatus;
+    const status = service.status;
+    console.log("STATUS", status);
+    const room = `service-request-${serviceStatus.service._id}`;
+    setDriver({
+      id: service.driver._id,
+      driverId: service.driver._id,
+      name: `${service.driver.details.name} ${service.driver.details.surname}`,
+      photo: service.driver.user_photo_url,
+      status: service.driver.status,
+      rating: service.driver.rating,
+      numServices: service.driver.numServices,
+      car: {
+        name: `${car.brand} ${car.model} ${car.color}`,
+        licensePlate: car.licensePlate,
+      },
+    });
+    setOriginCity(service.locations[0].name);
+    setDestinationCity(service.locations[1].name);
+    switch (status) {
+      case "in-progress":
+        console.log("Socket connected!", room);
+        socket.emit("join", room);
+        bottomSheetModalRef.current.dismiss();
+        tripEndingSheetRef.current.present();
+        setService(service);
+        break;
+
+      case "assigned":
+        console.log("Socket connected!", room);
+        socket.emit("join", room);
+        bottomSheetModalRef.current.dismiss();
+        tripStartedSheetRef.current.present();
+        setService(service);
+        break;
+
+      case "completed":
+        // Handle completed status here
+        // Add your code for completed status
+        setRidePrice(service.payment.value);
+        setService(service);
+        setModalConfirmationVisible(true);
+
+        break;
+
+      default:
+        break;
+    }
+  }, [serviceStatus]);
+
+  // --- Data Fetching Functions ---
+
+  const getNearbyDrivers = async () => {
+    try {
+      if (isSearchingNearby) return;
+      // console.log("isSearchingNearby", isSearchingNearby);
+      // console.log("getNearbyDrivers", userLocation?.longitude, userLocation?.latitude);
+      const params = {
+        latitude: userLocation?.latitude,
+        longitude: userLocation?.longitude,
+        maxDistance: 5000,
+      };
+      const resp = await axios.get(`${IP}/drivers/nearby`, {
+        params: params,
+      });
+
+      console.log("NEARBY", resp.data);
+
+      const nearbyDrivers = resp.data.map((driver) => ({
+        latitude: driver.location.coordinates[1],
+        longitude: driver.location.coordinates[0],
+      }));
+
+      console.log("A PROCURAR... ", nearbyDrivers);
+      setCarsAround(nearbyDrivers); //nearbyDrivers
+      setIsSearchingNearby(true);
+
+      if (!service) {
+        // Continue searching if a service doesn't exist
+        setTimeout(getNearbyDrivers, 20000);
+      }
+
+      console.log("PROCURA CONCLUIDA... ");
+    } catch (error) {
+      console.error(error);
+      if (!service) {
+        // Retry after a delay if a service doesn't exist
+        setTimeout(getNearbyDrivers, 20000);
+      }
+    }
+  };
+
+  // --- Button Press Handlers ---
+
+  const handleMapSearchBarPress = () => {
+    getAddressFromCoordinates(userLocation?.latitude, userLocation?.longitude);
+    setOriginCity(markerCity);
+    setOriginCoords({
+      latitude: userLocation?.latitude,
+      longitude: userLocation?.longitude,
+    });
+    if (markerCity) {
+      setModalVisible(true);
+      setIsCurrLocation({
+        latitude: userLocation?.latitude,
+        longitude: userLocation?.longitude,
+      });
+    }
+  };
+
+  const handleOnFavouriteButtonPress = (item) => {
+    return () => {
+      setOriginCity(item.place.name);
+      setOriginCoords({
+        latitude: item.place.coordinates.latitude,
+        longitude: item.place.coordinates.longitude,
+      });
+      setModalVisible(true);
+      setInputLocationObject(true);
+      setIsCurrLocation();
+    };
+  };
+
+  const handleConfirmDraggablePress = () => {
+    if (newSavedPlaceAddress.pos > 0) {
+      setModalSavedPlacesVisible(true);
+      setNewSavedPlaceAddress({
+        pos: newSavedPlaceAddress.pos,
+        city: markerCity,
+        coordinates: newSavedPlaceAddress.coordinates,
+        callback: true,
+      });
+      setMarkerVisible(false);
+      bottomSheetModalDragMarker.current.dismiss();
+      return;
+    }
+
+    setModalVisible(true);
+    if (inputLocationObject === 0) {
+      console.log(inputLocationObject, originCoords);
+      setOriginCity(markerCity);
+      if (destinationCity != null) {
+        setMapMarkers([originCoords, destinationCoords]);
+        setModalVisible(false);
+        bottomSheetModalRef.current.dismiss();
+        carTypeSelectionSheetRef.current.present();
+      }
+    } else if (inputLocationObject === 1) {
+      console.log(inputLocationObject, destinationCoords);
+      setDestinationCity(markerCity);
+      if (originCity != null) {
+        setMapMarkers([originCoords, destinationCoords]);
+        setModalVisible(false);
+        bottomSheetModalRef.current.dismiss();
+        carTypeSelectionSheetRef.current.present();
+      }
+    }
+    setMarkerVisible(false);
+    bottomSheetModalDragMarker.current.dismiss();
+  };
+
+  const handleTypeCarPress = (type, price) => {
+    return () => {
+      console.log(type, price);
+      setTypeCar(type);
+      setRidePrice(price);
+      carTypeSelectionSheetRef.current.dismiss();
+      userCarInfoSheetRef.current.present();
+    };
+  };
+
+  const handleConfirmButtonPress = () => {
+    userCarInfoSheetRef.current.dismiss();
+    paymentOptionsSheetRef.current.present();
   };
 
   const handleConfirmPaymentPress = (payment_type) => {
@@ -784,8 +705,8 @@ export const useMapScreen = () => {
       console.log("Confirm Payment");
       console.log(typeCar);
 
-      bottomSheetModalRef4.current.dismiss();
-      bottomSheetModalRef5.current.present();
+      paymentOptionsSheetRef.current.dismiss();
+      rideSearchSheetRef.current.present();
       setCarsAround([]);
       startTimer();
 
@@ -840,42 +761,106 @@ export const useMapScreen = () => {
     };
   };
 
+  const handlePressItemPress = (coords, address, inputRef) => {
+    if (inputLocationObject === 0) {
+      console.log("orign ", coords);
+      setOriginCoords(coords);
+      setOriginCity(address);
+      setIsCurrLocation();
+      inputRef.current.focus();
+      console.log(inputLocationObject, coords, address);
+    } else if (inputLocationObject === 1) {
+      console.log("dest ", coords);
+      console.log(inputLocationObject, coords, address);
+
+      if (address === "CurrLocation") {
+        coords = {
+          latitude: userLocation?.latitude,
+          longitude: userLocation?.longitude,
+        };
+
+        address = markerCity;
+      }
+      // setDestinationCoords(coords);
+      fetchPrices();
+      setDestinationCity(address);
+      // console.log("AQUI", type);
+      setMapMarkers([originCoords, coords]);
+      setModalVisible(false);
+      bottomSheetModalRef.current.dismiss();
+      carTypeSelectionSheetRef.current.present();
+    }
+  };
+
+  const handleMarkerDragPress = () => {
+    return () => {
+      console.log("AQUI");
+      setModalVisible(false);
+      setMarkerVisible(true);
+      bottomSheetModalRef.current.dismiss();
+      bottomSheetModalDragMarker.current.present();
+    };
+  };
+
+  const handleMarkerDragSavedPlaces = () => {
+    console.log("AQUI");
+    setNewSavedPlaceAddress({ pos: 1, city: "", callback: false });
+    setModalSavedPlacesVisible(false);
+    setMarkerVisible(true);
+    carTypeSelectionSheetRef.current.dismiss();
+    bottomSheetModalDragMarker.current.present();
+  };
+
+  const handleMarkerDragEnd = ({ latitude, longitude }) => {
+    getAddressFromCoordinates(latitude, longitude);
+    console.log("AQUI 2", latitude, longitude, newSavedPlaceAddress);
+
+    if (newSavedPlaceAddress.pos > 0) {
+      setNewSavedPlaceAddress({
+        pos: newSavedPlaceAddress.pos,
+        city: "",
+        coordinates: { latitude, longitude },
+        callback: false,
+      });
+    } else if (inputLocationObject === 0) {
+      setOriginCoords({ latitude, longitude });
+    } else if (inputLocationObject === 1) {
+      fetchPrices();
+      setDestinationCoords({ latitude, longitude });
+    }
+  };
+
+  const handleLocationTextInputFocus = (value) => {
+    console.log(value);
+    setInputLocationObject(value);
+  };
+
+  const handleBrandInputValueChange = (brand) => {
+    setBrand(brand);
+  };
+
+  const handleModelInputValueChange = (model) => {
+    setModel(model);
+  };
+
+  const handleLicenseInputValueChange = (license) => {
+    setLicense(license);
+  };
+
+  const handleColorInputValueChange = (color) => {
+    setColor(color);
+  };
+
+  const handlePressSelectTypeRoad = (type) => {
+    setTypeCar(type);
+  };
+
   const handleDetailsForm = (bottomSheet) => {
     console.log(detailsInfo);
     setDetailsInfo({ bottomSheet: bottomSheet });
     bottomSheet.current.dismiss();
     bottomSheetModalRefDetails.current.present();
   };
-
-  /** DISTANCE
-   */
-  const getDistanceInKm = (pickup, drop) => {
-    const { lat1, lon1 } = { lat1: pickup.latitude, lon1: pickup.longitude };
-    const { lat2, lon2 } = { lat2: drop.latitude, lon2: drop.longitude };
-
-    const earthRadius = 6371; // Radius of the Earth in kilometers
-    const dLat = toRadians(lat2 - lat1);
-    const dLon = toRadians(lon2 - lon1);
-
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRadians(lat1)) *
-        Math.cos(toRadians(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = earthRadius * c;
-
-    return distance;
-  };
-
-  function toRadians(degrees) {
-    return (degrees * Math.PI) / 180;
-  }
-
-  /**
-   * BOTTOM SHEET
-   */
 
   const endTrip = () => {
     setModalConfirmationVisible(true);
@@ -884,8 +869,8 @@ export const useMapScreen = () => {
   const onConfirmCancelTrip = (complaints) => {
     if (service) {
       socket.emit("serviceCancel", { idService: service._id, complaints });
-      bottomSheetModalRef6.current.dismiss();
-      bottomSheetModalRef5.current.dismiss();
+      tripStartedSheetRef.current.dismiss();
+      rideSearchSheetRef.current.dismiss();
       setService();
       setMapDirections();
       setMapMarkers([]);
@@ -904,6 +889,92 @@ export const useMapScreen = () => {
     onConfirmCancelTrip(complaints);
   };
 
+  const handlePressQuestion = (question) => {
+    handleCancelTrip(question);
+    handleCancelAlert();
+  };
+
+  const handleMapDirectionsReady = (routeInfo) => {
+    console.log(routeInfo.coordinates);
+    setMapDirections(routeInfo);
+    setTripDuration(routeInfo?.duration);
+  };
+
+  const handleDriverConnect = (driverLocation, coords) => {
+    console.log("MAPMARKERS: ", coords);
+    setMapMarkers([driverLocation, coords]);
+  };
+
+  const handleDriverAccepted = async (data) => {
+    try {
+      rideSearchSheetRef.current.dismiss();
+      tripStartedSheetRef.current.present();
+      // await AsyncStorage.setItem("appState", {
+      //   status: "in-progress",
+      //   service: { data },
+      // });
+    } catch (error) {
+      console.error("Error saving app state: ", error);
+    }
+  };
+
+  // --- Modal and Alert Handlers ---
+
+  const closeDestinationModal = () => {
+    setModalVisible(false);
+    bottomSheetModalRef.current.present();
+  };
+
+  const closeSavedPlacesModal = () => {
+    setModalSavedPlacesVisible(false);
+  };
+
+  const closeConfirmationModal = () => {
+    resetToInitialState();
+  };
+
+  const closeCancelModal = () => {
+    setModalCancelVisible(false);
+  };
+  const closePreCancelModal = () => {
+    setModalPreCancelVisible(false);
+  };
+
+  const handlePreCancelButtonPress = () => {
+    setModalPreCancelVisible(true);
+  };
+
+  const handleAddFavouriteButtonPress = () => {
+    setModalSavedPlacesVisible(true);
+  };
+
+  const handleBackButtonPress = () => {
+    // when user goes back it restart the menu it should go back to previous men
+
+    if (isRouteVisible) {
+      setMapMarkers([]);
+      setOriginCity();
+      setDestinationCity();
+      setOriginCoords();
+      setDestinationCoords();
+      setMapDirections();
+      centerToUserLocation();
+      bottomSheetModalRef.current.present();
+      carTypeSelectionSheetRef.current.dismiss();
+      userCarInfoSheetRef.current.dismiss();
+      paymentOptionsSheetRef.current.dismiss();
+    }
+  };
+
+  const handleBackDetailsButtonPress = () => {
+    const { bottomSheet } = detailsInfo;
+    if (detailsInfo) {
+      setDetailsInfo();
+      bottomSheetModalRefDetails.current.dismiss();
+      bottomSheet.current.present();
+    }
+  };
+
   const handleMessageDriver = () => {
     setModalChatVisible(true);
   };
@@ -911,69 +982,6 @@ export const useMapScreen = () => {
   const closeChatModel = () => {
     setModalChatVisible(false);
   };
-
-  const handlePressQuestion = (question) => {
-    handleCancelTrip(question);
-    handleCancelAlert();
-  };
-
-  useEffect(() => {
-    console.log("SERVICE STATUS", serviceStatus);
-    if (
-      !serviceStatus ||
-      serviceStatus?.service?.status === "nodriver" ||
-      serviceStatus?.service?.status === "cancelled"
-    )
-      return;
-    const { service, car } = serviceStatus;
-    const status = service.status;
-    console.log("STATUS", status);
-    const room = `service-request-${serviceStatus.service._id}`;
-    setDriver({
-      id: service.driver._id,
-      driverId: service.driver._id,
-      name: `${service.driver.details.name} ${service.driver.details.surname}`,
-      photo: service.driver.user_photo_url,
-      status: service.driver.status,
-      rating: service.driver.rating,
-      numServices: service.driver.numServices,
-      car: {
-        name: `${car.brand} ${car.model} ${car.color}`,
-        licensePlate: car.licensePlate,
-      },
-    });
-    setOriginCity(service.locations[0].name);
-    setDestinationCity(service.locations[1].name);
-    switch (status) {
-      case "in-progress":
-        console.log("Socket connected!", room);
-        socket.emit("join", room);
-        bottomSheetModalRef.current.dismiss();
-        bottomSheetModalRef8.current.present();
-        setService(service);
-        break;
-
-      case "assigned":
-        console.log("Socket connected!", room);
-        socket.emit("join", room);
-        bottomSheetModalRef.current.dismiss();
-        bottomSheetModalRef6.current.present();
-        setService(service);
-        break;
-
-      case "completed":
-        // Handle completed status here
-        // Add your code for completed status
-        setRidePrice(service.payment.value);
-        setService(service);
-        setModalConfirmationVisible(true);
-
-        break;
-
-      default:
-        break;
-    }
-  }, [serviceStatus]);
 
   const handleCancelAlert = () => {
     Alert.alert(
@@ -999,23 +1007,26 @@ export const useMapScreen = () => {
     setModalCancelVisible(true);
   };
 
-  const resetToInitialState = () => {
-    bottomSheetModalRef?.current.present();
-    bottomSheetModalRef2?.current.dismiss();
-    bottomSheetModalRef3?.current.dismiss();
-    bottomSheetModalRef4?.current.dismiss();
-    bottomSheetModalRef5?.current.dismiss();
-    bottomSheetModalRef6?.current.dismiss();
-    bottomSheetModalRef7?.current.dismiss();
-    bottomSheetModalRef8?.current.dismiss();
-    bottomSheetModalRefDetails?.current.dismiss();
-    bottomSheetModalDragMarker?.current.dismiss();
+  // --- Reset to Initial State ---
 
-    setModalVisible(false);
+  const resetToInitialState = () => {
+    // setModalVisible(false);
     setModalSavedPlacesVisible(false);
     setModalCancelVisible(false);
     setModalPreCancelVisible(false);
     setModalChatVisible(false);
+
+    bottomSheetModalRef?.current.dismiss();
+    carTypeSelectionSheetRef?.current.dismiss();
+    userCarInfoSheetRef?.current.dismiss();
+    paymentOptionsSheetRef?.current.dismiss();
+    rideSearchSheetRef?.current.dismiss();
+    tripStartedSheetRef?.current.dismiss();
+    driverArrivingSheetRef?.current.dismiss();
+    tripEndingSheetRef?.current.dismiss();
+    bottomSheetModalRefDetails?.current.dismiss();
+    bottomSheetModalDragMarker?.current.dismiss();
+
     setMapMarkers([]);
     setMapDirections();
     setTypeCar("Turismo");
@@ -1028,7 +1039,6 @@ export const useMapScreen = () => {
     setDetailsInfo();
     setMarkerVisible();
     setInputLocationObject();
-    setMarkerCity();
     setOriginCity();
     setDestinationCity();
     setOriginCoords();
@@ -1036,6 +1046,15 @@ export const useMapScreen = () => {
     setIsCurrLocation();
     setDriverLocation();
     setCarsAround([]);
+    setTimer(180);
+    setIsActive(false);
+
+    setTimeout(() => {
+      // Only present the bottom sheet if the modal isn't already visible
+      if (!modalVisible) {
+        bottomSheetModalRef?.current.present();
+      }
+    }, 50);
   };
 
   return {
@@ -1063,13 +1082,13 @@ export const useMapScreen = () => {
       tripDuration,
       favPlaces,
       bottomSheetModalRef,
-      bottomSheetModalRef2,
-      bottomSheetModalRef3,
-      bottomSheetModalRef4,
-      bottomSheetModalRef5,
-      bottomSheetModalRef6,
-      bottomSheetModalRef7,
-      bottomSheetModalRef8,
+      carTypeSelectionSheetRef,
+      userCarInfoSheetRef,
+      paymentOptionsSheetRef,
+      rideSearchSheetRef,
+      tripStartedSheetRef,
+      driverArrivingSheetRef,
+      tripEndingSheetRef,
       bottomSheetModalRefDetails,
       bottomSheetModalDragMarker,
       typeCar,
@@ -1122,6 +1141,7 @@ export const useMapScreen = () => {
       startTimer,
       resetTimer,
       formatTime,
+      formatDuration,
       calculateProgress,
       handleDetailsForm,
       handleBackDetailsButtonPress,

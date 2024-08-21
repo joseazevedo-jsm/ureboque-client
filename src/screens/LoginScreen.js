@@ -142,7 +142,7 @@ const LoginScreen = () => {
         visible={models.modalOtpVisible}
         OTPChange={operations.handleOTPChange}
         code={models.codeOTP}
-        number={phone}
+        number={`+ ${models.callingCode} ${models.number}`}
         onChangeLoginState={operations.onChangeLoginState}
         modalRegVisible={models.modalRegisterVisible}
       />
