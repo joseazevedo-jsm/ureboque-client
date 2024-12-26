@@ -13,6 +13,10 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 
 import { useConfirmationModal } from "./components/useConfirmationModal";
 import StarRating from "../../cards/starRating";
+
+const imgDef =
+  "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
+  
 const ConfirmationModal = ({
   visible,
   closeModal,
@@ -60,7 +64,7 @@ const ConfirmationModal = ({
           <View style={{ alignItems: "center" }}>
             <Image
               source={{
-                uri: driver?.photo || null,
+                uri: driver?.photo || imgDef,
               }}
               style={{
                 width: scale(110),

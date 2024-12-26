@@ -14,6 +14,8 @@ import { scale } from "react-native-size-matters";
 import { Image } from "react-native";
 import ChatItem from "../../cards/chatItem";
 
+const imgDef = "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
+
 const ChatModal = ({ visible, closeModal, idService, driver,navigation }) => {
   const { models, operations } = useChatModal(idService);
 
@@ -45,7 +47,7 @@ const ChatModal = ({ visible, closeModal, idService, driver,navigation }) => {
             >
               <Image
                 source={{
-                  uri: driver?.photo,
+                  uri: driver?.photo || imgDef,
                 }}
                 style={{
                   height: scale(45),

@@ -193,6 +193,7 @@ const AddressModal = ({
             ref={models.bottomSheetModalAddAddress}
             index={0}
             snapPoints={[scale(575)]}
+            enableDynamicSizing={false}
           >
             <View style={styles.modalContainer}>
               <View style={styles.searchContainer}>

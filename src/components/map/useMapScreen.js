@@ -634,7 +634,7 @@ export const useMapScreen = () => {
 
   const handleOnFavouriteButtonPress = (item) => {
     return () => {
-      setOriginCity(item.place.name);
+      setOriginCity(item.place.description);
       setOriginCoords({
         latitude: item.place.coordinates.latitude,
         longitude: item.place.coordinates.longitude,
@@ -695,7 +695,7 @@ export const useMapScreen = () => {
 
       setTypeCar(type);
       setRidePrice(price);
-      t('carTypeSelection');
+      setActiveBottomSheet('carTypeSelection');
 
       if (carTypeSelectionSheetRef.current) {
         console.log("Dismissing carTypeSelectionSheetRef");

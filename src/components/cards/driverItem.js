@@ -3,6 +3,9 @@ import { View, TouchableOpacity, StyleSheet, Text, Image } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
 
+const imgDef =
+  "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
+  
 const DriverItem = ({
   driver,
   tripDuration,
@@ -74,7 +77,7 @@ const DriverItem = ({
           <View style={{ alignItems: "center" }}>
             <Image
               source={{
-                uri: driver?.photo || null,
+                uri: driver?.photo || imgDef,
               }}
               style={{
                 width: scale(75),
