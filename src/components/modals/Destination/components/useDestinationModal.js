@@ -49,7 +49,7 @@ export const useDestinationModal = () => {
   const textInputDestinationRef = useRef(null);
   const debounceDestinationInputValue = useDebounce(destinationInputValue, 500);
 
-  const { responseData } = useTextSearchQuery(
+  const { responseData, setResponseData } = useTextSearchQuery(
     debounceDestinationInputValue[0] || ""
   );
   //console.log(debounceDestinationInputValue[0]);
@@ -70,6 +70,10 @@ export const useDestinationModal = () => {
     setInputIndex(index);
   }
 
+  const handleSetResponseData = (data) => {
+    setResponseData();
+  }
+
   return {
     models: {
       destinationInputValue,
@@ -84,7 +88,9 @@ export const useDestinationModal = () => {
       handleDestinationInputValueChange,
       handleInputTextChange,
       handleOnIsCurrLocation,
-      handleOnSelectInputIndex
+      handleOnSelectInputIndex,
+      handleSetResponseData
+
     },
   };
 };

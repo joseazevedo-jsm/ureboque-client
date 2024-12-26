@@ -35,14 +35,15 @@ export const useConfirmationModal = (serviceId, close) => {
         requestData
       );
       console.log(resp.data);
-      Alert.alert("Avaliação",
-       "Avaliação enviada com sucesso", [
+      Alert.alert("Avaliação", "Avaliação enviada com sucesso", [
         {
           text: "OK",
-          onPress: () => close()
-        }
-       ]);
-
+          onPress: () => {
+            close();
+            setRating(0);
+          },
+        },
+      ]);
     } catch (error) {
       console.error(error.message);
     }

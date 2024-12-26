@@ -78,6 +78,7 @@ const DestinationModal = ({
             item.name,
             models.textInputDestinationRef
           );
+          operations.handleSetResponseData();
           models.inputIndex === 0 && operations.handleOnIsCurrLocation(false);
         }}
         saved={false}

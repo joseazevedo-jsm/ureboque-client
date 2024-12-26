@@ -30,5 +30,5 @@ export const useTextSearchQuery = (searchQuery) => {
     }
   }, [searchQuery,userLocation?.latitude, userLocation?.longitude]);
 
-  return { responseData };
+  return { responseData, setResponseData };
 };

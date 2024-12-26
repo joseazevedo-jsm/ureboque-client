@@ -34,10 +34,7 @@ const SavedPlacesModal = ({
           key={item.id}
           place={item.place}
           edit={models.edit}
-          onPressEditItem={operations.handleAddressEditButtonPress(
-            "Casa",
-            item.place?.description
-          )}
+          onPressEditItem={operations.handleAddFavouriteButtonPress()}
           add={true}
         />
       );
@@ -49,10 +46,7 @@ const SavedPlacesModal = ({
           key={item.id}
           place={item.place}
           edit={models.edit}
-          onPressEditItem={operations.handleAddressEditButtonPress(
-            "Trabalho",
-            item.place?.description
-          )}
+          onPressEditItem={operations.handleAddFavouriteButtonPress()}
           add={true}
         />
       );
@@ -64,8 +58,8 @@ const SavedPlacesModal = ({
         place={item.place}
         edit={models.edit}
         onPressEditItem={operations.handleAddressEditButtonPress(
-          item.place.name,
-          item.place?.description
+          item.place,
+          item._id
         )}
         add={false}
       />
@@ -143,7 +137,7 @@ const SavedPlacesModal = ({
                 alignSelf: "center",
                 padding: scale(18),
               }}
-              onPress={operations.handleAddFavouriteButtonPress}
+              onPress={operations.handleAddFavouriteButtonPress()}
             >
               <Text style={{ color: "#0089FF", fontWeight: "700" }}>
                 ADICIONAR LUGAR
@@ -159,15 +153,21 @@ const SavedPlacesModal = ({
             : models.addressModalVisible
         }
         closeModal={operations.handeBackButtonPress}
+        onGoHomePress={closeModal}
         type={models.type}
         button={models.button}
         address={addressCallBack.city ? addressCallBack.city : models.address}
         name={models.name}
-        description={models.description}
-        onPlaceItemPress={operations.handlePressItemPress}
+        instructions={models.instructions}
+        placeId={models.placeId}
+        onAddressChange={operations.handleNameChangeText}
+        onInstructionsChange={operations.handleInstructionsChangeText}
+        onPressItem={operations.handlePressItemPress}
         onSaveAddress={operations.handleSaveFavouriteButtonPress}
+        onDeleteAddress={operations.handleDeleteFavouriteButtonPress}
         mapDrag={mapDrag}
         callbackAddress={addressCallBack}
+        onAtualLocationPress={operations.handleCurrentLocationPress}
       />
     </>
   );

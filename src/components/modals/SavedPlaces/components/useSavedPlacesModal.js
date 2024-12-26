@@ -2,18 +2,23 @@ import { useContext, useEffect } from "react";
 import { useRef } from "react";
 import { useState } from "react";
 import { UserContext } from "../../../../context/UserContext";
+import Geocoder from "react-native-geocoding";
+import { useUserLocationStateContext } from "../../../../context/UserLocationStateContext";
 
 export const useSavedPlacesModal = () => {
-  const { user, saveUserFavouriteAddress } = useContext(UserContext);
+  const { user, saveUserFavouriteAddress, removeUserFavouriteAddress, updateUserFavouriteAddress } = useContext(UserContext);
+  const { userLocation } = useUserLocationStateContext();
   const bottomSheetModalAddAddress = useRef(null);
   const [edit, setEdit] = useState();
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [type, setType] = useState("");
   const [button, setButton] = useState(false);
   const [address, setAddress] = useState("");
+  const [placeId, setPlaceId] = useState("");
   const [name, setName] = useState("");
   const [nameFAV, setNameFAV] = useState("");
   const [description, setDescription] = useState("");
+  const [instructions, setInstructions] = useState("");
   const [savedPlaces, setSavedPlaces] = useState([]);
   const [coordinates, setCoordinates] = useState();
 
@@ -43,29 +48,37 @@ export const useSavedPlacesModal = () => {
     }
 
     //Verificar melhor
-  }, [user?.saved_places]);
+  }, [user]);
 
   const handleEditPress = () => {
     setEdit(true);
   };
-  const handleAddressEditButtonPress = (name, address) => {
+  const handleAddressEditButtonPress = (place, placeId) => {
     return () => {
-      setName(name);
-      setDescription("...");
-      setAddress(address);
+      console.log("edit place", place, placeId);
+      setName(place.name);
+      setDescription(place.description);
+      setAddress(place.description);
+      setInstructions(place.instructions);
+      setPlaceId(placeId);
+      setCoordinates(place.coordinates);
       setType("EDITAR");
       setButton(true);
       setAddressModalVisible(true);
     };
   };
 
+  const handleDeleteFavouriteButtonPress = (placeId) => {
+    console.log("delete place", placeId);
+    removeUserFavouriteAddress(placeId);
+  };
+
   const handleAddFavouriteButtonPress = () => {
-    setName("");
-    setDescription("");
-    setAddress("");
-    setType("NOVO");
-    setButton(false);
-    setAddressModalVisible(true);
+    return () => {
+      setType("NOVO");
+      setButton(false);
+      setAddressModalVisible(true);
+    }
   };
 
   const callbackModal = () => {
@@ -76,37 +89,35 @@ export const useSavedPlacesModal = () => {
     setCoordinates(coords);
   };
 
-  const handleSaveFavouriteButtonPress = (callback,type) => {
-    return () => {
-      console.log("callback", name);
-      let place = {
+  const handleSaveFavouriteButtonPress = (callback, type) => {
+    console.log("nameFAV and name", nameFAV, name);
+       let place = {
         place: {
-          name: nameFAV,
+          name: name || nameFAV,
           description: address,
           coordinates: coordinates,
+          instructions: instructions,
         },
       };
 
-      if (callback) {
-        place = {
-          place: {
-            name: name,
-            description: callback.city,
-            coordinates: callback.coordinates,
-          },
-        };
+      if (callback && callback.coordinates && callback.city) {
+        place.place.coordinates = callback.coordinates;
+        place.place.description = callback.city;
       }
 
-      console.log("place", place, type);
-      if(type){
-        if (type === "NOVO") {
-          console.log("NOVO");
+      switch (type) {
+        case "NOVO":
+          console.log("Saving new place", place);
           saveUserFavouriteAddress(place);
-        } else {
-          console.log("DAR UPDATE");
-        }
+          break;
+        case "EDITAR":
+          console.log("Updating existing place", place);
+          updateUserFavouriteAddress(place, placeId);
+          break;
+        default:
+          console.log("Invalid type");
+          break;
       }
-    };
   };
   const handeBackButtonPress = () => {
     setAddress("");
@@ -125,11 +136,13 @@ export const useSavedPlacesModal = () => {
     name
   ) => {
     return () => {
-      // console.log("--> Coords ",coords,formatted_address);
+      // Set the coordinates, address, and nameFAV
       setCoordinates(coords);
       setAddress(formatted_address);
       setNameFAV(name);
-      bottomsheet.current.dismiss();
+    
+      // Dismiss the bottom sheet
+      bottomsheet.current.dismiss();   
     };
   };
 
@@ -137,6 +150,42 @@ export const useSavedPlacesModal = () => {
     setName(text);
     console.log(text);
   };
+
+  const handleInstructionsChangeText = (text) => {
+    setInstructions(text);
+    console.log(text);
+  };
+
+  const handleCurrentLocationPress = async () => {
+    try {
+      if (!userLocation?.latitude || !userLocation?.longitude) {
+        Alert.alert('Error', 'Could not determine your location. Please try again.');
+        return;
+      }
+
+      const response = await Geocoder.from(userLocation.latitude, userLocation.longitude);
+      const address = response.results[0]?.formatted_address;
+      const name = response.results[0]?.address_components[0]?.long_name;
+
+      if (!address) {
+        Alert.alert('Error', 'Could not determine your address. Please try again.');
+        return;
+      }
+
+      setCoordinates({
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+      });
+      setAddress(address);
+      setNameFAV(name);
+
+
+    } catch (error) {
+      console.error('Error handling current location:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    }
+  };
+
   return {
     models: {
       edit,
@@ -144,7 +193,9 @@ export const useSavedPlacesModal = () => {
       button,
       address,
       name,
+      placeId,
       description,
+      instructions,
       savedPlaces,
       addressModalVisible,
       bottomSheetModalAddAddress,
@@ -153,12 +204,15 @@ export const useSavedPlacesModal = () => {
       handleEditPress,
       setAddressModalVisible,
       handleAddressEditButtonPress,
+      handleDeleteFavouriteButtonPress,
       handeBackButtonPress,
       handleAddFavouriteButtonPress,
       handleLocationPress,
       handlePressItemPress,
       handleSaveFavouriteButtonPress,
       handleNameChangeText,
+      handleInstructionsChangeText,
+      handleCurrentLocationPress,
       callbackModal,
       addCoords,
     },

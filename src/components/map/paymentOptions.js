@@ -3,12 +3,25 @@ import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
 import CarTypes from "../cards/carTypes";
+import { Image } from "react-native";
 
 const PaymentOptions = ({ operations, models }) => {
   const renderPaymentOption = (iconName, label, paymentType) => (
     <TouchableOpacity onPress={operations.handleConfirmPaymentPress(paymentType)}>
       <View style={styles.paymentOption}>
-        <Icon name={iconName} size={scale(50)} color="#000" />
+        {iconName === "money" ? (
+          <Image
+            source={require("../../../resources/icons/payment/CASH.png") }
+            style={{ width: scale(50), height: scale(50) }}
+            resizeMode="contain"
+          />
+        ) : (
+          <Image
+            source={require("../../../resources/icons/payment/MULTICARD.png")}
+            style={{ width: scale(50), height: scale(50) }}
+            resizeMode="contain"
+          />
+        )}
         <Text style={styles.paymentOptionText}>{label}</Text>
       </View>
     </TouchableOpacity>
@@ -28,8 +41,8 @@ const PaymentOptions = ({ operations, models }) => {
 
       <Text style={styles.paymentTitle}>COMO É QUE VAI PAGAR?</Text>
       <View>
-        {renderPaymentOption("money", "CASH", "DINHEIRO")}
-        {renderPaymentOption("credit-card", "MULTICAIXA", "MULTICAIXA")}
+        {renderPaymentOption("money", "Cash", "DINHEIRO")}
+        {renderPaymentOption("credit-card", "Multicaixa", "MULTICAIXA")}
       </View>
     </View>
   );

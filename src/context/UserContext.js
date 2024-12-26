@@ -53,8 +53,9 @@ export const UserContextProvider = ({ children }) => {
 
   const saveUserFavouriteAddress = async (place) => {
     try {
+      console.log("new place ", place);
       const response = await api.put(`/users/${user.id}/places`, place);
-      console.log(response.data);
+      console.log("response ",response.data);
       setUser((prevState) => ({
         ...prevState,
         saved_places: response.data.saved_places,
@@ -62,6 +63,32 @@ export const UserContextProvider = ({ children }) => {
       console.log(user);
     } catch (error) {
       // Handle error
+      console.error(error);
+    }
+  };
+
+  const removeUserFavouriteAddress = async (placeId) => {
+    try {
+      const response = await api.delete(`/users/${user.id}/places/${placeId}`);
+      console.log("response ",response.data);
+      setUser((prevState) => ({
+        ...prevState,
+        saved_places: response.data.saved_places,
+      }));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const updateUserFavouriteAddress = async (place, placeId) => {
+    try {
+      const response = await api.put(`/users/${user.id}/places/${placeId}`, place);
+      console.log("response ",response.data);
+      setUser((prevState) => ({
+        ...prevState,
+        saved_places: response.data.saved_places,
+      }));
+    } catch (error) {
       console.error(error);
     }
   };
@@ -206,6 +233,8 @@ export const UserContextProvider = ({ children }) => {
     fetchUsers,
     updateUser,
     saveUserFavouriteAddress,
+    removeUserFavouriteAddress,
+    updateUserFavouriteAddress,
     activateDiscount,
     removeDiscount,
     userToken,

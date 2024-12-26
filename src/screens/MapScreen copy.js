@@ -76,40 +76,23 @@ const MapScreen = () => {
   );
 
   const getBackButtonStyle = () => {
-    const baseStyle = {
+    return {
       position: 'absolute',
       left: scale(20),
+      top: scale(35),
       zIndex: 1000,
+      width: scale(40),
+      height: scale(40),
+      backgroundColor: '#fff',
+      borderRadius: scale(7),
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: scale(2), height: scale(2) },
+      shadowOpacity: 0.5,
+      shadowRadius: 4,
+      elevation: 5,
     };
-
-    let topOffset;
-    switch (models.activeBottomSheet) {
-      case 'carTypeSelection':
-        topOffset = scale(100);
-        break;
-      case 'userCarInfo':
-        topOffset = scale(150);
-        break;
-      case 'paymentOptions':
-        topOffset = scale(200);
-        break;
-      case 'rideSearch':
-        topOffset = scale(120);
-        break;
-      case 'tripStarted':
-        topOffset = scale(140);
-        break;
-      case 'driverArriving':
-        topOffset = scale(140);
-        break;
-      case 'tripEnding':
-        topOffset = scale(140);
-        break;
-      default:
-        topOffset = scale(120);
-    }
-
-    return { ...baseStyle, top: topOffset };
   };
 
   const renderMapMarker = () => {
@@ -285,21 +268,14 @@ const MapScreen = () => {
       </TouchableOpacity>
 
       {models.isRouteVisible && !models.service && (
-        <TouchableOpacity 
-          onPress={operations.handleBackButtonPress} 
-          style={getBackButtonStyle()}
-        >
-          <View style={styles.backDetails}>
-            <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
-          </View>
+        <TouchableOpacity onPress={operations.handleBackButtonPress} style={getBackButtonStyle()}>
+          <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
         </TouchableOpacity>
       )}
 
       {models.detailsInfo && (
-        <TouchableOpacity onPress={operations.handleBackDetailsButtonPress}>
-          <View style={styles.backDetails}>
-            <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
-          </View>
+        <TouchableOpacity onPress={operations.handleBackDetailsButtonPress} style={getBackButtonStyle()}>
+          <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
         </TouchableOpacity>
       )}
 
@@ -618,19 +594,6 @@ const styles = StyleSheet.create({
     marginHorizontal: scale(15),
     paddingHorizontal: scale(16),
     marginVertical: scale(10),
-  },
-  backDetails: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(20),
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: scale(2), height: scale(2) },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 5,
   },
   containerInputs: {
     justifyContent: "center",

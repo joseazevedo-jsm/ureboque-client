@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import Icon from "react-native-vector-icons/MaterialIcons";
@@ -23,18 +24,27 @@ import PlaceItem from "../../cards/placeItem";
 const AddressModal = ({
   visible,
   closeModal,
+  onGoHomePress,
   type,
+  instructions,
   address,
   name,
-  description,
   button,
-  onPlaceItemPress,
-  onSaveAddress,
+  placeId,
+  onAddressChange,  
+  onInstructionsChange,
+  onPressItem,
   mapDrag,
   callbackAddress,
+  onSaveAddress,  
+  onDeleteAddress,
+  onAtualLocationPress,
 }) => {
   const { models, operations } = useSavedPlacesModal();
   const destination = useDestinationModal();
+
+  
+
   const handeBackButtonPress = () => {
     closeModal();
   };
@@ -53,14 +63,14 @@ const AddressModal = ({
         name={item.name}
         iconUrl={item.icon}
         address={item.formatted_address}
-        onPress={onPlaceItemPress(
+        onPress={onPressItem(
           {
             latitude: item.geometry.location.lat,
             longitude: item.geometry.location.lng,
           },
           item.formatted_address,
           models.bottomSheetModalAddAddress,
-          models.name
+          name
         )}
       />
     );
@@ -78,7 +88,11 @@ const AddressModal = ({
           </TouchableOpacity>
           <TouchableOpacity
             style={{ top: scale(15), marginRight: scale(10) }}
-            onPress={operations.handleEditPress}
+            onPress={() => {
+              onDeleteAddress(placeId)
+              onGoHomePress()
+              closeModal()
+            }}
           >
             {button && <Text style={{ fontWeight: "500" }}>Apagar</Text>}
           </TouchableOpacity>
@@ -110,7 +124,7 @@ const AddressModal = ({
           placeholder="Nome do endereço"
           defaultValue={name !== "" ? name : ""}
           // value={models.name ? models.name : "Nome"}
-          onChangeText={operations.handleNameChangeText}
+          onChangeText={onAddressChange}
         />
         <View
           style={{
@@ -152,8 +166,9 @@ const AddressModal = ({
           placeholderTextColor="#808080"
           placeholder="Instruções para o motorista"
           defaultValue={
-            description !== "" ? description : ""
+            instructions !== "" ? instructions : ""
           }
+          onChangeText={onInstructionsChange}
         />
 
         <TouchableOpacity
@@ -165,7 +180,11 @@ const AddressModal = ({
             alignSelf: "center",
             padding: scale(18),
           }}
-          onPress={operations.handleSaveFavouriteButtonPress(callbackAddress,type)}
+          onPress={() => {
+            onSaveAddress(callbackAddress,type)
+            onGoHomePress()
+            closeModal()
+          }}
         >
           <Text style={{ color: "#FFF", fontWeight: "700" }}>SALVAR</Text>
         </TouchableOpacity>
@@ -175,19 +194,8 @@ const AddressModal = ({
             index={0}
             snapPoints={[scale(575)]}
           >
-            <View
-              style={{
-                backgroundColor: "#ccc",
-                flex: 1,
-              }}
-            >
-              <View
-                style={{
-                  backgroundColor: "#fff",
-                  borderRadius: scale(5),
-                  marginBottom: scale(3),
-                }}
-              >
+            <View style={styles.modalContainer}>
+              <View style={styles.searchContainer}>
                 <View
                   style={{
                     borderRadius: scale(7),
@@ -213,10 +221,11 @@ const AddressModal = ({
                   />
                 </View>
 
-                <TouchableOpacity>
-                  <View
-                    style={{ flexDirection: "row", marginBottom: scale(15) }}
-                  >
+                <TouchableOpacity onPress={() => {
+                  onAtualLocationPress();
+                  models.bottomSheetModalAddAddress.current.dismiss();
+                }}>
+                  <View style={styles.locationButton}>
                     <View style={styles.iconContainer}>
                       <Icon
                         name="navigation"
@@ -224,14 +233,7 @@ const AddressModal = ({
                         color="#0089FF"
                       />
                     </View>
-                    <Text
-                      style={{
-                        color: "#000",
-                        fontSize: scale(15),
-                        paddingHorizontal: scale(10),
-                        textAlignVertical: "center",
-                      }}
-                    >
+                    <Text style={styles.locationText}>
                       Localização atual
                     </Text>
                   </View>
@@ -240,24 +242,17 @@ const AddressModal = ({
                 <TouchableOpacity onPress={
                   mapDrag
                 }>
-                  <View style={{ flexDirection: "row", marginBottom:scale(10) }}>
+                  <View style={styles.locationButton}>
                     <View style={styles.iconContainer}>
                       <Icon name="map" size={scale(30)} color="#0089FF" />
                     </View>
-                    <Text
-                      style={{
-                        color: "#000",
-                        fontSize: scale(15),
-                        paddingHorizontal: scale(10),
-                        textAlignVertical: "center",
-                      }}
-                    >
+                    <Text style={styles.locationText}>
                       Definir localização no mapa
                     </Text>
                   </View>
                 </TouchableOpacity>
               </View>
-              <View style={{ backgroundColor: "#fff", borderRadius: scale(5) }}>
+              <View style={styles.resultsContainer}>
                 <FlatList
                   data={destination.models?.queryResponseDataSave}
                   renderItem={renderFlatListItem}
@@ -300,5 +295,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: scale(7),
   },
+  modalContainer: {
+    backgroundColor: "#ccc",
+    flex: 1,
+  },
+  searchContainer: {
+    backgroundColor: "#fff",
+    borderRadius: scale(5),
+    marginBottom: scale(3),
+    padding: scale(10),
+  },
+  locationButton: {
+    flexDirection: "row",
+    marginBottom: scale(15),
+    alignItems: "center",
+  },
+  locationText: {
+    color: "#000",
+    fontSize: scale(15),
+    paddingHorizontal: scale(10),
+    textAlignVertical: "center",
+  },
+  resultsContainer: {
+    backgroundColor: "#fff",
+    borderRadius: scale(5),
+    flex: 1,
+  }
 });
 export default AddressModal;

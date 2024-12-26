@@ -74,7 +74,7 @@ const DriverItem = ({
           <View style={{ alignItems: "center" }}>
             <Image
               source={{
-                uri: driver.photo,
+                uri: driver?.photo || null,
               }}
               style={{
                 width: scale(75),

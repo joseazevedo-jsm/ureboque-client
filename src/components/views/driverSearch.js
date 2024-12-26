@@ -5,7 +5,7 @@ import ProgressBar from "react-native-progress-bar-horizontal";
 import RouteItem from "../cards/routeItem";
 import Icon from "react-native-vector-icons/MaterialIcons";
 
-const DriverSearch = ({ origin, destination, timer, formatTime, accepted }) => {
+const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCancelSearch }) => {
   return (
     <View>
       <View style={{ marginLeft: scale(10), width: scale(325) }}>
@@ -59,7 +59,7 @@ const DriverSearch = ({ origin, destination, timer, formatTime, accepted }) => {
       <View>
         <View style={{ height: scale(10), backgroundColor: "#ccc" }} />
 
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => onCancelSearch()}>
           <View style={styles.optionsButton}>
             <View style={styles.cancel}>
               <Icon name="close" size={scale(13)} color="red" />

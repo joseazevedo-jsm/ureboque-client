@@ -173,22 +173,40 @@ export const useRegisterModal = (OTPChange) => {
   };
 
   const handleOtpChange = (text, index) => {
-    
     const newOtp = [...otp];
+    
+    // Handle backspace
+    if (text === '') {
+      newOtp[index] = '';
+      setOtp(newOtp);
+      // Move to previous input when backspace is pressed
+      if (index > 0) {
+        inputRefs.current[index - 1].focus();
+      }
+      return;
+    }
+
+    // Only allow numbers
+    if (!/^\d+$/.test(text)) {
+      return;
+    }
+
     newOtp[index] = text;
     setOtp(newOtp);
 
-    // Auto-focus on the next input if the current one is filled
-    if (text && index < 3) {
+    // Auto-focus logic
+    if (text.length === 1 && index < 3) {
       inputRefs.current[index + 1].focus();
     }
-    // Verify OTP if all 4 digits are entered
-    else if (text && index === 3) {
-      // onVerify(newOtp.join(""));
-      OTPChange(newOtp.join(""));
+    
+    // Verify OTP if all digits are entered
+    if (text.length === 1 && index === 3) {
+      const fullOtp = newOtp.join('');
+      if (fullOtp.length === 4) {
+        OTPChange(fullOtp);
+      }
     }
   };
-
 
    // CHANGE TO INDIVIDUAL PACKAGES
   const handleResend = () => {

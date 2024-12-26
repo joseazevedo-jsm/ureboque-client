@@ -1,19 +1,26 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
-  Modal,
+  Image,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from "react-native";
+
 import { scale } from "react-native-size-matters";
-import { useRegisterModal } from "./components/useRegisterModal";
+import { Modal } from "react-native";
+import { useOTPModal } from "./components/useOTPModal";
 
-const OTPModal = ({ visible, OTPChange, number, isLoading }) => {
-  const { models, operations } = useRegisterModal(OTPChange);
+const OTPModal = ({
+  visible,
+  OTPChange,
+  number,
+  isLoading
+}) => {
+  const {models, operations} = useOTPModal(OTPChange)
 
+  
   useEffect(() => {
     // Auto-focus on the first input when the modal opens
     if (visible) {
@@ -40,6 +47,7 @@ const OTPModal = ({ visible, OTPChange, number, isLoading }) => {
                 maxLength={1}
                 value={digit}
                 onChangeText={(text) => operations.handleOtpChange(text, index)}
+                onKeyPress={(e) => operations.handleKeyPress(e, index)}
               />
             ))}
           </View>

@@ -13,7 +13,7 @@ import CountryPickerWithFlag from "../components/login/CountryPickerWithFlag";
 import { scale } from "react-native-size-matters";
 import { useLoginScreen } from "../components/login/useLoginScreen";
 import { useRoute } from "@react-navigation/native";
-import OTPModal from "../components/modals/Register/OTPModal";
+import OTPModal from "../components/modals/OTP/OTPModal";
 import RegisterPassModal from "../components/modals/Register/RegisterPassModal";
 
 const LoginScreen = () => {
