@@ -126,6 +126,7 @@ export const useSavedPlacesModal = () => {
 
   const handleLocationPress = () => {
     console.log(bottomSheetModalAddAddress.current);
+    
     bottomSheetModalAddAddress.current.present();
   };
 
