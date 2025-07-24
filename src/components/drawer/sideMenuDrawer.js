@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import {
 } from "@react-navigation/drawer";
 import { useNavigation } from "@react-navigation/native";
 import { scale } from "react-native-size-matters";
-import { UserContext } from "../../context/UserContext";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../../store/slices/userSlice";
 
 // Import custom icons
 import ProfileIcon from "../../../resources/icons/side_bar/profile.png";
@@ -49,7 +50,12 @@ const DrawerMenuItem = ({ label, iconSource, onPress }) => (
 
 const SideMenuDrawer = (props) => {
   const navigation = useNavigation();
-  const { user, logout } = useContext(UserContext);
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user.user);
+
+  const handleLogout = () => {
+    dispatch(logout());
+  };
 
   return (
     <View style={styles.container}>
@@ -75,7 +81,7 @@ const SideMenuDrawer = (props) => {
           <DrawerMenuItem
             label="Ajuda"
             iconSource={HelpIcon}
-            onPress={logout}
+            onPress={handleLogout}
           />
         </View>
       </DrawerContentScrollView>

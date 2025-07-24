@@ -1,14 +1,17 @@
-import { useContext, useState } from "react";
-import { UserContext } from "../../context/UserContext"; // Import your UserContext here
+import { useState } from "react";
+import { useDispatch, useSelector } from 'react-redux';
+import { updateUserProfile } from "../../store/slices/userSlice";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 
 const useProfileScreen = () => {
-  const { user, updateUser } = useContext(UserContext);
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user.user);
   const [name, setName] = useState();
   const [surname, setSurname] = useState();
   const [photo, setPhoto] = useState(user?.photo);
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || "");
+  const [countryCode, setCountryCode] = useState(user?.phone.split(" ")[0] || "");
   const [email, setEmail] = useState(user?.email || "");
   const [image, setImage] = useState(null);
 
@@ -28,11 +31,15 @@ const useProfileScreen = () => {
     setEmail(text);
   };
 
+  const handleCountryCodeChange = (text) => {
+    setCountryCode(text);
+  };
+
   const handleSaveChanges = async () => {
-    let new_photo_url = photo; // Initialize with the current photo URL.
+    let new_photo_url = photo;
 
     if (image) {
-      new_photo_url = await sendImageToServer(image); // Use 'await' since 'sendImageToServer' is async
+      new_photo_url = await sendImageToServer(image);
     }
 
     const userData = {
@@ -40,20 +47,19 @@ const useProfileScreen = () => {
         name: name ? name : user?.name.split(" ", 2)[0],
         surname: surname ? surname : user?.name.split(" ", 2)[1],
       },
-      phone: phoneNumber,
+      phone: countryCode + " " + phoneNumber,
       user_photo_url: new_photo_url,
       email,
     };
 
     try {
-      await updateUser(user.id,userData); // Update the user data without specifying 'user.id'
+      dispatch(updateUserProfile({ userId: user.id, userData }));
     } catch (error) {
       console.error(error);
     }
   };
 
   const handleOpenImagePicker = async () => {
-    // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
@@ -61,7 +67,6 @@ const useProfileScreen = () => {
       quality: 1,
     });
 
-    console.log(result.assets[0]);
     if (!result.canceled) {
       setImage(result.assets[0].uri);
     }
@@ -104,17 +109,19 @@ const useProfileScreen = () => {
       name,
       surname,
       phoneNumber,
+      countryCode,
       email,
-      image,
+      image
     },
     operations: {
       handleNameChange,
       handleSurnameChange,
       handlePhoneNumberChange,
+      handleCountryCodeChange,
       handleEmailChange,
       handleSaveChanges,
-      handleOpenImagePicker,
-    },
+      handleOpenImagePicker
+    }
   };
 };
 

@@ -193,15 +193,26 @@ const MapScreen = () => {
   };
 
   const renderCarTypesItem = ({ item }) => {
-    if (models.mapDirections && models.prices) {
-      const priceperkm =
-        Math.floor(models.mapDirections.distance) * 1000 + Number(item.price);
-      console.log("ORIGINAL PRICE: ", priceperkm);
-
-      const price =
-        models.user.discount && models.user.discount.active
+    // Log the available data to help diagnose the issue
+    console.log("Rendering car type item:", item);
+    console.log("mapDirections available:", !!models.mapDirections);
+    console.log("prices available:", !!models.prices);
+    
+    // Always render the item, even without directions
+    if (models.prices) {
+      // Calculate price based on whether we have directions or a default value
+      let price = Number(item.price);
+      
+      if (models.mapDirections && models.mapDirections.distance) {
+        const priceperkm = Math.floor(models.mapDirections.distance) * 1000 + price;
+        console.log("ORIGINAL PRICE with distance:", priceperkm);
+        
+        price = models.user.discount && models.user.discount.active
           ? priceperkm - priceperkm * (models.user.discount.percentage / 100)
           : priceperkm;
+      } else {
+        console.log("Using base price without distance:", price);
+      }
 
       return (
         <CarTypes
@@ -209,11 +220,18 @@ const MapScreen = () => {
           descr={item.descr}
           descr2={item.descr2}
           price={price}
-          route={models.mapDirections ? models.mapDirections : null}
+          route={models.mapDirections}
           onPress={operations.handleTypeCarPress(item.typeCar, price)}
         />
       );
     }
+    
+    // If we have no prices data, show a placeholder
+    return (
+      <View style={{padding: 20, alignItems: 'center'}}>
+        <Text>Carregando opções de carros...</Text>
+      </View>
+    );
   };
 
   const navigation = useNavigation();
@@ -230,7 +248,14 @@ const MapScreen = () => {
         showsUserLocation
         onUserLocationChange={operations.handleUserLocationChange}
         showsMyLocationButton={false}
-        onRegionChangeComplete={operations.handleMarkerDragEnd}
+        onRegionChangeComplete={(region) => {
+          if (models.markerVisible) {
+            operations.handleMarkerDragEnd({
+              latitude: region.latitude,
+              longitude: region.longitude
+            });
+          }
+        }}
         toolbarEnabled={false}
         customMapStyle={customStyleMap}
         style={styles.map}
@@ -253,7 +278,7 @@ const MapScreen = () => {
                 ? models.driverLocation
                 : models.mapMarkers[0]
             }
-            destination={models.mapMarkers[1]}
+            destination={ models?.tripState === 'assigned' ? models.mapMarkers[0] : models.mapMarkers[1]}
             apikey="AIzaSyBqPFzMJ7TgohKLMZ8Q0Z1iRVmk63OWWpk"
             strokeColor="#0089FF"
             strokeWidth={scale(7)}
@@ -307,19 +332,22 @@ const MapScreen = () => {
         <View
           style={{
             left: "50%",
+            marginLeft: -15,
             position: "absolute",
             top: "50%",
+            marginTop: -15,
+            zIndex: 999,
+            elevation: 5
           }}
         >
           <Icon name="my-location" size={scale(30)} color="#0089FF" />
-
         </View>
       )}
 
       <BottomSheetModalProvider>
 
         <BottomSheetModal
-          ref={models.bottomSheetModalRef}
+          ref={models.mainBottomSheetRef}
           index={0}
           snapPoints={[scale(220)]}
           enableDynamicSizing={false}
@@ -388,6 +416,10 @@ const MapScreen = () => {
               }
               handleModelInputValueChange={operations.handleModelInputValueChange}
               handleConfirmButtonPress={operations.handleConfirmButtonPress}
+              defaultBrand={models.brand}
+              defaultModel={models.model}
+              defaultLicense={models.license}
+              defaultColor={models.color}
             />
 
           </KeyboardAvoidingView>
@@ -518,8 +550,12 @@ const MapScreen = () => {
               </TouchableOpacity>
             </View>
             <TouchableOpacity
-              style={styles.confirmButton}
+              style={[
+                styles.confirmButton,
+                models.markerCity ? styles.confirmButtonActive : styles.confirmButtonDisabled
+              ]}
               onPress={operations.handleConfirmDraggablePress}
+              disabled={!models.markerCity}
             >
               <Text style={styles.confirmButtonText}>
                 Confirmar
@@ -531,14 +567,15 @@ const MapScreen = () => {
       </BottomSheetModalProvider>
 
       <DestinationModal
-        visible={models.modalVisible}
+        visible={models.modalDestinationVisible}
         closeModal={operations.closeDestinationModal}
         onPlaceItemPress={operations.handlePressItemPress}
-        onMarkerDragPress={operations.handleMarkerDragPress()}
+        onMarkerDragPress={operations.handleMarkerDragPress}
         onLocationTextInputFocus={operations.handleLocationTextInputFocus}
         origin={models.originCity}
         destination={models.destinationCity}
         inputCurr={models.isCurrLocation}
+        onDestinationSelected={operations.handleDestinationSelected}
       />
 
       <SavedPlacesModal
@@ -546,6 +583,7 @@ const MapScreen = () => {
         closeModal={operations.closeSavedPlacesModal}
         addressCallBack={models.newSavedPlaceAddress}
         mapDrag={operations.handleMarkerDragSavedPlaces}
+        forceCloseModal={operations.forceCloseSavedPlacesModal}
       />
 
       <ChatModal
@@ -747,15 +785,21 @@ const styles = StyleSheet.create({
     color: "#808080",
   },
   confirmButton: {
-    backgroundColor: "#0089ff",
+    backgroundColor: "#0089FF",
     borderRadius: scale(7),
-    height: scale(40),
+    padding: scale(12),
     alignItems: "center",
-    justifyContent: "center",
   },
   confirmButtonText: {
-    color: "#fff",
-    fontSize: scale(18),
+    color: "white",
+    fontSize: scale(16),
+    fontWeight: "bold",
+  },
+  confirmButtonActive: {
+    backgroundColor: "#0089FF",
+  },
+  confirmButtonDisabled: {
+    backgroundColor: "#ccc",
   },
 });
 export default MapScreen;

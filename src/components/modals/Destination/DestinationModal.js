@@ -23,6 +23,7 @@ const DestinationModal = ({
   origin,
   destination,
   inputCurr,
+  onDestinationSelected,
 }) => {
   const { models, operations } = useDestinationModal();
 
@@ -51,12 +52,16 @@ const DestinationModal = ({
           address={item.formatted_address}
           onPress={() => {
             operations.handleOnIsCurrLocation(true);
-            models.inputIndex === 1 &&
-              onPlaceItemPress(
+            if (models.inputIndex === 1) {
+              const success = onPlaceItemPress(
                 {},
                 "CurrLocation",
                 models.textInputDestinationRef
               );
+              if (success && onDestinationSelected) {
+                onDestinationSelected();
+              }
+            }
           }}
           saved={true}
         />
@@ -66,20 +71,27 @@ const DestinationModal = ({
     return (
       <PlaceItem
         key={item.place_id}
-        name={item.name}
-        iconUrl={item?.icon}
-        address={item.formatted_address}
+        name={item.name || "Unnamed Place"}
+        iconUrl={item?.icon || "place"}
+        address={item.formatted_address || "No address"}
         onPress={() => {
-          onPlaceItemPress(
+          const location = item?.geometry?.location || {};
+          const success = onPlaceItemPress(
             {
-              latitude: item?.geometry.location.lat,
-              longitude: item?.geometry.location.lng,
+              latitude: location.lat || 0,
+              longitude: location.lng || 0,
             },
-            item.name,
+            item.name || "Unnamed Place",
             models.textInputDestinationRef
           );
           operations.handleSetResponseData();
           models.inputIndex === 0 && operations.handleOnIsCurrLocation(false);
+          
+          // If destination was successfully selected (both origin and destination available)
+          // Call the destination selected handler which handles the transition
+          if (success && models.inputIndex === 1 && onDestinationSelected) {
+            onDestinationSelected();
+          }
         }}
         saved={false}
       />

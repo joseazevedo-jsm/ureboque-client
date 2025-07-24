@@ -59,8 +59,9 @@ const ProfileScreen = () => {
         <View style={styles.row}>
           <TextInput
             style={[styles.textInput, styles.shortInput]}
-            placeholder="+244"
+            placeholder={`+${models?.user?.phone.split(" ")[0]}`}
             placeholderTextColor="#000"
+            onChangeText={operations.handleCountryCodeChange}
           />
           <View style={styles.inputWithIconUnderline}>
             <Image
@@ -70,7 +71,7 @@ const ProfileScreen = () => {
             />
             <TextInput
               style={[styles.textInput, styles.longInput]}
-              placeholder={models?.user?.phone}
+              placeholder={models?.user?.phone.split(" ")[1]}
               placeholderTextColor="#000"
               onChangeText={operations.handlePhoneNumberChange}
             />

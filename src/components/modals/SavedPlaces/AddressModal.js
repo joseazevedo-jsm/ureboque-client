@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   FlatList,
   Modal,
@@ -31,30 +31,40 @@ const AddressModal = ({
   name,
   button,
   placeId,
-  onAddressChange,  
+  coordinates,
+  onAddressChange,
   onInstructionsChange,
   onPressItem,
   mapDrag,
   callbackAddress,
-  onSaveAddress,  
+  onSaveAddress,
   onDeleteAddress,
   onAtualLocationPress,
+  forceCloseModal,
 }) => {
   const { models, operations } = useSavedPlacesModal();
   const destination = useDestinationModal();
-
+  const [selectedPlaceData, setSelectedPlaceData] = useState(callbackAddress || null);
   
+  useEffect(() => {
+    // If we have a callbackAddress with coordinates, use that
+    if (callbackAddress && callbackAddress.coordinates) {
+      console.log("Setting selectedPlaceData from callbackAddress:", callbackAddress);
+      setSelectedPlaceData(callbackAddress);
+    } 
+    // Otherwise, if direct coordinates are provided (like in edit mode), use those
+    else if (coordinates) {
+      console.log("Setting selectedPlaceData from coordinates prop:", coordinates);
+      setSelectedPlaceData({
+        coordinates: coordinates,
+        city: address || 'Selected Location'
+      });
+    }
+  }, [callbackAddress, coordinates, address]);
 
   const handeBackButtonPress = () => {
     closeModal();
   };
-
-  // useEffect(() => {
-  //   console.log("coords", coords);
-  //   if (coords) {
-  //     operations.addCoords(coords);
-  //   }
-  // }, [coords])
 
   const renderFlatListItem = ({ item }) => {
     return (
@@ -63,17 +73,87 @@ const AddressModal = ({
         name={item.name}
         iconUrl={item.icon}
         address={item.formatted_address}
-        onPress={onPressItem(
-          {
-            latitude: item.geometry.location.lat,
-            longitude: item.geometry.location.lng,
-          },
-          item.formatted_address,
-          models.bottomSheetModalAddAddress,
-          name
-        )}
+        onPress={() => {
+          const callbackData = onPressItem(
+            {
+              latitude: item.geometry.location.lat,
+              longitude: item.geometry.location.lng,
+            },
+            item.formatted_address,
+            models.bottomSheetModalAddAddress,
+            name
+          )();
+          
+          setSelectedPlaceData(callbackData);
+        }}
       />
     );
+  };
+
+  // Simple handler that validates before saving
+  const handleSave = async () => {
+    console.log("handleSave - selectedPlaceData:", selectedPlaceData);
+    console.log("handleSave - callbackAddress:", callbackAddress);
+    console.log("handleSave - coordinates (prop):", coordinates);
+    console.log("handleSave - models.coordinates:", models.coordinates);
+    
+    // Get coordinates from multiple sources with the direct coordinates prop first
+    const coords = coordinates || 
+                  models.coordinates || 
+                  (selectedPlaceData && selectedPlaceData.coordinates) || 
+                  callbackAddress?.coordinates;
+
+    if (!coords) {
+      console.error('Error: No coordinates found!');
+      Alert.alert('Error', 'Please select a location first');
+      return;
+    }
+
+    console.log("Using coordinates for save:", coords);
+
+    // Create a data object combining all sources to maximize data availability
+    const dataToSave = {
+      place: {
+        name: name || 'New Place',
+        description: selectedPlaceData?.city || callbackAddress?.city || '',
+        coordinates: coords,
+        instructions: instructions || '',
+      },
+      pos: selectedPlaceData?.pos !== undefined ? selectedPlaceData.pos : (callbackAddress?.pos || 0)
+    };
+
+    try {
+      if (typeof onSaveAddress !== 'function') {
+        console.error('Error: onSaveAddress is not a function:', onSaveAddress);
+        Alert.alert('Error', 'Save function is not available');
+        return;
+      }
+      
+      await onSaveAddress(dataToSave, type);
+      
+      // Show success message and close modals in the callback
+      Alert.alert(
+        'Sucesso', 
+        `Endereço ${name || 'novo'} salvo com sucesso!`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {         
+              console.log("Using forceCloseModal to close SavedPlacesModal");
+              closeModal();
+              forceCloseModal();
+             }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error saving address:', error);
+      // Show a user-friendly error message
+      Alert.alert(
+        'Error', 
+        error.message || 'Failed to save address. Please try again.'
+      );
+    }
   };
 
   return (
@@ -121,7 +201,7 @@ const AddressModal = ({
             marginBottom: scale(30),
           }}
           placeholderTextColor="#808080"
-          placeholder="Nome do endereço"
+          placeholder="Nome do local (ex: Casa, Trabalho, Academia)"
           defaultValue={name !== "" ? name : ""}
           // value={models.name ? models.name : "Nome"}
           onChangeText={onAddressChange}
@@ -141,7 +221,9 @@ const AddressModal = ({
               padding: scale(8),
               marginBottom: scale(15),
             }}
-            onPress={operations.handleLocationPress}
+            onPress={() => {
+              operations.handleLocationPress();
+            }}
           >
             <Text
               style={{
@@ -180,11 +262,7 @@ const AddressModal = ({
             alignSelf: "center",
             padding: scale(18),
           }}
-          onPress={() => {
-            onSaveAddress(callbackAddress,type)
-            onGoHomePress()
-            closeModal()
-          }}
+          onPress={handleSave}
         >
           <Text style={{ color: "#FFF", fontWeight: "700" }}>SALVAR</Text>
         </TouchableOpacity>
@@ -224,6 +302,22 @@ const AddressModal = ({
 
                 <TouchableOpacity onPress={() => {
                   onAtualLocationPress();
+                  
+                  // Get the user location after calling onAtualLocationPress
+                  // Wait a brief moment to allow the location to be fetched
+                  setTimeout(() => {
+                    if (models.coordinates) {
+                      const locationData = {
+                        coordinates: models.coordinates,
+                        city: models.address || 'Current Location',
+                        pos: 0
+                      };
+                      setSelectedPlaceData(locationData);
+                    } else {
+                      console.error('Current location selected but coordinates not set');
+                    }
+                  }, 500);
+                  
                   models.bottomSheetModalAddAddress.current.dismiss();
                 }}>
                   <View style={styles.locationButton}>
@@ -240,9 +334,16 @@ const AddressModal = ({
                   </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={
-                  mapDrag
-                }>
+                <TouchableOpacity onPress={() => {
+                  // Call the mapDrag function provided by props
+                  mapDrag();
+                  models.bottomSheetModalAddAddress.current.dismiss();
+                  closeModal();
+                  
+                  // No need to manually check for changes using setInterval
+                  // The parent component will update callbackAddress and reopen this modal
+                  // when the location is selected
+                }}>
                   <View style={styles.locationButton}>
                     <View style={styles.iconContainer}>
                       <Icon name="map" size={scale(30)} color="#0089FF" />

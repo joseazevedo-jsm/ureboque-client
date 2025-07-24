@@ -3,9 +3,10 @@ import { useTextSearchQuery } from "../../../../models/places/useTextSearchQuery
 import { useDebounce } from "use-debounce";
 import { useRef } from "react";
 import { useEffect } from "react";
-import { UserContext } from "../../../../context/UserContext";
+import { useSelector } from 'react-redux';
+
 export const useDestinationModal = () => {
-  const { user } = useContext(UserContext);
+  const user = useSelector((state) => state.user.user);
 
   const [data, setData] = useState([]);
 
@@ -25,16 +26,23 @@ export const useDestinationModal = () => {
     ]
     
     const data2 = user?.saved_places ? user?.saved_places.map((item) => {
+      if (!item || !item.place) {
+        console.log('DEBUG - useDestinationModal - Skipping invalid place item:', item);
+        return;
+      }
+      
+      const coordinates = item.place.coordinates || {};
+      
       data.push({
         place_id: item._id,
-        name: item.place.name,
+        name: item.place.name || 'Unnamed Place',
         geometry: {
           location: {
-            lat: item.place.coordinates.latitude,
-            lng: item.place.coordinates.longitude,
+            lat: coordinates.latitude || 0,
+            lng: coordinates.longitude || 0,
           },
         },
-        formatted_address: item.place.description,
+        formatted_address: item.place.description || 'No address',
       });
     }) : [];
 

@@ -1,14 +1,12 @@
-import { useContext, useEffect, useRef, useState } from "react";
-import { UserContext } from "../../context/UserContext";
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import axios from "axios";
 
 const IP = process.env.EXPO_PUBLIC_UREBOQUE_API; //attt ao apagar
 
 export const useInviteScreen = () => {
-
-  const { user } = useContext(UserContext);
-  const [ inviteCode, setInviteCode] = useState();
-
+  const user = useSelector((state) => state.user.user);
+  const [inviteCode, setInviteCode] = useState();
 
   useEffect(() => {
     handleGetInviteCode();

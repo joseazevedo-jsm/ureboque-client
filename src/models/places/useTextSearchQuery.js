@@ -1,10 +1,10 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { useUserLocationStateContext } from "../../context/UserLocationStateContext";
+import { useSelector } from 'react-redux';
 
 export const useTextSearchQuery = (searchQuery) => {
   const [responseData, setResponseData] = useState(null);
-  const { userLocation } = useUserLocationStateContext();
+  const { userLocation } = useSelector((state) => state.location);
 
   const requestUrl =
     "https://maps.googleapis.com/maps/api/place/textsearch/json";

@@ -1,9 +1,10 @@
-import { useContext, useEffect, useRef, useState } from "react";
-import { UserContext } from "../../context/UserContext";
+import { useState } from "react";
+import { useDispatch, useSelector } from 'react-redux';
+import { activateDiscountCode } from "../../store/slices/userSlice";
 
 export const usePromotionScreen = () => {
-
-  const { socket, user, fetchUserById, activateDiscount } = useContext(UserContext);
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user.user);
   const [code, setCode] = useState("");
 
   const onCodeTextChange = (input) => {
@@ -11,7 +12,7 @@ export const usePromotionScreen = () => {
   }
 
   const handleActivateCode = () => {
-    activateDiscount(code)
+    dispatch(activateDiscountCode({ userId: user.id, code }));
   }
 
   return {
@@ -19,8 +20,8 @@ export const usePromotionScreen = () => {
       user
     },
     operations: {
-        handleActivateCode,
-        onCodeTextChange
+      handleActivateCode,
+      onCodeTextChange
     },
   };
 };

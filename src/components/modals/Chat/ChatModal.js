@@ -16,10 +16,15 @@ import ChatItem from "../../cards/chatItem";
 
 const imgDef = "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
 
-const ChatModal = ({ visible, closeModal, idService, driver,navigation }) => {
-  const { models, operations } = useChatModal(idService);
+const ChatModal = ({ visible, closeModal, idService, driver, navigation }) => {
+  // Only pass the idService when the modal is visible
+  const { models, operations } = useChatModal(visible ? idService : null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+ 
 
-  const handeBackButtonPress = () => {
+  const handleBackButtonPress = () => {
+    // Just close the modal without disconnecting from the chat
     closeModal();
   };
 
@@ -27,13 +32,14 @@ const ChatModal = ({ visible, closeModal, idService, driver,navigation }) => {
     return <ChatItem text={item.message.message} isSender={item.message.sender===models.user.id} />;
   };
 
+ 
   return (
     <Modal onRequestClose={closeModal} visible={visible} animationType="slide">
       <View style={styles.container}>
         <View style={styles.topBar}>
           <TouchableOpacity
             style={{ alignSelf: "center" }}
-            onPress={handeBackButtonPress}
+            onPress={handleBackButtonPress}
           >
             <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
           </TouchableOpacity>
@@ -58,11 +64,19 @@ const ChatModal = ({ visible, closeModal, idService, driver,navigation }) => {
             </View>
             <View style={{ justifyContent: "center" }}>
               <Text style={styles.topBarTitle}>{driver?.name}</Text>
+              <Text style={[
+                styles.connectionStatus, 
+                { color: models.isConnected ? "#4CAF50" : "#F44336" }
+              ]}>
+                {models.isConnected ? "Connected" : "Disconnected"}
+              </Text>
             </View>
           </View>
           <TouchableOpacity
             style={{ alignSelf: "center" }}
-            onPress={"handeBackButtonPress"}
+            onPress={() => {
+              // Handle phone call
+            }}
           >
             <Icon name="phone" size={scale(30)} color="#0089FF" />
           </TouchableOpacity>
@@ -77,15 +91,16 @@ const ChatModal = ({ visible, closeModal, idService, driver,navigation }) => {
           <TextInput
             style={styles.input}
             value={models.newMessage}
-            onChangeText={operations.setNewMessage}
+            onChangeText={operations.handleMessageChange}
             placeholder="Digite uma mensagem..."
             multiline
           />
           <TouchableOpacity
             style={styles.sendButton}
             onPress={operations.sendMessage}
+            disabled={!models.isConnected}
           >
-            <Icon name="send" size={35} color="#007BFF" />
+            <Icon name="send" size={35} color={models.isConnected ? "#007BFF" : "#B7B7B7"} />
           </TouchableOpacity>
         </View>
       </View>
@@ -113,6 +128,15 @@ const styles = StyleSheet.create({
     fontSize: scale(18),
     alignSelf: "center",
     paddingHorizontal: scale(10),
+  },
+  connectionStatus: {
+    fontSize: scale(12),
+    alignSelf: "center",
+    paddingHorizontal: scale(10),
+  },
+  loadingText: {
+    fontSize: scale(18),
+    alignSelf: "center",
   },
   inputContainer: {
     backgroundColor: "#fff",

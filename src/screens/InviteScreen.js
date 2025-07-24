@@ -8,9 +8,7 @@ import {
   TextInput,
 } from "react-native";
 import { scale } from "react-native-size-matters";
-import { UserContext } from "../context/UserContext";
-import { useContext } from "react";
-import { useNavigation } from "@react-navigation/native"; // Import the necessary hooks from React Navigation
+import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useInviteScreen } from "../components/invite/useInviteScreen";
 

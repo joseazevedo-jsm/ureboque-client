@@ -52,10 +52,10 @@ const ConfirmationModal = ({
             <Text
               style={{ fontSize: scale(25), color: "#fff", fontWeight: "bold" }}
             >
-              AOA {payment_total.toLocaleString()}
+              AOA {payment_total ? payment_total.toLocaleString() : "0"}
             </Text>
             <Text style={{ fontSize: scale(10), color: "#fff" }}>
-              A SER PAGO EM {payment_type}
+              A SER PAGO EM {payment_type || "DINHEIRO"}
             </Text>
           </View>
         </View>
@@ -78,7 +78,7 @@ const ConfirmationModal = ({
                 marginTop: scale(15),
               }}
             >
-              {driver.name}
+              {driver?.name || 'Motorista'}
             </Text>
           </View>
 

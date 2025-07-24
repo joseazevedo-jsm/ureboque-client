@@ -9,8 +9,7 @@ import {
   FlatList,
 } from "react-native";
 import { scale } from "react-native-size-matters";
-import { UserContext } from "../context/UserContext";
-import { useContext } from "react";
+import { useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native"; // Import the necessary hooks from React Navigation
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { usePromotionScreen } from "../components/promotion/usePromotionScreen";
@@ -20,10 +19,10 @@ import { Platform } from "react-native";
 
 const PromotionScreen = () => {
   const { models, operations } = usePromotionScreen();
-
+  const user = useSelector((state) => state.user.user);
   const navigation = useNavigation();
 
-  const isPromoActive = models.user?.discount && models.user?.discount.active
+  const isPromoActive = user?.discount && user?.discount.active;
 
   return (
     <KeyboardAvoidingView
@@ -59,8 +58,8 @@ const PromotionScreen = () => {
           >
             {isPromoActive && (
               <DiscountItem
-                code={models.user.discount.promotion.code}
-                description={models.user.discount.promotion.description}
+                code={user.discount.promotion.code}
+                description={user.discount.promotion.description}
               />
             )}
           </View>
@@ -77,7 +76,7 @@ const PromotionScreen = () => {
               placeholder={"Inserir código promocional"}
               placeholderTextColor={"#6B6969"}
               onChangeText={operations.onCodeTextChange}
-              // editable={!models.user.discount}
+              // editable={!user.discount}
             />
             <TouchableOpacity
               style={

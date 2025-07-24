@@ -17,6 +17,10 @@ const UserCarInfo = ({
   handleLicenseInputValueChange,
   handleColorInputValueChange,
   handleConfirmButtonPress,
+  defaultBrand = "Toyota",
+  defaultModel = "Corolla",
+  defaultLicense = "LD-10-10",
+  defaultColor = "Red",
 }) => {
   const [errors, setErrors] = React.useState({
     brand: '',
@@ -26,11 +30,19 @@ const UserCarInfo = ({
   });
   
   const [formData, setFormData] = React.useState({
-    brand: '',
-    model: '',
-    license: '',
-    color: ''
+    brand: defaultBrand,
+    model: defaultModel,
+    license: defaultLicense,
+    color: defaultColor
   });
+
+  // Initialize the parent component with default values
+  React.useEffect(() => {
+    if (defaultBrand) handleBrandInputValueChange(defaultBrand);
+    if (defaultModel) handleModelInputValueChange(defaultModel);
+    if (defaultLicense) handleLicenseInputValueChange(defaultLicense);
+    if (defaultColor) handleColorInputValueChange(defaultColor);
+  }, []);
 
   const validateForm = () => {
     let isValid = true;
@@ -104,6 +116,7 @@ const UserCarInfo = ({
               style={[styles.input, errors.brand && styles.inputError]}
               placeholder="Marca"
               placeholderTextColor={"#000"}
+              value={formData.brand}
             />
             {errors.brand && <Text style={styles.errorText}>{errors.brand}</Text>}
           </View>
@@ -113,6 +126,7 @@ const UserCarInfo = ({
               style={[styles.input, errors.model && styles.inputError]}
               placeholder="Modelo"
               placeholderTextColor={"#000"}
+              value={formData.model}
             />
             {errors.model && <Text style={styles.errorText}>{errors.model}</Text>}
           </View>
@@ -126,6 +140,7 @@ const UserCarInfo = ({
               placeholder="Matricula"
               placeholderTextColor={"#000"}
               autoCapitalize="characters"
+              value={formData.license}
             />
             {errors.license && <Text style={styles.errorText}>{errors.license}</Text>}
           </View>
@@ -135,6 +150,7 @@ const UserCarInfo = ({
               style={[styles.input, errors.color && styles.inputError]}
               placeholder="Cor"
               placeholderTextColor={"#000"}
+              value={formData.color}
             />
             {errors.color && <Text style={styles.errorText}>{errors.color}</Text>}
           </View>

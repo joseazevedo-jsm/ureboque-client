@@ -18,9 +18,12 @@ const SavedPlacesModal = ({
   closeModal,
   addressCallBack,
   mapDrag,
+  forceCloseModal,
 }) => {
   const { models, operations } = useSavedPlacesModal();
-  console.log(addressCallBack, mapDrag);
+  // Log the addressCallBack prop for debugging
+  console.log("SavedPlacesModal - addressCallBack:", addressCallBack);
+  
   const handeBackButtonPress = () => {
     closeModal();
   };
@@ -137,7 +140,10 @@ const SavedPlacesModal = ({
                 alignSelf: "center",
                 padding: scale(18),
               }}
-              onPress={operations.handleAddFavouriteButtonPress()}
+              onPress={() => {
+                console.log("ADICIONAR LUGAR button pressed");
+                operations.handleAddFavouriteButtonPress()();
+              }}
             >
               <Text style={{ color: "#0089FF", fontWeight: "700" }}>
                 ADICIONAR LUGAR
@@ -148,18 +154,17 @@ const SavedPlacesModal = ({
       </Modal>
       <AddressModal
         visible={
-          addressCallBack?.callback !== undefined
-            ? addressCallBack.callback
-            : models.addressModalVisible
+          models.addressModalVisible || (addressCallBack?.callback === true)
         }
         closeModal={operations.handeBackButtonPress}
         onGoHomePress={closeModal}
         type={models.type}
         button={models.button}
-        address={addressCallBack.city ? addressCallBack.city : models.address}
+        address={addressCallBack?.city ? addressCallBack.city : models.address}
         name={models.name}
         instructions={models.instructions}
         placeId={models.placeId}
+        coordinates={models.coordinates}
         onAddressChange={operations.handleNameChangeText}
         onInstructionsChange={operations.handleInstructionsChangeText}
         onPressItem={operations.handlePressItemPress}
@@ -168,6 +173,7 @@ const SavedPlacesModal = ({
         mapDrag={mapDrag}
         callbackAddress={addressCallBack}
         onAtualLocationPress={operations.handleCurrentLocationPress}
+        forceCloseModal={forceCloseModal}
       />
     </>
   );

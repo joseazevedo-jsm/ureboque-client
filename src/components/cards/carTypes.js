@@ -5,9 +5,10 @@ import { scale } from "react-native-size-matters";
 
 // card view that receives props like title, description
 const CarTypes = ({ typeCar, descr, descr2, price, route, onPress }) => {
-    const distance = route?.distance;
-    const duration = route?.duration;
-    console.log(distance, "KM", typeCar, descr, descr2, price);
+    // Handle cases where route or its properties might be undefined
+    const distance = route?.distance || 0;
+    const duration = route?.duration || 0;
+    console.log(`Car type ${typeCar}: ${distance} KM, price: ${price}`);
     // const priceperkm = (Math.floor(distance) * 1000) + Number(price);
 
   return (
@@ -40,7 +41,7 @@ const CarTypes = ({ typeCar, descr, descr2, price, route, onPress }) => {
           </View>
           <View style={styles.priceBox}>
             <Text style={styles.coin}>AOA </Text>
-            <Text style={styles.price}>{price.toLocaleString()}</Text>
+            <Text style={styles.price}>{price ? price.toLocaleString() : '0'}</Text>
           </View>
         </View>
       </TouchableOpacity>

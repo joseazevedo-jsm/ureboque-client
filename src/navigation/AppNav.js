@@ -2,14 +2,22 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 import LoginScreen from "../screens/LoginScreen";
 import { ActivityIndicator, View } from "react-native";
-import { UserContext } from "../context/UserContext";
-import { useContext } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useEffect } from "react";
+import { isLoggedIn } from "../store/slices/userSlice";
 import HomeMenu from "./HomeMenu";
 
 const Stack = createStackNavigator();
 
 const AppNav = () => {
-  const { isLoading, userToken } = useContext(UserContext);
+  const dispatch = useDispatch();
+  const { isLoading, userToken } = useSelector((state) => state.user);
+
+  useEffect(() => {
+    if (!userToken) {
+      dispatch(isLoggedIn());
+    }
+  }, []);
 
   if (isLoading) {
     return (

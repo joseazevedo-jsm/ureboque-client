@@ -1,112 +1,65 @@
-import { useContext, useEffect, useRef, useState } from "react";
-import { useUserLocationStateContext } from "../../context/UserLocationStateContext";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { scale } from "react-native-size-matters";
-import { useCallback } from "react";
-import { UserContext } from "../../context/UserContext";
+import { useDispatch, useSelector } from 'react-redux';
+import { 
+  fetchPrices, 
+} from "../../store/slices/userSlice";
 import axios from "axios";
 import Geocoder from "react-native-geocoding";
-import { Alert, Keyboard } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { set } from "react-native-reanimated";
-
-const IP = process.env.EXPO_PUBLIC_UREBOQUE_API; //attt ao apagar
-
-Geocoder.init("AIzaSyBqPFzMJ7TgohKLMZ8Q0Z1iRVmk63OWWpk");
-
+import { Alert, Keyboard } from "react-native"; 
+import { setUserLocation } from "../../store/slices/locationSlice";
+ 
+// Constants
+const IP = process.env.EXPO_PUBLIC_UREBOQUE_API;
 const LATITUDE_DELTA = 0.0022;
 const LONGITUDE_DELTA = 0.005;
 const DEFAULT_TIMER_DURATION = 180; // 3 minutes in seconds
 
+// Import our custom hooks
+import { useLocationSearch } from "../../hooks/useLocationSearch";
+import { useTimer } from "../../hooks/useTimer";
+import { useBottomSheetManager } from "../../hooks/useBottomSheetManager";
+import { useCarDetails } from "../../hooks/useCarDetails";
+import { useServiceManagement } from "../../hooks/useServiceManagement";
+
+Geocoder.init(process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY);
+
 export const useMapScreen = () => {
+  const dispatch = useDispatch();
+  const { user, prices } = useSelector((state) => state.user);
+  const { userLocation } = useSelector((state) => state.location);
+
   // --- Refs ---
   const mapRef = useRef(null);
-  const bottomSheetModalRef = useRef(null);
+  const markerAnimated = useRef(null);
 
   // Modals
-  const [modalVisible, setModalVisible] = useState(false);
+  const [modalDestinationVisible, setModalDestinationVisible] = useState(false);
   const [modalSavedPlacesVisible, setModalSavedPlacesVisible] = useState(false);
   const [modalCancelVisible, setModalCancelVisible] = useState(false);
   const [modalPreCancelVisible, setModalPreCancelVisible] = useState(false);
   const [modalChatVisible, setModalChatVisible] = useState(false);
   const [modalConfirmationVisible, setModalConfirmationVisible] =
     useState(null);
-
-  // Bottom Sheets
-  const carTypeSelectionSheetRef = useRef(null);
-  const userCarInfoSheetRef = useRef(null);
-  const paymentOptionsSheetRef = useRef(null);
-  const rideSearchSheetRef = useRef(null);
-  const tripStartedSheetRef = useRef(null);
-  const driverArrivingSheetRef = useRef(null);
-  const tripEndingSheetRef = useRef(null);
+ 
   const bottomSheetModalRefDetails = useRef(null);
   const bottomSheetModalDragMarker = useRef(null);
-  const [activeBottomSheet, setActiveBottomSheet] = useState(null);
-
+ 
   // Map and Markers
   const [mapMarkers, setMapMarkers] = useState([]);
-  const [mapDirections, setMapDirections] = useState(null);
   const [carsAround, setCarsAround] = useState([]);
-  const [driverLocation, setDriverLocation] = useState(null);
-  const [isSearchingNearby, setIsSearchingNearby] = useState(false);
-  const [markerVisible, setMarkerVisible] = useState();
-  const [markerCity, setMarkerCity] = useState();
+  const [isSearchingNearby, setIsSearchingNearby] = useState(false); 
   const [hasCentered, setHasCentered] = useState(false);
-
-  // User Input
-  const [originCity, setOriginCity] = useState(null);
-  const [destinationCity, setDestinationCity] = useState(null);
-  const [originCoords, setOriginCoords] = useState(null);
-  const [destinationCoords, setDestinationCoords] = useState(null);
-  const [isCurrLocation, setIsCurrLocation] = useState(null);
-
-  // Car and Trip Details
-  const [typeCar, setTypeCar] = useState("Turismo");
-  const [ridePrice, setRidePrice] = useState("25,300");
-  const [brand, setBrand] = useState("Toyota");
-  const [model, setModel] = useState("Corolla");
-  const [license, setLicense] = useState("LD-SOM");
-  const [color, setColor] = useState("Preto");
-  const [tripDuration, setTripDuration] = useState(null);
-  const [inputLocationObject, setInputLocationObject] = useState(null);
-
-  // Service and Driver
-  const [service, setService] = useState(null);
-  const [driver, setDriver] = useState(null);
-  const [driverConnected, setDriverConnected] = useState(false);
+   
   const [detailsInfo, setDetailsInfo] = useState();
-  const [tripState, setTripState] = useState(null); // New state for trip status
-
-  // Timer
-  const [timer, setTimer] = useState(DEFAULT_TIMER_DURATION);
-  const [isActive, setIsActive] = useState(false);
-
-  // --- Context ---
-  const {
-    socket,
-    user,
-    fetchUserById,
-    removeDiscount,
-    serviceStatus,
-    setServiceStatus,
-    prices,
-    fetchPrices,
-  } = useContext(UserContext);
-
-  const { userLocation, setUserLocation } = useUserLocationStateContext();
-
-  // Marker for animation
-  const markerAnimated = useRef(null);
-
+  
   // Saved Places
   const [favPlaces, setFavPlaces] = useState([]);
   const [newSavedPlaceAddress, setNewSavedPlaceAddress] = useState({
     pos: 0,
     city: "",
   });
-
-  // --- Derived State ---
-  const isRouteVisible = mapMarkers.length === 2;
+ 
 
   // Cancellation Reasons
   const [questions, setQuestions] = useState([
@@ -118,292 +71,495 @@ export const useMapScreen = () => {
     { key: 5, question: "Outro" },
   ]);
 
-  // --- Helper Functions ---
+  // Function declarations - moved to the top to avoid redeclaration errors
+  const resetToInitialState = () => {
+    setModalDestinationVisible(false);
+    setModalSavedPlacesVisible(false);
+    setModalCancelVisible(false);
+    setModalPreCancelVisible(false);
+    setModalChatVisible(false);
+    setModalConfirmationVisible(false);
 
-  const getAddressFromCoordinates = async (lat, lng) => {
-    try {
-      const response = await Geocoder.from(lat, lng);
-      const address = response.results[0]?.address_components[1]?.long_name;
-      // console.log(response.results[0]);
-      setMarkerCity(address);
-      return address;
-    } catch (error) {
-      console.log("Error fetching address:", error);
+    bottomSheetManager.resetBottomSheets();
+    locationSearch.resetLocationState();
+    carDetails.resetCarDetails();
+    serviceManagement.resetServiceState();
+    timerHook.resetTimer();
+    
+    setMapMarkers([]);
+    setCarsAround([]);
+    setDetailsInfo(null);
+  };
+
+  const backToPaymentScreen = () => {
+    timerHook.resetTimer();
+    bottomSheetManager.transitionToSheet('rideSearch', 'paymentOptions');
+  };
+
+  // 1. Location Search Hook
+  const locationSearch = useLocationSearch(
+    mapRef, 
+    setMapMarkers, 
+    (locations) => {
+      console.log("Locations selected:", locations);
+      // Handle location selection if needed
+      
+      handleDestinationSelected();
     }
-  };
+  );
 
-  const getDistanceInKm = (pickup, drop) => {
-    const { lat1, lon1 } = { lat1: pickup.latitude, lon1: pickup.longitude };
-    const { lat2, lon2 } = { lat2: drop.latitude, lon2: drop.longitude };
+  // 2. Timer Hook with timeout handling  
+  const timerHook = useTimer(DEFAULT_TIMER_DURATION, () => {
+    if (serviceManagement?.driver) return;
 
-    const earthRadius = 6371; // Radius of the Earth in kilometers
-    const dLat = toRadians(lat2 - lat1);
-    const dLon = toRadians(lon2 - lon1);
-
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRadians(lat1)) *
-      Math.cos(toRadians(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = earthRadius * c;
-
-    return distance;
-  };
-
-  function toRadians(degrees) {
-    return (degrees * Math.PI) / 180;
-  }
-
-  const formatDuration = (minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = Math.floor(minutes % 60);
-
-    if (hours > 0) {
-      return `${hours} h ${remainingMinutes} mins`;
-    } else {
-      return `${remainingMinutes} mins`;
-    }
-  };
-
-  // --- Map Manipulation Functions ---
-
-  const animateMarker = (newLatitude, newLongitude, animationDuration) => {
-    const destination = {
-      latitude: newLatitude,
-      longitude: newLongitude,
+    const complaints = {
+      title: "TimeOver",
+      description: "Waiting time finish",
+      idUser: user.id,
     };
 
-    markerAnimated.current?.animateMarkerToCoordinate(
-      destination,
-      animationDuration
+    handleCancelTrip({
+      description: "Waiting time finish",
+    });
+
+      Alert.alert(
+        "Não há um motorista disponível",
+        "Tente novamente mais tarde",
+      [{ text: "OK", onPress: resetToInitialState }]
     );
-  };
+  });
 
-  const simulateMovement = (newLatitude, newLongitude) => {
-    animateMarker(newLatitude, newLongitude, 7000);
+  // 3. Bottom Sheet Manager Hook
+  const bottomSheetManager = useBottomSheetManager();
 
-    // Call the function again after a delay
-    setTimeout(simulateMovement, 7000);
-  };
+  // 4. Car Details Hook
+  const carDetails = useCarDetails({
+    onCarTypeChange: (carTypeData) => console.log("Car type changed:", carTypeData),
+    onCarDetailsChange: (details) => console.log("Car details changed:", details),
+    initialCarType: "Turismo"
+  });
 
+    // Helper function to handle existing service data
+  const handleExistingService = useCallback((serviceData) => {
+    console.log("Handling existing service:", serviceData);
+    
+    if (!serviceData || !serviceData.service) {
+      console.log("No valid service data provided");
+      return false;
+    }
+    
+    const service = serviceData.service;
+    const origin = service.locations[0];
+    const destination = service.locations[1];
+  
+    // Set car type and price if available in the service data
+     if (service.payment) {
+      carDetails.handleTypeCarPress("", service.payment.value);
+    }
+    
+    if ((origin || service.pickup) && (destination || service.dropoff)) {
+      // Prepare data for the location handler in the format it expects
+      const formattedData = {
+        origin: {
+          name: origin?.name || service.pickup?.address || '',
+          coordinates: origin?.coordinates || {
+            latitude: service.pickup?.location?.latitude || service.pickup?.latitude,
+            longitude: service.pickup?.location?.longitude || service.pickup?.longitude
+          }
+        },
+        destination: {
+          name: destination?.name || service.dropoff?.address || '',
+          coordinates: destination?.coordinates || {
+            latitude: service.dropoff?.location?.latitude || service.dropoff?.latitude,
+            longitude: service.dropoff?.location?.longitude || service.dropoff?.longitude
+          }
+        }
+      };
+      
+      // Use the handleExistingServiceAtStart function from locationSearch
+      return locationSearch.handleExistingServiceAtStart(formattedData);
+    }
+    
+    console.log("Service data format not recognized");
+    return false;
+  }, [locationSearch, carDetails]);
+
+  // 5. Service Management Hook
+  const serviceManagement = useServiceManagement({
+    onDriverFound: (data) => {
+      console.log("Driver found:", data);
+      
+      // Use the new handleExistingService function instead of directly updating location data
+      const success = handleExistingService(data);
+      
+      if (success) console.log("Successfully set up map with service data");
+      
+      if (bottomSheetManager.rideSearchSheetRef.current && 
+          bottomSheetManager.tripStartedSheetRef.current) {
+        bottomSheetManager.transitionToSheet('rideSearch', 'tripStarted');
+      }
+      timerHook.resetTimer();
+    },
+    onDriverArriving: () => {
+      console.log("Driver arriving");
+      if (bottomSheetManager.driverArrivingSheetRef.current && 
+          bottomSheetManager.tripEndingSheetRef.current) {
+        bottomSheetManager.transitionToSheet('tripStarted', 'driverArriving');
+      }
+    },
+    onServiceStarted: (data) => {
+      console.log("Service started", data);
+      
+      const success = handleExistingService(data);
+
+      if (success) console.log("Successfully set up map with service data");
+      
+      if (bottomSheetManager.driverArrivingSheetRef.current && 
+          bottomSheetManager.tripEndingSheetRef.current) {
+        bottomSheetManager.transitionToSheet('driverArriving', 'tripEnding');
+      }
+    },
+ 
+    onServiceCompleted: (data) => {
+      console.log("Service completed:", data);
+      if (data.payment) {
+        carDetails.handleTypeCarPress("", data.payment.value);
+      }
+      bottomSheetManager.dismissActiveBottomSheet();
+      setModalConfirmationVisible(true);
+    },
+    onServiceCancelled: () => {
+      resetToInitialState();
+    },
+    onNoDriverAvailable: () => {
+      timerHook.resetTimer();
+      Alert.alert(
+        "Não há um motorista disponível",
+        "Tente novamente mais tarde",
+        [{ text: "OK", onPress: backToPaymentScreen }]
+      );
+    },
+    resetAppState: resetToInitialState
+  });
+
+  // --- Updated Core Functions ---
+
+  // Center to user location
   const centerToUserLocation = useCallback(() => {
-    if (userLocation && !driver && !hasCentered) {
-      // when user moves it centers
+    if (userLocation && !serviceManagement.driver && !hasCentered) {
       mapRef.current?.animateToRegion({
         latitude: userLocation.latitude,
         longitude: userLocation.longitude,
         latitudeDelta: LATITUDE_DELTA,
         longitudeDelta: LONGITUDE_DELTA,
       });
-      console.log(userLocation?.latitude, userLocation?.longitude);
       setHasCentered(true);
     }
-  }, [userLocation?.latitude, userLocation?.longitude, hasCentered]);
+  }, [userLocation?.latitude, userLocation?.longitude, hasCentered, serviceManagement.driver]);
 
+  // Handle user location change
   const handleUserLocationChange = ({ nativeEvent: { coordinate } }) => {
-    if (coordinate && !modalVisible && !isRouteVisible) {
-      setUserLocation(coordinate);
+    if (coordinate && !modalDestinationVisible && mapMarkers.length < 2) {
+      dispatch(setUserLocation(coordinate));
     }
   };
 
-  // --- Timer Functions ---
+  // Get nearby drivers
+  const getNearbyDrivers = async () => {
+    try {
+      if (isSearchingNearby) return;
+      const params = {
+        latitude: userLocation?.latitude,
+        longitude: userLocation?.longitude,
+        maxDistance: 5000,
+      };
+      const resp = await axios.get(`${IP}/drivers/nearby`, {
+        params: params,
+      });
 
-  const startTimer = () => {
-    setIsActive(true);
-  };
+      const nearbyDrivers = resp.data.map((driverData) => ({
+        latitude: driverData.location.latitude,
+        longitude: driverData.location.longitude,
+        color: driverData.driver.car.color,
+      }));
 
-  const resetTimer = () => {
-    setIsActive(false);
-    setTimer(180);
-  };
+      setCarsAround(nearbyDrivers);
+      setIsSearchingNearby(true);
 
-  const formatTime = (time) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = time % 60;
-
-    return `${minutes.toString().padStart(2, "0")}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
-  const calculateProgress = () => {
-    return 1 - timer / 180; // Calculate the progress as a decimal value
-  };
-  // --- Socket Event Handlers ---
-
-  const handleSocketEvents = () => {
-    // Handle events from the server
-
-    const handleBestDriver = (data) => {
-      try {
-        console.log("bestDriver event:", data);
-        // handleDriverAccept(data.location, data.atual);
-      } catch (error) {
-        console.error("Error handling bestDriver event:", error);
+      if (!serviceManagement.service) {
+        // Continue searching if a service doesn't exist
+        setTimeout(getNearbyDrivers, 20000);
       }
-    };
+    } catch (error) {
+      console.error(error);
+      if (!serviceManagement.service) {
+        // Retry after a delay if a service doesn't exist
+        setTimeout(getNearbyDrivers, 20000);
+      }
+    }
+  };
 
-    const handleNoDriver = (data) => {
+  // Handle map search bar press
+  const handleMapSearchBarPress = async () => {
+    const success = await locationSearch.handleMapSearchBarPress();
+    if (success) {
+      setModalDestinationVisible(true);
+    }
+  };
+
+  // Handle favorite button press
+ const handleOnFavouriteButtonPress = (item) => {
+    return () => {
+      locationSearch.setOriginCity(item.place.description);
+      locationSearch.setOriginCoords({
+        latitude: item.place.coordinates.latitude,
+        longitude: item.place.coordinates.longitude,
+      });
+      setModalDestinationVisible(true);
+      locationSearch.setInputLocationObject(0);
+      locationSearch.setIsCurrLocation(null);
+    };
+  };
+
+  // Handle type car press
+  const handleTypeCarPress = (type, price) => {
+    return () => {
+      carDetails.handleTypeCarPress(type, price);
+      bottomSheetManager.transitionToSheet('carTypeSelection', 'userCarInfo');
+    };
+  };
+
+  // Handle confirm button press
+  const handleConfirmButtonPress = () => {
+    Keyboard.dismiss();
+    bottomSheetManager.transitionToSheet('userCarInfo', 'paymentOptions');
+  };
+
+  // Handle confirm payment press
+  const handleConfirmPaymentPress = (payment_type) => {
+    return async () => {
+      bottomSheetManager.transitionToSheet('paymentOptions', 'rideSearch');
+      setCarsAround([]);
+      
+      // Don't start the timer yet - wait for successful service request
+      console.log("handleConfirmPaymentPress");
+
       try {
-        console.log("noDriver event:");
-        Alert.alert(
-          "Não há um motorista disponível",
-          "Tente novamente mais tarde",
-          [
+        const requestData = {
+          user: user.id,
+          locations: [
             {
-              text: "OK",
-              onPress: () => {
-                backToPaymentScreen();
+              name: locationSearch.originCity,
+              coordinates: {
+                latitude: mapMarkers[0].latitude,
+                longitude: mapMarkers[0].longitude,
               },
             },
-          ]
-        );
-      } catch (error) {
-        console.error("Error handling noDriver event:", error);
-      }
-    };
-
-    const handleDriverConnected = (data) => {
-      try {
-        console.log("driverConnected event:", data);
-        if (data && data.location && data.service && data.service.pickup) {
-          setDriverConnected(true);
-          handleDriverConnect(data.location, data.service.pickup);
-          setDriver(data.driver);
-          setDriverLocation(data.location);
-        }
-      } catch (error) {
-        console.error("Error handling driverConnected event:", error);
-      }
-    };
-
-    const handleServiceAccepted = (data) => {
-      try {
-        console.log("serviceAccepted event:", data);
-        handleDriverAccepted(data);
-      } catch (error) {
-        console.error("Error handling serviceAccepted event:", error);
-      }
-    };
-
-    const handleDriverDeclined = (data) => {
-      try {
-        console.log("driverDeclined event:", data);
-        const { idUser, idService, userLocation } = data;
-        const { longitude, latitude } = userLocation;
-        socket.emit("chooseBestDriver", {
-          idUser,
-          idService,
-          userLocation: [longitude, latitude],
-        });
-      } catch (error) {
-        console.error("Error handling driverDeclined event:", error);
-      }
-    };
-
-    const handleDriverLocation = (data) => {
-      try {
-        console.log("driverLocation event:", data);
-        if (data && data.service && data.location) {
-          const { service, location } = data;
-
-          switch (service.status) {
-            case 1: {
-              setDriverLocation(location);
-            
-              setMapMarkers([location, service.pickupLocation]);
-
-              if (serviceStatus) {
-                console.log("AQUI");
-                setServiceStatus(null);
-              }
-
-              simulateMovement(location.longitude, location.longitude, 10000);
-              const distance = getDistanceInKm(
-                service.pickupLocation,
-                location
-              );
-              if (distance < 0.3) {
-                setMapDirections();
-                tripStartedSheetRef.current.dismiss();
-                driverArrivingSheetRef.current.present();
-              }
-              break;
-            }
-            case 2: {
-              setDriverLocation(location);
-              setMapMarkers([location, service.dropoffLocation]);
-              break;
-            }
-            default:
-              break;
-          }
-        }
-      } catch (error) {
-        console.error("Error handling driverLocation event:", error);
-      }
-    };
-
-    const handleServiceStarted = (data) => {
-      try {
-        if (data && data.status === "in-progress") {
-          driverArrivingSheetRef.current.dismiss();
-          tripEndingSheetRef.current.present();
-          setTripState('in-progress'); // Update trip state
-        }
-      } catch (error) {
-        console.error("Error handling serviceStarted event:", error);
-      }
-    };
-
-    const handleServiceEnded = (data) => {
-      try {
-        if (data && data.status === "completed") {
-          tripEndingSheetRef.current.dismiss();
-          setModalConfirmationVisible(true);
-
-          console.log("Trip completed:", user);
-        }
-      } catch (error) {
-        console.error("Error handling serviceEnded event:", error);
-      }
-    };
-
-    const handleServiceCancelled = (data) => {
-      try {
-        console.log("serviceCancelled event:", data);
-        // Handle the service cancellation here
-        Alert.alert("Serviço cancelado", "O motorista cancelou o serviço", [
-          {
-            text: "OK",
-            onPress: () => {
-              resetToInitialState();
+            {
+              name: locationSearch.destinationCity,
+              coordinates: {
+                latitude: mapMarkers[1].latitude,
+                longitude: mapMarkers[1].longitude,
+              },
             },
+          ],
+          status: "requested",
+          user_car_details: carDetails.getFormattedCarDetails(),
+          payment: {
+            value: carDetails.ridePrice,
+            method: payment_type,
+            discount: user.discount?.active ? user.discount.percentage : null,
           },
-        ]);
-      } catch (error) {
-        console.error("Error handling serviceCancelled event:", error);
-      }
-    };
+          type_car: carDetails.typeCar,
+        };
 
-    socket.on("bestDriver", handleBestDriver);
-    socket.on("driverConnected", handleDriverConnected);
-    socket.on("driverLocation", handleDriverLocation);
-    socket.on("serviceAccepted", handleServiceAccepted);
-    socket.on("serviceDeclined", handleDriverDeclined);
-    socket.on("serviceStarted", handleServiceStarted);
-    socket.on("serviceEnded", handleServiceEnded);
-    socket.on("serviceCancelled", handleServiceCancelled);
-    socket.on("noDriver", handleNoDriver);
-    return () => {
-      // Clean up the socket connection
-      socket.disconnect();
+        console.log("requestData", requestData);
+        console.log("serviceManagement", serviceManagement);
+        const serviceData = await serviceManagement.requestService(requestData);
+        console.log("serviceManagement", serviceData);
+        
+        // Start the timer only after successful service request
+        timerHook.startTimer();
+      } catch (error) {
+        // Reset the timer if the service request fails
+        timerHook.resetTimer();
+        
+        Alert.alert(
+          "Erro", 
+          error.response?.data?.message || "Não foi possível criar o serviço", 
+          [{ 
+          text: "OK", 
+          onPress: () => {
+              bottomSheetManager.transitionToSheet('rideSearch', 'paymentOptions');
+            }
+          }]
+        );
+      }
     };
   };
 
-  // --- Effect Hooks ---
+  // Handle cancel search
+  const handleCancelSearch = () => {
+    const complaints = {
+      title: "Search Cancellation",
+      description: "User cancelled the search",
+      idUser: user.id,
+    };
+    
+    serviceManagement.cancelServiceSearch(complaints);
+    timerHook.resetTimer();
+    bottomSheetManager.transitionToSheet('rideSearch', 'main');
+  };
+
+  // Handle trip cancellation
+  const handleCancelTrip = (reason) => {
+    const complaints = {
+      title: "Cancelled by user",
+      description: reason?.description || "User cancelled the service",
+      idUser: user.id,
+    };
+    
+    serviceManagement.cancelService(complaints);
+    timerHook.resetTimer();
+    bottomSheetManager.resetBottomSheets();
+  };
+
+  // Handle press question
+  const handlePressQuestion = (question) => {
+    handleCancelTrip({description: question});
+    handleCancelAlert();
+  };
+
+  // Handle back button press
+  const handleBackButtonPress = () => {
+    if (mapMarkers.length === 2) {
+      resetToInitialState();
+    }
+  };
+
+  // Modal handlers
+  const closeDestinationModal = () => {
+    setModalDestinationVisible(false);
+    
+    // When manually closing the modal, always go back to the main sheet
+    // The handleDestinationSelected function will handle showing car type selection sheet
+    bottomSheetManager.presentBottomSheet('main');
+  };
+
+  const closeSavedPlacesModal = () => {
+    // Just for debugging
+    console.log("closeSavedPlacesModal called with newSavedPlaceAddress:", newSavedPlaceAddress);
+    
+    // Only reset if not coming back from map drag
+    if (!newSavedPlaceAddress?.fromMapDrag) {
+      console.log("Closing SavedPlacesModal normally");
+      setModalSavedPlacesVisible(false);
+      bottomSheetManager.presentBottomSheet('main');
+    } else {
+      console.log("Keeping SavedPlacesModal open because we're coming back from map drag");
+      // If we set it to false and true quickly, it will cause a flicker, so keep it visible
+    }
+  };
+
+  const closeConfirmationModal = () => {
+    resetToInitialState();
+  };
+
+  const closeCancelModal = () => {
+    setModalCancelVisible(false);
+  };
+
+  const closePreCancelModal = () => {
+    setModalPreCancelVisible(false);
+  };
+
+  const closeChatModel = () => {
+    setModalChatVisible(false);
+  };
+
+  const handlePreCancelButtonPress = () => {
+    setModalPreCancelVisible(true);
+  };
+
+  const handleAddFavouriteButtonPress = () => {
+    setModalSavedPlacesVisible(true);
+  };
+
+  const handlePressCancel = () => {
+    setModalCancelVisible(true);
+  };
+
+  // Cancel alert
+  const handleCancelAlert = () => {
+    Alert.alert(
+      "VIAGEM CANCELADA",
+      "O motivo de cancelamento foi levado em consideração!",
+      [
+        {
+          text: "OK",
+          style: "cancel",
+          onPress: () => {
+            setModalPreCancelVisible(false);
+            setModalCancelVisible(false);
+          },
+        },
+      ],
+      {
+        cancelable: false,
+      }
+    );
+  };
+
+  // Handle driver details form
+  const handleDetailsForm = (bottomSheetRef) => {
+    bottomSheetRef.current?.close();
+    bottomSheetModalRefDetails.current?.present();
+  };
+
+  // Handle messaging the driver
+  const handleMessageDriver = () => {
+    setModalChatVisible(true);
+  };
+
+  // Handle destination selection and transition to car type selection
+  const handleDestinationSelected = () => {
+    // Close the destination modal
+    setModalDestinationVisible(false);
+    
+    // If prices data is not loaded yet, load it now
+    if (!prices) {
+      console.log("Fetching prices data before showing car type selection");
+      dispatch(fetchPrices());
+    } else {
+      console.log("Using existing prices data:", prices);
+    }
+    
+    // Present the car type selection sheet
+    bottomSheetManager.presentBottomSheet('carTypeSelection');
+  };
+
+  // Reset the saved place address data
+  const resetNewSavedPlaceAddress = () => {
+    setNewSavedPlaceAddress({
+      pos: 0,
+      city: "",
+      callback: false,
+      fromMapDrag: false
+    });
+  };
+
+  // Force close saved places modal regardless of fromMapDrag status
+  const forceCloseSavedPlacesModal = () => {
+    console.log("Forcing close of SavedPlacesModal");
+    
+    // Reset the newSavedPlaceAddress state to clear the fromMapDrag flag
+    resetNewSavedPlaceAddress();
+    
+    // Close the saved places modal
+    setModalSavedPlacesVisible(false);
+  };
+
+  // --- Effects ---
 
   // Effect - Center map on user location initially
   useEffect(() => {
@@ -427,8 +583,8 @@ export const useMapScreen = () => {
 
   // Effect - Fit map to route coordinates when they change
   useEffect(() => {
-    if (mapDirections?.coordinates) {
-      mapRef.current?.fitToCoordinates(mapDirections?.coordinates, {
+    if (serviceManagement.mapDirections?.coordinates) {
+      mapRef.current?.fitToCoordinates(serviceManagement.mapDirections?.coordinates, {
         edgePadding: {
           bottom: scale(250),
           top: scale(50),
@@ -437,810 +593,220 @@ export const useMapScreen = () => {
         },
       });
     }
-  }, [mapDirections?.coordinates]);
-
-  // Effect - Manage the countdown timer
-  useEffect(() => {
-    let interval = null;
-
-    if (isActive) {
-      interval = setInterval(() => {
-        setTimer((prevTimer) => prevTimer - 1);
-      }, 1000);
-    } else if (!isActive && timer !== 0) {
-      clearInterval(interval);
-    }
-
-    if (timer === 0) {
-      // Timer has reached 0, perform any action you need here
-      console.log("Timer has reached 0!");
-      clearInterval(interval);
-
-      if (driver) return;
-
-      const complaints = {
-        title: "TimeOver",
-        description: "Waiting time finish",
-        idUser: user.id,
-      };
-
-      onConfirmCancelTrip({
-        complaints,
-      });
-
-      Alert.alert(
-        "Não há um motorista disponível",
-        "Tente novamente mais tarde",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              resetToInitialState();
-            },
-          },
-        ]
-      );
-    }
-
-    return () => clearInterval(interval);
-  }, [isActive, timer, service, user, driver]);
-
-  // Effect: Handle Socket Events - Attach/Detach listeners
-  useEffect(() => {
-    // Attach Socket Event listeners
-    const cleanup = handleSocketEvents();
-
-    // Cleanup function will be called when component unmounts
-    return cleanup;
-  }, [socket, user]);
+  }, [serviceManagement.mapDirections?.coordinates]);
 
   // Effect - Show initial bottom sheet and fetch nearby drivers
   useEffect(() => {
-      bottomSheetModalRef.current.present();
+    bottomSheetManager.mainBottomSheetRef.current?.present();
   }, []);
-
-  // Effect - Fetch nearby drivers when the component mounts and when service is null
+  
+  // Effect - Fetch nearby drivers
   useEffect(() => {
-    // Check if a service is not active before fetching nearby drivers
-    if (!service && userLocation && !isSearchingNearby) {
+    if (!serviceManagement.service && userLocation && !isSearchingNearby) {
       getNearbyDrivers();
     }
 
     return () => {
       setIsSearchingNearby(true);
     };
-  }, [userLocation, isSearchingNearby]);
-
-  // Effect - Manage service status updates
-  useEffect(() => {
-    console.log("SERVICE STATUS", serviceStatus);
-    if (
-      !serviceStatus ||
-      serviceStatus?.service?.status === "nodriver" ||
-      serviceStatus?.service?.status === "cancelled"
-    )
-      return;
-    const { service, car } = serviceStatus;
-    const status = service.status;
-    console.log("STATUS", status);
-    const room = `service-request-${serviceStatus.service._id}`;
-    setDriver({
-      id: service.driver._id,
-      driverId: service.driver._id,
-      name: `${service.driver.details.name} ${service.driver.details.surname}`,
-      photo: service.driver.user_photo_url,
-      status: service.driver.status,
-      rating: service.driver.rating,
-      numServices: service.driver.numServices,
-      car: {
-        name: `${car.brand} ${car.model} ${car.color}`,
-        color: car.color,
-        licensePlate: car.licensePlate,
-      },
-    });
-    setOriginCity(service.locations[0].name);
-    setDestinationCity(service.locations[1].name);
-    switch (status) {
-      case "in-progress":
-        console.log("Socket connected!", room);
-        socket.emit("join", room);
-        bottomSheetModalRef.current.dismiss();
-        tripEndingSheetRef.current.present();
-        setService(service);
-        setTripState('in-progress'); // Update trip state
-        break;
-
-      case "assigned":
-        console.log("Socket connected!", room);
-        socket.emit("join", room);
-        bottomSheetModalRef.current.dismiss();
-        tripStartedSheetRef.current.present();
-        setService(service);
-        setTripState('assigned'); // Update trip state
-        break;
-
-      case "completed":
-        // Handle completed status here
-        // Add your code for completed status
-        setRidePrice(service.payment.value);
-        setService(service);
-        setModalConfirmationVisible(true);
-
-        break;
-
-      default:
-        break;
-    }
-  }, [serviceStatus]);
-
-  // --- Data Fetching Functions ---
-
-  const getNearbyDrivers = async () => {
-    try {
-      if (isSearchingNearby) return;
-      const params = {
-        latitude: userLocation?.latitude,
-        longitude: userLocation?.longitude,
-        maxDistance: 5000,
-      };
-      const resp = await axios.get(`${IP}/drivers/nearby`, {
-        params: params,
-      });
-
-      console.log("NEARBY", resp.data);
-
-      const nearbyDrivers = resp.data.map((driverData) => ({
-        latitude: driverData.location.latitude,
-        longitude: driverData.location.longitude,
-        color: driverData.driver.car.color,
-      }));
-
-      console.log("A PROCURAR... ", nearbyDrivers);
-      setCarsAround(nearbyDrivers); //nearbyDrivers
-      setIsSearchingNearby(true);
-
-      if (!service) {
-        // Continue searching if a service doesn't exist
-        setTimeout(getNearbyDrivers, 20000);
-      }
-
-      console.log("PROCURA CONCLUIDA... ");
-    } catch (error) {
-      console.error(error);
-      if (!service) {
-        // Retry after a delay if a service doesn't exist
-        setTimeout(getNearbyDrivers, 20000);
-      }
-    }
-  };
-
-  // --- Button Press Handlers ---
-
-  const handleMapSearchBarPress = () => {
-    getAddressFromCoordinates(userLocation?.latitude, userLocation?.longitude);
-    setOriginCity(markerCity);
-    setOriginCoords({
-      latitude: userLocation?.latitude,
-      longitude: userLocation?.longitude,
-    });
-    if (markerCity) {
-      setModalVisible(true);
-      setIsCurrLocation({
-        latitude: userLocation?.latitude,
-        longitude: userLocation?.longitude,
-      });
-    }
-  };
-
-  const handleOnFavouriteButtonPress = (item) => {
-    return () => {
-      setOriginCity(item.place.description);
-      setOriginCoords({
-        latitude: item.place.coordinates.latitude,
-        longitude: item.place.coordinates.longitude,
-      });
-      setModalVisible(true);
-      setInputLocationObject(true);
-      setIsCurrLocation();
-    };
-  };
-
-  const handleConfirmDraggablePress = () => {
-    if (newSavedPlaceAddress.pos > 0) {
-      setModalSavedPlacesVisible(true);
-      setNewSavedPlaceAddress({
-        pos: newSavedPlaceAddress.pos,
-        city: markerCity,
-        coordinates: newSavedPlaceAddress.coordinates,
-        callback: true,
-      });
-      setMarkerVisible(false);
-      bottomSheetModalDragMarker.current.dismiss();
-      return;
-    }
-
-    setModalVisible(true);
-    if (inputLocationObject === 0) {
-      console.log(inputLocationObject, originCoords);
-      setOriginCity(markerCity);
-      if (destinationCity != null) {
-        setMapMarkers([originCoords, destinationCoords]);
-        setModalVisible(false);
-        bottomSheetModalRef.current.dismiss();
-        carTypeSelectionSheetRef.current.present();
-      }
-    } else if (inputLocationObject === 1) {
-      console.log(inputLocationObject, destinationCoords);
-      setDestinationCity(markerCity);
-      if (originCity != null) {
-        setMapMarkers([originCoords, destinationCoords]);
-        setModalVisible(false);
-        bottomSheetModalRef.current.dismiss();
-        carTypeSelectionSheetRef.current.present();
-      }
-    }
-    setMarkerVisible(false);
-    bottomSheetModalDragMarker.current.dismiss();
-  };
-
-  const handleTypeCarPress = (type, price) => {
-    return () => {
-      console.log("Type car pressed:", type, price);
-      console.log("Current state:", {
-        typeCar,
-        ridePrice,
-        carTypeSelectionSheetRef: carTypeSelectionSheetRef.current ? 'exists' : 'null',
-        userCarInfoSheetRef: userCarInfoSheetRef.current ? 'exists' : 'null'
-      });
-
-      setTypeCar(type);
-      setRidePrice(price);
-      setActiveBottomSheet('carTypeSelection');
-
-      if (carTypeSelectionSheetRef.current) {
-        console.log("Dismissing carTypeSelectionSheetRef");
-        carTypeSelectionSheetRef.current.dismiss();
-      } else {
-        console.log("carTypeSelectionSheetRef is not available");
-      }
-
-      // Add a delay and use requestAnimationFrame for smoother transitions
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          if (userCarInfoSheetRef.current) {
-            console.log("Attempting to present userCarInfoSheetRef");
-            userCarInfoSheetRef.current.present();
-            setActiveBottomSheet('userCarInfo');
-          } else {
-            console.log("userCarInfoSheetRef is not available");
-          }
-        });
-      }, 500);
-    };
-  };
-
-  const handleConfirmButtonPress = () => {
-    Keyboard.dismiss();
-    userCarInfoSheetRef.current.dismiss();
-    paymentOptionsSheetRef.current.present();
-    setActiveBottomSheet('paymentOptions');
-  };
-
-  const handleConfirmPaymentPress = (payment_type) => {
-    return async () => {
-      if (!socket.connected) {
-        console.warn("Socket is not connected. Unable to emit data.");
-        Alert.alert("Não há conexão com o servidor.");
-        return;
-      }
-
-      console.log("Confirm Payment");
-      console.log(typeCar);
-
-      paymentOptionsSheetRef.current.dismiss();
-      rideSearchSheetRef.current.present();
-      setActiveBottomSheet('rideSearch');
-      setCarsAround([]);
-      startTimer();
-
-      try {
-        const requestData = {
-          user: user.id,
-          locations: [
-            {
-              name: originCity,
-              coordinates: {
-                latitude: mapMarkers[0].latitude,
-                longitude: mapMarkers[0].longitude,
-              },
-            },
-            {
-              name: destinationCity,
-              coordinates: {
-                latitude: mapMarkers[1].latitude,
-                longitude: mapMarkers[1].longitude,
-              },
-            },
-          ],
-          status: "requested",
-          user_car_details: `${brand} ${model}, ${color}, ${license}`,
-          payment: {
-            value: ridePrice,
-            method: payment_type,
-            discount: user.discount?.active ? user.discount.percentage : null,
-          },
-          type_car: typeCar,
-        };
-
-        //maybe alter here
-        const resp = await axios.post(`${IP}/service/`, requestData);
-        console.log("Request successful:", resp.data);
-        setService(resp.data);
-
-        //console.log("SERVICO",service)
-        const data = {
-          idService: resp.data._id,
-          userLocation: [mapMarkers[0].longitude, mapMarkers[0].latitude],
-          user: user._id,
-        };
-
-        socket.emit("chooseBestDriver", data);
-
-        return resp.data;
-      } catch (error) {
-        console.error("An error occurred:", error.message);
-        return null;
-      }
-    };
-  };
-
-  const handlePressItemPress = (coords, address, inputRef) => {
-    if (inputLocationObject === 0) {
-      console.log("orign ", coords);
-      setOriginCoords(coords);
-      setOriginCity(address);
-      setIsCurrLocation();
-      inputRef.current.focus();
-      console.log(inputLocationObject, coords, address);
-    } else if (inputLocationObject === 1) {
-      console.log("dest ", coords);
-      console.log(inputLocationObject, coords, address);
-
-      if (address === "CurrLocation") {
-        coords = {
-          latitude: userLocation?.latitude,
-          longitude: userLocation?.longitude,
-        };
-
-        address = markerCity;
-      }
-      // setDestinationCoords(coords);
-      fetchPrices();
-      setDestinationCity(address);
-      // console.log("AQUI", type);
-      setMapMarkers([originCoords, coords]);
-      setModalVisible(false);
-      bottomSheetModalRef.current.dismiss();
-      carTypeSelectionSheetRef.current.present();
-    }
-  };
-
-  const handleMarkerDragPress = () => {
-    return () => {
-      console.log("AQUI");
-      setModalVisible(false);
-      setMarkerVisible(true);
-      bottomSheetModalRef.current.dismiss();
-      bottomSheetModalDragMarker.current.present();
-    };
-  };
-
-  const handleMarkerDragSavedPlaces = () => {
-    console.log("AQUI");
-    setNewSavedPlaceAddress({ pos: 1, city: "", callback: false });
-    setModalSavedPlacesVisible(false);
-    setMarkerVisible(true);
-    carTypeSelectionSheetRef.current.dismiss();
-    bottomSheetModalDragMarker.current.present();
-  };
-
-  const handleMarkerDragEnd = ({ latitude, longitude }) => {
-    getAddressFromCoordinates(latitude, longitude);
-    console.log("AQUI 2", latitude, longitude, newSavedPlaceAddress);
-
-    if (newSavedPlaceAddress.pos > 0) {
-      setNewSavedPlaceAddress({
-        pos: newSavedPlaceAddress.pos,
-        city: "",
-        coordinates: { latitude, longitude },
-        callback: false,
-      });
-    } else if (inputLocationObject === 0) {
-      setOriginCoords({ latitude, longitude });
-    } else if (inputLocationObject === 1) {
-      fetchPrices();
-      setDestinationCoords({ latitude, longitude });
-    }
-  };
-
-  const handleLocationTextInputFocus = (value) => {
-    console.log(value);
-    setInputLocationObject(value);
-  };
-
-  const handleBrandInputValueChange = (brand) => {
-    setBrand(brand);
-  };
-
-  const handleModelInputValueChange = (model) => {
-    setModel(model);
-  };
-
-  const handleLicenseInputValueChange = (license) => {
-    setLicense(license);
-  };
-
-  const handleColorInputValueChange = (color) => {
-    setColor(color);
-  };
-
-  const handlePressSelectTypeRoad = (type) => {
-    setTypeCar(type);
-  };
-
-  const handleDetailsForm = (bottomSheet) => {
-    console.log(detailsInfo);
-    setDetailsInfo({ bottomSheet: bottomSheet });
-    bottomSheet.current.dismiss();
-    bottomSheetModalRefDetails.current.present();
-  };
-
-  const endTrip = () => {
-    setModalConfirmationVisible(true);
-  };
-
-  const onConfirmCancelSearch = (complaints) => {
-    socket.emit("searchCancel", { idService: service._id, complaints });
-    tripStartedSheetRef.current?.dismiss();
-    rideSearchSheetRef.current.dismiss();
-    setService();
-    setMapDirections();
-    setMapMarkers([]);
-    setDriverLocation();
-    setDestinationCity();
-    setOriginCity();
-    bottomSheetModalRef.current.present();
-  }
-
-  const onConfirmCancelTrip = (complaints) => {
-    if (service) {
-      socket.emit("serviceCancel", { idService: service._id, complaints });
-      tripStartedSheetRef.current?.dismiss();
-      rideSearchSheetRef.current.dismiss();
-      setService();
-      setMapDirections();
-      setMapMarkers([]);
-      setDriverLocation();
-      setDestinationCity();
-      setOriginCity();
-      bottomSheetModalRef.current.present();
-    }
-  };
-
-  const handleCancelSearch = () => {
-    console.log("Canceling search...");
-    const complaints = {
-      title: "Search Cancellation",
-      description: "User cancelled the search",
-      idUser: user.id,
-    };
-    console.log("Complaint registered: ", complaints);
-    onConfirmCancelSearch(complaints);
-    resetTimer();
-  };
-
-  const handleCancelTrip = (question) => {
-    const complaints = {
-      title: "Cancelled by user",
-      description: question,
-      idUser: user.id,
-    };
-    console.log("cancel", complaints);
-    onConfirmCancelTrip(complaints);
-    resetTimer();
-  };
-
-  const handlePressQuestion = (question) => {
-    handleCancelTrip(question);
-    handleCancelAlert();
-  };
-
-  const handleMapDirectionsReady = (routeInfo) => {
-    console.log(routeInfo.coordinates);
-    setMapDirections(routeInfo);
-    setTripDuration(routeInfo?.duration);
-  };
-
-  const handleDriverConnect = (driverLocation, coords) => {
-    console.log("MAPMARKERS: ", coords);
-    setMapMarkers([driverLocation, coords]);
-    setTripState('assigned');
-  };
-
-  const handleDriverAccepted = async (data) => {
-    try {
-      rideSearchSheetRef.current.dismiss();
-      tripStartedSheetRef.current.present();
-      setTripState('assigned'); // Update trip state
-      setActiveBottomSheet('tripStarted');
-      resetTimer();
-    } catch (error) {
-      console.error("Error saving app state: ", error);
-    }
-  };
-
-  // --- Modal and Alert Handlers ---
-
-  const closeDestinationModal = () => {
-    setModalVisible(false);
-    bottomSheetModalRef.current.present();
-  };
-
-  const closeSavedPlacesModal = () => {
-    setModalSavedPlacesVisible(false);
-    bottomSheetModalRef.current.present();
-  };
-
-  const closeConfirmationModal = () => {
-    resetToInitialState();
-  };
-
-  const closeCancelModal = () => {
-    setModalCancelVisible(false);
-  };
-  const closePreCancelModal = () => {
-    setModalPreCancelVisible(false);
-  };
-
-  const handlePreCancelButtonPress = () => {
-    setModalPreCancelVisible(true);
-  };
-
-  const handleAddFavouriteButtonPress = () => {
-    setModalSavedPlacesVisible(true);
-  };
-
-  const handleBackButtonPress = () => {
-    if (isRouteVisible) {
-      setMapMarkers([]);
-      setOriginCity();
-      setDestinationCity();
-      setOriginCoords();
-      setDestinationCoords();
-      setMapDirections();
-      centerToUserLocation();
-
-      // Dismiss all bottom sheets
-      carTypeSelectionSheetRef.current?.dismiss();
-      userCarInfoSheetRef.current?.dismiss();
-      paymentOptionsSheetRef.current?.dismiss();
-      rideSearchSheetRef.current?.dismiss();
-      tripStartedSheetRef.current?.dismiss();
-      driverArrivingSheetRef.current?.dismiss();
-      tripEndingSheetRef.current?.dismiss();
-      
-      // Present the initial bottom sheet
-      setTimeout(() => {
-        bottomSheetModalRef.current?.present();
-      }, 300);
-
-      // Reset other relevant states
-      setBrand('');
-      setModel('');
-      setLicense('');
-      setColor('');
-      setMarkerVisible();
-      setInputLocationObject();
-      setOriginCity();
-      setDestinationCity();
-      setOriginCoords();
-      setDestinationCoords();
-      setMapMarkers([]);
-      setMapDirections();
-    }
-  };
-
-  const handleBackDetailsButtonPress = () => {
-    const { bottomSheet } = detailsInfo;
-    if (detailsInfo) {
-      setDetailsInfo();
-      bottomSheetModalRefDetails.current.dismiss();
-      bottomSheet.current.present();
-    }
-  };
-
-  const handleMessageDriver = () => {
-    setModalChatVisible(true);
-  };
-
-  const closeChatModel = () => {
-    setModalChatVisible(false);
-  };
-
-  const handleCancelAlert = () => {
-    Alert.alert(
-      "VIAGEM CANCELADA",
-      "O motivo de cancelamento foi levado em consideração!",
-      [
-        {
-          text: "OK",
-          style: "cancel",
-          onPress: () => {
-            setModalPreCancelVisible(false);
-            setModalCancelVisible(false);
-          },
-        },
-      ],
-      {
-        cancelable: false,
-      }
-    );
-  };
-
-  const handlePressCancel = () => {
-    setModalCancelVisible(true);
-  };
-
-  const backToPaymentScreen = () => {
-    resetTimer();
-    rideSearchSheetRef.current.dismiss();
-    paymentOptionsSheetRef.current.present();
-    setActiveBottomSheet('paymentOptions');
-  };
-  // --- Reset to Initial State ---
-
-  const resetToInitialState = () => {
-    // setModalVisible(false);
-    setModalSavedPlacesVisible(false);
-    setModalCancelVisible(false);
-    setModalPreCancelVisible(false);
-    setModalChatVisible(false);
-
-
-    bottomSheetModalRef?.current.present();
-
-    setMapMarkers([]);
-    setMapDirections();
-    setTypeCar("Turismo");
-    setRidePrice("25,300");
-    setService();
-    setTripState(null);
-    setDriver();
-    setDriverConnected(false);
-    setTripDuration();
-    setModalConfirmationVisible(false);
-    setDetailsInfo();
-    setMarkerVisible();
-    setInputLocationObject();
-    setOriginCity();
-    setDestinationCity();
-    setOriginCoords();
-    setDestinationCoords();
-    setIsCurrLocation();
-    setDriverLocation();
-    setCarsAround([]);
-    resetTimer();
-    resetActiveBottomSheet();
-
-    // setTimeout(() => {
-    //   // Only present the bottom sheet if the modal isn't already visible
-    //   if (!modalVisible) {
-    //     bottomSheetModalRef?.current.present();
-    //   }
-    // }, 50);
-  };
-
-  const resetActiveBottomSheet = () => {
-    setActiveBottomSheet(null);
-  };
+  }, [userLocation, isSearchingNearby, serviceManagement.service]);
 
   return {
     models: {
-      user,
+      // Map-related states
       userLocation,
-      prices,
-      service,
-      driver,
       mapRef,
       markerAnimated,
-      modalVisible,
-      modalCancelVisible,
-      modalSavedPlacesVisible,
-      modalConfirmationVisible,
-      modalChatVisible,
-      modalPreCancelVisible,
       mapMarkers,
-      markerVisible,
-      markerCity,
-      originCity,
-      destinationCity,
-      inputLocationObject,
-      mapDirections,
-      tripDuration,
-      favPlaces,
-      bottomSheetModalRef,
-      carTypeSelectionSheetRef,
-      userCarInfoSheetRef,
-      paymentOptionsSheetRef,
-      rideSearchSheetRef,
-      tripStartedSheetRef,
-      driverArrivingSheetRef,
-      tripEndingSheetRef,
-      bottomSheetModalRefDetails,
-      bottomSheetModalDragMarker,
-      typeCar,
-      ridePrice,
-      isRouteVisible,
-      brand,
-      model,
-      license,
-      color,
       carsAround,
-      timer,
-      isActive,
+      
+      // Ride state
+      hasCentered,
+      
+      // Modal states
+      modalDestinationVisible,
+      modalSavedPlacesVisible,
+      modalCancelVisible,
+      modalPreCancelVisible,
+      modalChatVisible,
+      modalConfirmationVisible,
+      
+      // Favorite places
+      favPlaces,
+      
+      // Details
       detailsInfo,
-      driverConnected,
-      isCurrLocation,
-      driverLocation,
-      questions,
-      newSavedPlaceAddress,
-      activeBottomSheet,
-      tripState,
+      
+      // Other state from hooks
+      driver: serviceManagement.driver,
+      service: serviceManagement.service,
+      driverLocation: serviceManagement.driverLocation,
+      mapDirections: serviceManagement.mapDirections,
+      tripState: serviceManagement.tripState,
+      isRouteVisible: mapMarkers.length === 2,
+      tripDuration: serviceManagement.tripDuration,
+      originCity: locationSearch.originCity,
+      destinationCity: locationSearch.destinationCity,
+      user,
+      prices,
+      timer: timerHook.timer,
+      isActive: timerHook.isActive,
+      driverConnected: serviceManagement.driverConnected,
+      
+      // Bottom sheet state
+      activeBottomSheet: bottomSheetManager.activeBottomSheet,
+      
+      // From Location Search Hook - state only
+      markerVisible: locationSearch.markerVisible,
+      markerCity: locationSearch.markerCity,
+      inputLocationObject: locationSearch.inputLocationObject,
+      isCurrLocation: locationSearch.isCurrLocation,
+      
+      // References from bottom sheet manager
+      mainBottomSheetRef: bottomSheetManager.mainBottomSheetRef,
+      carTypeSelectionSheetRef: bottomSheetManager.carTypeSelectionSheetRef,
+      userCarInfoSheetRef: bottomSheetManager.userCarInfoSheetRef,
+      paymentOptionsSheetRef: bottomSheetManager.paymentOptionsSheetRef,
+      rideSearchSheetRef: bottomSheetManager.rideSearchSheetRef,
+      tripStartedSheetRef: bottomSheetManager.tripStartedSheetRef,
+      driverArrivingSheetRef: bottomSheetManager.driverArrivingSheetRef, 
+      tripEndingSheetRef: bottomSheetManager.tripEndingSheetRef,
+      bottomSheetModalRefDetails: bottomSheetModalRefDetails,
+      bottomSheetModalDragMarker: bottomSheetModalDragMarker,
+      
+      // Car Details Hook - state only
+      typeCar: carDetails.typeCar,
+      ridePrice: carDetails.ridePrice,
+      brand: carDetails.brand,
+      model: carDetails.model,
+      license: carDetails.license,
+      color: carDetails.color,
+      
+      // Custom state for saved places
+      newSavedPlaceAddress: newSavedPlaceAddress,
     },
     operations: {
+      // Map event handlers
       handleUserLocationChange,
+      centerToUserLocation,
+      
+      // UI event handlers
       handleMapSearchBarPress,
-      handlePreCancelButtonPress,
-      handleAddFavouriteButtonPress,
       handleOnFavouriteButtonPress,
-      closeDestinationModal,
-      closeCancelModal,
-      closeSavedPlacesModal,
-      closeConfirmationModal,
-      closeChatModel,
-      closePreCancelModal,
-      handlePressItemPress,
-      handlePressSelectTypeRoad,
-      handleMapDirectionsReady,
-      handleMarkerDragPress,
-      handleMarkerDragSavedPlaces,
-      handleMarkerDragEnd,
-      handleConfirmDraggablePress,
-      handleLocationTextInputFocus,
-      handleBackButtonPress,
       handleTypeCarPress,
-      handleBrandInputValueChange,
-      handleModelInputValueChange,
-      handleLicenseInputValueChange,
-      handleColorInputValueChange,
       handleConfirmButtonPress,
       handleConfirmPaymentPress,
-      handleMessageDriver,
-      handleCancelTrip,
       handleCancelSearch,
-      startTimer,
-      resetTimer,
-      formatTime,
-      formatDuration,
-      calculateProgress,
-      handleDetailsForm,
-      handleBackDetailsButtonPress,
-      endTrip,
+      handleCancelTrip,
       handlePressQuestion,
+      handleBackButtonPress,
+      handlePreCancelButtonPress,
+      handleAddFavouriteButtonPress,
       handlePressCancel,
+      handleDestinationSelected,
+      
+      // Modal handlers
+      closeDestinationModal,
+      closeSavedPlacesModal,
+      closeConfirmationModal,
+      closeCancelModal,
+      closePreCancelModal,
+      closeChatModel,
+      
+      // App state management
       resetToInitialState,
-      resetActiveBottomSheet,
-      getAddressFromCoordinates
-    },
+      backToPaymentScreen,
+      
+      // Alert handlers
+      handleCancelAlert,
+      
+      // From location search - functions only
+      handleMarkerDragEnd: locationSearch.handleMarkerDragEnd,
+      handleMarkerDragPress: () => {
+        // Set marker drag origin to 'destination' to track where the drag action came from
+        locationSearch.setMarkerDragOrigin('destination');
+        locationSearch.handleMarkerDragPress();
+        setModalDestinationVisible(false);
+        bottomSheetModalDragMarker.current?.present();
+      }, 
+      handlePressItemPress: locationSearch.handlePressItemPress,
+      handleLocationTextInputFocus: locationSearch.handleLocationTextInputFocus,
+      handleMarkerDragSavedPlaces: (savedPlacePos = 1) => {
+        console.log("handleMarkerDragSavedPlaces", savedPlacePos);
+        // Set marker drag origin to 'savedPlaces' to track where the drag action came from
+        locationSearch.setMarkerDragOrigin('savedPlaces');
+        locationSearch.handleMarkerDragSavedPlaces(savedPlacePos);
+        setModalSavedPlacesVisible(false);
+        bottomSheetModalDragMarker.current?.present();
+      },
+      handleConfirmDraggablePress: (savedPlaceInfo = null) => {
+        const success = locationSearch.handleConfirmDraggablePress(savedPlaceInfo);
+        
+        // Add debugging information
+        console.log("handleConfirmDraggablePress called with origin:", locationSearch.markerDragOrigin);
+        console.log("Marker coordinates:", locationSearch.markerCoords);
+        
+        // Check if this was called from the saved places flow or regular destination flow
+        if (locationSearch.markerDragOrigin === 'savedPlaces') {
+          console.log("Handling savedPlaces flow");
+          
+          // Safety check: ensure markerCoords is available
+          if (!locationSearch.markerCoords) {
+            console.error("Error: No marker coordinates available");
+            // Show error to user
+            Alert.alert("Error", "Could not determine location coordinates. Please try again.");
+            return;
+          }
+          
+          // Get the address information from the marker location
+          const markerAddress = {
+            coordinates: {
+              latitude: locationSearch.markerCoords.latitude,
+              longitude: locationSearch.markerCoords.longitude,
+            },
+            city: locationSearch.markerCity || 'Selected Location',
+            callback: true, // Set to true to make AddressModal visible again
+            pos: 0,
+            fromMapDrag: true // Add flag to indicate this came from map drag
+          };
+          
+          // Update the saved place address data
+          setNewSavedPlaceAddress(markerAddress);
+          console.log("Setting newSavedPlaceAddress:", markerAddress);
+          
+          // Reopen the SavedPlacesModal which will show the AddressModal with the new address
+          setModalSavedPlacesVisible(true);
+        } else {
+          console.log("Handling destination flow");
+          // Regular destination flow - show destination modal
+          setModalDestinationVisible(true);
+          if (success) handleDestinationSelected();
+        }
+        
+        // Reset the marker drag origin after handling it
+        locationSearch.setMarkerDragOrigin(null);
+        
+        bottomSheetModalDragMarker.current?.dismiss();
+      },
+      
+      // From service management - functions only
+      handleMapDirectionsReady: serviceManagement.handleMapDirectionsReady,
+      formatDuration: serviceManagement.formatDuration,
+      
+      // From car details - input handlers
+      handleBrandInputValueChange: carDetails.handleBrandInputValueChange,
+      handleModelInputValueChange: carDetails.handleModelInputValueChange,
+      handleColorInputValueChange: carDetails.handleColorInputValueChange,
+      handleLicenseInputValueChange: carDetails.handleLicenseInputValueChange,
+      
+      // From timer hook
+      formatTime: timerHook.formatTime,
+      
+      // Driver interaction
+      handleDetailsForm,
+      handleMessageDriver,
+      resetNewSavedPlaceAddress,
+      forceCloseSavedPlacesModal
+    }
   };
 };

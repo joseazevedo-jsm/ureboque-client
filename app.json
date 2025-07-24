@@ -25,6 +25,12 @@
         }
       }
     },
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/cc5066c3-fb2c-4e58-a5bc-f080a0b08b69"
+    },
+    "runtimeVersion": "1.0.0",
     "extra": {
       "eas": {
         "projectId": "cc5066c3-fb2c-4e58-a5bc-f080a0b08b69"

@@ -2,6 +2,7 @@ import React from "react";
 import { View, TouchableOpacity, StyleSheet, Text, Image } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
+import PropTypes from 'prop-types';
 
 const imgDef =
   "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
@@ -19,7 +20,12 @@ const DriverItem = ({
         <View style={{ alignItems: "center" }}>
           {status === 0 ? (
             <Text style={styles.mainText}>
-              Chegando em ~{`${Math.floor(tripDuration)} minutos`}
+              Chegando em ~{tripDuration ? 
+                (tripDuration < 1 ? "menos de 1 minuto" : 
+                 tripDuration === 1 ? "1 minuto" : 
+                 `${Math.ceil(tripDuration)} minutos`) : 
+                "calculando..."
+              }
             </Text>
           ) : status === 1 ? (
             <Text style={styles.mainText}>
@@ -27,7 +33,12 @@ const DriverItem = ({
             </Text>
           ) : (
             <Text style={styles.mainText}>
-              A ~{Math.floor(tripDuration)} minutos do destino
+              A ~{tripDuration ? 
+                (tripDuration < 1 ? "menos de 1 minuto" : 
+                 tripDuration === 1 ? "1 minuto" : 
+                 `${Math.ceil(tripDuration)} minutos`) : 
+                "calculando..."
+              } do destino
             </Text>
           )}
         </View>
@@ -127,4 +138,33 @@ const styles = StyleSheet.create({
     marginTop: scale(20),
   },
 });
+
+DriverItem.propTypes = {
+  driver: PropTypes.shape({
+    _id: PropTypes.string,
+    name: PropTypes.string,
+    last_name: PropTypes.string,
+    phone: PropTypes.string,
+    photo: PropTypes.string,
+    car_license_plate: PropTypes.string,
+    car_info: PropTypes.shape({
+      brand: PropTypes.string,
+      model: PropTypes.string,
+      color: PropTypes.string
+    })
+  }),
+  tripDuration: PropTypes.number,
+  onCallDriver: PropTypes.func,
+  onMessageDriver: PropTypes.func,
+  status: PropTypes.number
+};
+
+DriverItem.defaultProps = {
+  driver: null,
+  tripDuration: null,
+  onCallDriver: () => {},
+  onMessageDriver: () => {},
+  status: 0
+};
+
 export default DriverItem;

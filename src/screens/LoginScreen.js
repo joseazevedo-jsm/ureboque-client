@@ -12,27 +12,11 @@ import {
 import CountryPickerWithFlag from "../components/login/CountryPickerWithFlag";
 import { scale } from "react-native-size-matters";
 import { useLoginScreen } from "../components/login/useLoginScreen";
-import { useRoute } from "@react-navigation/native";
 import OTPModal from "../components/modals/OTP/OTPModal";
-import RegisterPassModal from "../components/modals/Register/RegisterPassModal";
+import RegisterMethodModal from "../components/modals/Register/RegisterMethodModal";
 
 const LoginScreen = () => {
-  const route = useRoute();
-  const { passwordState, phone } = route.params
-    ? route.params
-    : { passwordState: false, phone: "" };
   const { models, operations } = useLoginScreen();
-
-  // const verifyPhoneNumber = () => {
-  //   // const sent = operations.handleOnConfirmNumber();
-  //   // console.log(sent);
-  //   // if(models.codeOTP){
-  //   navigation.navigate("OTP", {
-  //     number: `+${models.callingCode} ${models.number}`,
-
-  //   });
-  //   // }
-  // };
 
   return (
     <>
@@ -55,51 +39,71 @@ const LoginScreen = () => {
               <View style={styles.divider} />
             </View>
             <View style={styles.phoneDiv}>
-              {!passwordState ? (
-                <Text style={{ color: "#707070" }}>
-                  Introduza o seu número de telefone
-                </Text>
-              ) : (
-                <Text style={{ color: "#707070" }}>Introduza a sua senha</Text>
-              )}
-
-              <View style={styles.phone}>
-                {!passwordState ? (
-                  <>
-                    <View style={styles.numberFlag}>
-                      <CountryPickerWithFlag
-                        onCallingCodeSelect={operations.handleCallingCodeSelect}
-                      ></CountryPickerWithFlag>
-                      <TextInput
-                        style={{
-                          fontSize: 18,
-                          color: "#707070",
-                        }}
-                        placeholderTextColor="#707070"
-                        keyboardType="numeric"
-                        defaultValue={`+${models.callingCode}`}
-                        editable={false}
-                      />
-                    </View>
-                    <Text
-                      style={{
-                        fontSize: 20,
-                        alignSelf: "center",
-                      }}
+              {!models.passwordState ? (
+                <>
+                  <Text style={{ color: "#707070" }}>
+                    Introduza seu email ou número de telefone
+                  </Text>
+                  <View style={styles.loginMethodToggle}>
+                    <TouchableOpacity 
+                      style={[styles.methodButton, models.loginMethod === 'phone' && styles.methodButtonActive]} 
+                      onPress={() => operations.setLoginMethod('phone')}
                     >
-                      |
-                    </Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholderTextColor="#000"
-                      keyboardType="numeric"
-                      placeholder="Telefone"
-                      value={models.number}
-                      onChangeText={operations.handleNumberChange}
-                    />
-                  </>
-                ) : (
-                  <>
+                      <Text style={[styles.methodText, models.loginMethod === 'phone' && styles.methodTextActive]}>Telefone</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.methodButton, models.loginMethod === 'email' && styles.methodButtonActive]}
+                      onPress={() => operations.setLoginMethod('email')}
+                    >
+                      <Text style={[styles.methodText, models.loginMethod === 'email' && styles.methodTextActive]}>Email</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.phone}>
+                    {models.loginMethod === 'phone' ? (
+                      <>
+                        <View style={styles.numberFlag}>
+                          <CountryPickerWithFlag
+                            onCallingCodeSelect={operations.handleCallingCodeSelect}
+                          ></CountryPickerWithFlag>
+                          <TextInput
+                            style={{
+                              fontSize: 18,
+                              color: "#707070",
+                            }}
+                            placeholderTextColor="#707070"
+                            keyboardType="numeric"
+                            defaultValue={`+${models.callingCode}`}
+                            editable={false}
+                          />
+                        </View>
+                        <Text style={{ fontSize: 20, alignSelf: "center" }}>|</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholderTextColor="#000"
+                          keyboardType="numeric"
+                          placeholder="Telefone"
+                          value={models.number}
+                          onChangeText={operations.handleNumberChange}
+                        />
+                      </>
+                    ) : (
+                      <TextInput
+                        style={styles.input}
+                        placeholderTextColor="#000"
+                        keyboardType="email-address"
+                        placeholder="Email"
+                        value={models.email}
+                        onChangeText={operations.handleEmailChange}
+                        autoCapitalize="none"
+                      />
+                    )}
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={{ color: "#707070" }}>Introduza a sua senha</Text>
+                  <View style={styles.phone}>
                     <TextInput
                       secureTextEntry
                       style={styles.input}
@@ -108,9 +112,9 @@ const LoginScreen = () => {
                       value={models.password}
                       onChangeText={operations.handlePasswordChange}
                     />
-                  </>
-                )}
-              </View>
+                  </View>
+                </>
+              )}
               {models.warning ? (
                 <Text style={styles.warningText}>{models.warning}</Text>
               ) : null}
@@ -121,35 +125,50 @@ const LoginScreen = () => {
                 processamento de minhas informações pessoais de acordo com os
                 termos descritos na Política de Privacidade
               </Text>
-              {!passwordState ? (
-                <TouchableOpacity onPress={operations.onVerifyOtp}>
+              {!models.passwordState ? (
+                <TouchableOpacity onPress={operations.onAdvanceLogin}>
                   <View style={styles.button}>
                     <Text style={styles.buttonText}>AVANÇAR</Text>
                   </View>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity onPress={() => operations.onLogin(phone)}>
+                <TouchableOpacity 
+                  onPress={() => operations.onLogin(
+                    models.loginMethod === 'phone' 
+                      ? `${models.callingCode} ${models.number}`
+                      : models.email
+                  )}
+                >
                   <View style={styles.button}>
                     <Text style={styles.buttonText}>AVANÇAR</Text>
                   </View>
+                </TouchableOpacity>
+              )}
+              {!models.passwordState && (
+                <TouchableOpacity 
+                  onPress={operations.onRegisterModalVisible}
+                  style={styles.registerButton}
+                >
+                  <Text style={styles.registerText}>Não tem conta? Registre-se</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
         </View>
       </TouchableWithoutFeedback>
+      <RegisterMethodModal
+        visible={models.modalMethodVisible}
+        onClose={operations.onCloseMethodModal}
+        onSelectMethod={operations.onSelectRegistrationMethod}
+        onChangeLoginState={operations.onChangeLoginState}
+        onRegistrationComplete={operations.onRegistrationComplete}
+        onCloseOTP={operations.onCloseOTPModal}
+      />
       <OTPModal
         visible={models.modalOtpVisible}
         OTPChange={operations.handleOTPChange}
-        code={models.codeOTP}
-        number={`+ ${models.callingCode} ${models.number}`}
-        onChangeLoginState={operations.onChangeLoginState}
-        modalRegVisible={models.modalRegisterVisible}
-      />
-      <RegisterPassModal
-        visible={models.modalRegisterVisible}
-        changeLoginState={operations.onChangeLoginState}
-        phone={`${models.callingCode} ${models.number}`}
+        number={models.loginMethod === 'phone' ? `+${models.callingCode} ${models.number}` : models.email}
+        onClose={operations.onCloseOTPModal}
       />
     </>
   );
@@ -225,6 +244,37 @@ const styles = StyleSheet.create({
   },
   bottom: {
     marginTop: scale(100),
+  },
+  registerButton: {
+    marginTop: scale(15),
+    alignItems: 'center',
+  },
+  registerText: {
+    color: '#0089ff',
+    fontSize: 16,
+    textDecorationLine: 'underline',
+  },
+  loginMethodToggle: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: scale(10),
+  },
+  methodButton: {
+    paddingHorizontal: scale(20),
+    paddingVertical: scale(8),
+    marginHorizontal: scale(5),
+    borderRadius: scale(20),
+    borderWidth: 1,
+    borderColor: '#0089ff',
+  },
+  methodButtonActive: {
+    backgroundColor: '#0089ff',
+  },
+  methodText: {
+    color: '#0089ff',
+  },
+  methodTextActive: {
+    color: '#fff',
   },
 });
 

@@ -1,73 +1,57 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import {
-  Image,
+  Modal,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
-
 import { scale } from "react-native-size-matters";
-import { Modal } from "react-native";
-import { useOTPModal } from "./components/useOTPModal";
+import OTPInputComponent from "./OTPInputComponent";
+import Icon from "react-native-vector-icons/MaterialIcons";
 
 const OTPModal = ({
   visible,
   OTPChange,
   number,
-  isLoading
+  onClose,
+  isEmail = false,
 }) => {
-  const {models, operations} = useOTPModal(OTPChange)
-
-  
-  useEffect(() => {
-    // Auto-focus on the first input when the modal opens
-    if (visible) {
-      models.inputRefs.current[0].focus();
-    }
-  }, [visible]);
-
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalContainer}>
+    <Modal 
+      visible={visible} 
+      animationType="fade" 
+      transparent
+      statusBarTranslucent
+    >
+      <View style={styles.overlay}>
         <View style={styles.modalContent}>
-          <Text style={styles.title}>Verificação de Código</Text>
-          <Text style={styles.description}>
-            Digite o código de 4 dígitos enviado para {number}
-          </Text>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Icon name="close" size={24} color="#707070" />
+          </TouchableOpacity>
 
-          <View style={styles.otpInputs}>
-            {models.otp.map((digit, index) => (
-              <TextInput
-                key={index}
-                ref={(ref) => (models.inputRefs.current[index] = ref)}
-                style={styles.otpInput}
-                keyboardType="numeric"
-                maxLength={1}
-                value={digit}
-                onChangeText={(text) => operations.handleOtpChange(text, index)}
-                onKeyPress={(e) => operations.handleKeyPress(e, index)}
-              />
-            ))}
+          <Text style={styles.title}>VERIFICAÇÃO</Text>
+          
+          <View style={styles.content}>
+            <Text style={styles.subtitle}>
+              Digite o código enviado para {isEmail ? 'o email:' : 'o número:'}
+            </Text>
+            <Text style={styles.contactInfo}>{number}</Text>
+            
+            <View style={styles.otpContainer}>
+              <OTPInputComponent onOTPFilled={OTPChange} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.resendButton}
+              onPress={() => {
+                // Add resend functionality here
+              }}
+            >
+              <Text style={styles.resendText}>Reenviar código</Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.resendButton}
-            onPress={operations.handleResend}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.resendButtonText}>Reenviar código</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.closeButton}>
-            {/* CHANGE TO MAKE onClose WORK  onPress={onClose} */}
-            <Text style={styles.closeButtonText}>Fechar</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -75,65 +59,61 @@ const OTPModal = ({
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
+  overlay: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: scale(20),
-    width: "80%",
-  },
-  title: {
-    fontSize: scale(20),
-    fontWeight: "bold",
-    marginBottom: scale(10),
-    textAlign: "center",
-    color: "#0089FF",
-  },
-  description: {
-    fontSize: scale(14),
-    marginBottom: scale(20),
-    textAlign: "center",
-  },
-  otpInputs: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: scale(20),
-  },
-  otpInput: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: scale(10),
-    fontSize: scale(18),
-    textAlign: "center",
-    width: scale(40),
-  },
-  resendButton: {
-    backgroundColor: "#0089FF",
-    padding: scale(10),
-    borderRadius: 5,
-    alignItems: "center",
-    marginBottom: scale(10),
-  },
-  resendButtonText: {
-    color: "#fff",
-    fontSize: scale(14),
+    backgroundColor: '#FFF',
+    width: '85%',
+    borderRadius: scale(15),
+    paddingVertical: scale(20),
+    paddingHorizontal: scale(15),
+    position: 'relative',
   },
   closeButton: {
-    padding: scale(10),
-    borderRadius: 5,
-    alignItems: "center",
-    borderColor: "#ccc",
-    borderWidth: 1,
+    position: 'absolute',
+    right: scale(15),
+    top: scale(15),
+    zIndex: 1,
   },
-  closeButtonText: {
-    fontSize: scale(14),
+  title: {
+    fontSize: scale(28),
+    fontWeight: "bold",
     color: "#0089FF",
+    textAlign: "center",
+    marginTop: scale(10),
+    marginBottom: scale(20),
+  },
+  content: {
+    alignItems: 'center',
+  },
+  subtitle: {
+    fontSize: scale(16),
+    color: "#707070",
+    textAlign: "center",
+    marginBottom: scale(10),
+  },
+  contactInfo: {
+    fontSize: scale(18),
+    fontWeight: "bold",
+    color: "#0089FF",
+    textAlign: "center",
+    marginBottom: scale(30),
+  },
+  otpContainer: {
+    marginVertical: scale(20),
+  },
+  resendButton: {
+    alignItems: "center",
+    marginTop: scale(20),
+  },
+  resendText: {
+    color: "#0089FF",
+    fontSize: scale(16),
+    textDecorationLine: "underline",
   },
 });
 
