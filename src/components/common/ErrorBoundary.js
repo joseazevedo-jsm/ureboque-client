@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
+import ErrorService from '../../services/ErrorService';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -17,7 +18,8 @@ class ErrorBoundary extends React.Component {
       errorInfo: errorInfo
     });
     
-    // Log error to monitoring service
+    // Use centralized error handling
+    ErrorService.handleAPIError(error, false); // Don't show user error here, we have our own UI
     console.error('Error Boundary caught an error:', error, errorInfo);
   }
 

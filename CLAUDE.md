@@ -76,3 +76,6 @@ Components are organized by feature:
 - `/android/`: Native Android configuration
 - Static assets in `/assets/` for Expo
 - All source code in `/src/` with clear feature-based organization
+
+### ATTENTION
+ - When commiting don't insert ai commentary 

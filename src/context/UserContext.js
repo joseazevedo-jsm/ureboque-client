@@ -1,278 +1,64 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
-import React, { createContext, useEffect, useState } from "react";
-import SocketService from '../services/SocketService';
+import React, { createContext } from "react";
+import { AuthProvider, useAuth } from './AuthContext';
+import { UserDataProvider, useUserData } from './UserDataContext';
+import { SocketProvider, useSocket } from './SocketContext';
 
-const IP = process.env.EXPO_PUBLIC_UREBOQUE_API;
-
-console.log("IP: ", IP);
-const api = axios.create({
-  baseURL: IP,
-});
-// Create the API context
+// Create the legacy API context for backward compatibility
 export const UserContext = createContext();
 
-// Create a provider component for the API context
+// Create a provider component that combines all the new contexts
 export const UserContextProvider = ({ children }) => {
-  const [socket, setSocket] = useState(null);
-  const [user, setUser] = useState();
-  const [isLoading, setIsLoading] = useState();
-  const [userToken, setUserToken] = useState(null);
-  const [serviceStatus, setServiceStatus] = useState(null);
-  const [prices, setPrices] = useState(null);
+  return (
+    <AuthProvider>
+      <UserDataProvider>
+        <SocketProvider>
+          <LegacyUserProvider>
+            {children}
+          </LegacyUserProvider>
+        </SocketProvider>
+      </UserDataProvider>
+    </AuthProvider>
+  );
+};
 
-  const connectSocket = async (token) => {
-    try {
-      const socketConnection = await SocketService.connect(token);
-      setSocket(socketConnection);
-    } catch (error) {
-      console.error('Failed to connect socket:', error);
-    }
+// Legacy provider that exposes the old UserContext interface
+const LegacyUserProvider = ({ children }) => {
+  // Get data from the new contexts
+  const auth = useAuth();
+  const userData = useUserData();
+  const socketData = useSocket();
+
+  // Legacy interface - map new context methods to old interface
+  const legacyLogin = async (token, id) => {
+    return await auth.login(token, id);
   };
 
-  const disconnectSocket = () => {
-    SocketService.disconnect();
-    setSocket(null);
+  const legacyLogout = async () => {
+    return await auth.logout();
   };
 
-  // Define functions to interact with your API
-  const fetchUsers = async () => {
-    // Make an API call to fetch users from your Express API
-    // Update the 'users' state with the fetched data
-  };
-
-  const fetchUserById = async (userId) => {
-    try {
-      const response = await api.get(`/users/${userId}`);
-      console.log(response.data);
-      const data = response.data;
-      setUser(data);
-    } catch (error) {
-      console.error("Error fetching user by ID:", error.response.data.error);
-    }
-  };
-
-  const fetchPrices = async () => {
-    try {
-      const response = await api.get("/prices/all");
-      console.log(response.data);
-      const data = response.data;
-      setPrices(data);
-    } catch (error) {
-      console.error("Error fetching prices:", error.response.data.error);
-    }
-  };
-
-
-  const saveUserFavouriteAddress = async (place) => {
-    try {
-      console.log("new place ", place);
-      const response = await api.put(`/users/${user.id}/places`, place);
-      console.log("response ",response.data);
-      setUser((prevState) => ({
-        ...prevState,
-        saved_places: response.data.saved_places,
-      }));
-      console.log(user);
-    } catch (error) {
-      // Handle error
-      console.error(error);
-    }
-  };
-
-  const removeUserFavouriteAddress = async (placeId) => {
-    try {
-      const response = await api.delete(`/users/${user.id}/places/${placeId}`);
-      console.log("response ",response.data);
-      setUser((prevState) => ({
-        ...prevState,
-        saved_places: response.data.saved_places,
-      }));
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const updateUserFavouriteAddress = async (place, placeId) => {
-    try {
-      const response = await api.put(`/users/${user.id}/places/${placeId}`, place);
-      console.log("response ",response.data);
-      setUser((prevState) => ({
-        ...prevState,
-        saved_places: response.data.saved_places,
-      }));
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const activateDiscount = async (code) => {
-    try {
-      const response = await api.post(
-        `/promotions/${code}/activate/${user.id}`
-      );
-
-      // Log the entire response to inspect its structure
-      console.log("API Response:", response.data.discount);
-
-      // Assuming the response structure is correct
-      const newDiscount = response.data.discount;
-
-      // Update the state using the new discount value
-      setUser((prevState) => ({
-        ...prevState,
-        discount: newDiscount,
-      }));
-    } catch (error) {
-      // Handle error
-      console.error(error);
-    }
-  };
-
-  const removeDiscount = async (code) => {
-    try {
-      const response = await api.put(`/promotions/${code}/remove/${user.id}`);
-
-      // Log the entire response to inspect its structure
-      console.log("API Response:", response.data.discount);
-
-      // Assuming the response structure is correct
-      const newDiscount = response.data.discount;
-
-      // Update the state using the new discount value
-      setUser((prevState) => ({
-        ...prevState,
-        discount: newDiscount,
-      }));
-    } catch (error) {
-      // Handle error
-      console.error(error);
-    }
-  };
-
-  const updateUser = async (userId, userData) => {
-    console.log("userData ", userData);
-    try {
-      const response = await api.put(`/users/${userId}`, userData);
-      console.log("updated: ", response.data);
-      setUser((prevState) => ({
-        ...prevState,
-        name: response.data.user.name,
-        email: response.data.user.email,
-        phone: response.data.user.phone,
-        photo: response.data.user.photo
-      }));
-    } catch (error) {
-      console.error("Error updating user:", error);
-    }
-  };
-
-  const login = async (token, id) => {
-    try {
-      setIsLoading(true);
-      setUserToken(token);
-      AsyncStorage.setItem("userToken", token);
-      AsyncStorage.setItem("userId", id);
-      getAppStatus(id);
-      setIsLoading(false);
-    } catch (e) {
-      console.log("login in error ", e);
-    }
-  };
-
-  const logout = async () => {
-    try {
-      setIsLoading(true);
-      setUserToken(null);
-      AsyncStorage.removeItem("userToken");
-      setIsLoading(false);
-    } catch (e) {
-      console.log("logout in error ", e);
-    }
-  };
-
-  const isLoggedIn = async () => {
-    try {
-      setIsLoading(true);
-      const userToken = await AsyncStorage.getItem("userToken");
-      const userId = await AsyncStorage.getItem("userId");
-
-      if (userToken && userId) {
-        console.log("User is logged in. Token:", userToken);
-
-        // Make an HTTP request to get the appStatus
-        getAppStatus(userId);
-
-        // Fetch user data
-        fetchUserById(userId).then((response) => {
-          setUserToken(userToken);
-          setIsLoading(false);
-        });
-      } else {
-        setIsLoading(false);
-      }
-    } catch (e) {
-      console.log("isLogged in error ", e);
-    }
-  };
-
-  const getAppStatus = async (userId) => {
-    try {
-    const response = await api.get(`service/getLastService/${userId}`);
-
-    if (response.status === 200) {
-      const { status, review } = response.data.service;
-      console.log("status: ", status);
-      // Check appStatus and act accordingly
-      // App is in ongoing state, you can perform specific actions here.
-      if (status && !review.rating) setServiceStatus(response.data);
-      console.log("App is in ", status, " state.");
-    }
-  } catch (error) {
-    console.error("Error getting app status:", error);
-  }
-  };
-
-  useEffect(() => {
-    if (userToken === null) isLoggedIn();
-  }, []);
-
-  // Connect socket when user logs in
-  useEffect(() => {
-    if (userToken && !socket) {
-      connectSocket(userToken);
-    }
-  }, [userToken]);
-
-  // Disconnect socket when user logs out
-  useEffect(() => {
-    if (!userToken && socket) {
-      disconnectSocket();
-    }
-  }, [userToken]);
-
-  // Provide the API context value to consuming components
+  // Provide the legacy API context value to consuming components
   const userContextValue = {
-    socket,
-    user,
-    setUser,
-    fetchUserById,
-    fetchUsers,
-    updateUser,
-    saveUserFavouriteAddress,
-    removeUserFavouriteAddress,
-    updateUserFavouriteAddress,
-    activateDiscount,
-    removeDiscount,
-    userToken,
-    setUserToken,
-    login,
-    logout,
-    isLoading,
-    serviceStatus,
-    setServiceStatus,
-    prices,
-    fetchPrices
+    socket: socketData.socket,
+    user: userData.user,
+    setUser: userData.setUser,
+    fetchUserById: userData.fetchUserById,
+    fetchUsers: () => {}, // Legacy function kept for compatibility
+    updateUser: userData.updateUser,
+    saveUserFavouriteAddress: userData.saveUserFavouriteAddress,
+    removeUserFavouriteAddress: userData.removeUserFavouriteAddress,
+    updateUserFavouriteAddress: userData.updateUserFavouriteAddress,
+    activateDiscount: userData.activateDiscount,
+    removeDiscount: userData.removeDiscount,
+    userToken: auth.userToken,
+    setUserToken: () => {}, // Deprecated - use auth.login instead
+    login: legacyLogin,
+    logout: legacyLogout,
+    isLoading: auth.isLoading || userData.isLoading,
+    serviceStatus: userData.serviceStatus,
+    setServiceStatus: userData.setServiceStatus,
+    prices: userData.prices,
+    fetchPrices: userData.fetchPrices
   };
 
   return (
