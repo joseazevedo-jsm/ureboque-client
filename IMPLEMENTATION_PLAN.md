@@ -22,11 +22,21 @@ Based on the SYSTEM_ARCHITECTURE.md analysis, I've created a detailed, step-by-s
 - ✅ Task 2.2: Implement Centralized Error Handling with interceptors
 - ✅ Task 2.3: Add Input Validation utilities and form hooks
 
+**Phase 2.5 Integration Tasks:**
+- ⚠️ Task 2.5.1: Migrate Login System (PARTIALLY STARTED)
+- ⏳ Task 2.5.2: Migrate Key Screens (PENDING)
+- ⏳ Task 2.5.3: Implement Error Handling in Components (PENDING)
+
+**Phase 3 Performance Tasks:**
+- ✅ Task 3.1: Implement Memoization for MapScreen (COMPLETED)
+- ⏳ Task 3.2: Optimize Card Components (PENDING)
+
 **Improvements implemented:**
 - **Security**: Environment variables, token-based socket auth, error boundaries
 - **Architecture**: AuthContext, UserDataContext, SocketContext separation 
 - **Error Handling**: Centralized ErrorService with API interceptors
 - **Validation**: Form validation utilities and custom useForm hook
+- **Performance**: Started MapScreen memoization optimizations
 
 ---
 
@@ -774,9 +784,71 @@ export const useForm = (initialValues, validationRules) => {
 
 ---
 
-## ⚡ PHASE 3: Performance Optimization (Week 6-7) 🔄 **READY TO START**
+## 🔄 PHASE 2.5: Integration & Migration (Week 5-6) 🔄 **IN PROGRESS**
 
-### Task 3.1: Implement Memoization Strategies
+### Overview
+This phase focuses on actually **implementing and using** the new architecture we built in Phase 2. Currently, we have the infrastructure but haven't migrated existing components to use it.
+
+### Task 2.5.1: Migrate Login System to Use New Architecture ⏳ **PENDING**
+**Priority**: HIGH | **Time**: 4-6 hours | **Dependencies**: Phase 2 complete
+
+#### Current Issue:
+- Login components still use legacy patterns
+- No validation is actually implemented
+- Direct API calls without error handling
+
+#### Implementation Steps:
+
+1. **Update LoginScreen to use validation**
+```javascript
+// src/components/login/useLoginScreen.js - Updated
+import { useForm } from '../../hooks/useForm';
+import { loginValidationSchema } from '../../utils/validationSchemas';
+import { useAuth } from '../../context/AuthContext';
+
+export const useLoginScreen = () => {
+  const { login } = useAuth();
+  const {
+    values,
+    errors,
+    setValue,
+    validate,
+    handleSubmit
+  } = useForm(
+    { phoneNumber: '', callingCode: '244' },
+    loginValidationSchema
+  );
+
+  const handleLogin = handleSubmit(async (formData) => {
+    const result = await login(formData.phoneNumber);
+    if (!result.success) {
+      // Error handling via ErrorService
+    }
+  });
+};
+```
+
+### Task 2.5.2: Migrate Key Screens to New Contexts ⏳ **PENDING**
+**Priority**: MEDIUM | **Time**: 6-8 hours | **Dependencies**: Task 2.5.1
+
+#### Target Screens:
+1. **ProfileScreen** → Use `useUserData()` instead of legacy UserContext
+2. **MapScreen** → Use `useSocket()` for real-time features
+3. **PromotionScreen** → Use validation for discount codes
+
+### Task 2.5.3: Implement Error Handling in Components ⏳ **PENDING**
+**Priority**: MEDIUM | **Time**: 4-5 hours | **Dependencies**: Task 2.5.2
+
+#### Implementation Areas:
+- Replace console.error with ErrorService calls
+- Add user-friendly error messages
+- Implement retry mechanisms for failed API calls
+
+---
+
+## ⚡ PHASE 3: Performance Optimization (Week 7-8) 🔄 **IN PROGRESS**
+
+### Task 3.1: Implement Memoization Strategies 🔄 **IN PROGRESS**
 **Priority**: MEDIUM | **Time**: 6-8 hours | **Dependencies**: Phase 2 complete
 
 #### Implementation Steps:
@@ -908,9 +980,25 @@ import Header from 'react-native-elements/src/header/Header';
 
 **Testing Strategy**: Compare bundle sizes before/after, test app startup time, verify functionality preserved.
 
+**✅ Implementation Status**: 
+- ✅ **MapScreen Optimizations Completed**:
+  - Memoized car icon mapping to reduce repeated file requires
+  - Added `useMemo` for snapPoints and backButtonStyle calculations
+  - Optimized mapMarkers rendering with proper dependency arrays
+  - Completed `useCallback` optimization for render functions (renderSpotsItem, renderCarTypesItem)
+  - Improved React key generation for better reconciliation
+  - Memoized carsAround markers for performance
+  - Fixed undefined function calls and removed hardcoded API keys
+- ✅ **Card Component Optimizations Completed**:
+  - CardSpots: Added React.memo and useCallback for onPress handlers
+  - CarTypes: Implemented memoization with useMemo for image selection, price formatting, and styles
+  - PlaceItem: Added memo, useCallback, and useMemo for styles and icon component
+  - DetailsItem: Optimized with memo and useMemo for all inline styles and computed values
+- ⏳ **Next Steps**: Bundle size analysis and optimization
+
 ---
 
-## 🧪 PHASE 4: Code Quality & Monitoring (Week 8-10)
+## 🧪 PHASE 4: Code Quality & Monitoring (Week 8-10) ⏳ **PENDING**
 
 ### Task 4.1: Implement Testing Strategy
 **Priority**: MEDIUM | **Time**: 10-12 hours | **Dependencies**: Phase 3 complete

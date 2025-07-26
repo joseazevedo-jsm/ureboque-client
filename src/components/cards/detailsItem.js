@@ -1,33 +1,22 @@
-import React from "react";
+import React, { memo, useMemo } from "react";
 import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
 
-const DetailsItem = ({destination, driver, clientCar, paymentMethod }) => {
+const DetailsItem = memo(({ destination, driver, clientCar, paymentMethod }) => {
+  const towCarInfo = useMemo(() => {
+    return `${driver?.car?.name} | ${driver?.car?.licensePlate}`;
+  }, [driver?.car?.name, driver?.car?.licensePlate]);
 
   return (
-    <View style={{ marginLeft: scale(15) }}>
-      <Text
-        style={{
-          fontSize: scale(18),
-          alignSelf: "center",
-          color: "#0089FF",
-          fontWeight: "900",
-          marginBottom: scale(10),
-        }}
-      >
+    <View style={styles.containerStyle}>
+      <Text style={styles.titleStyle}>
         DETALHES DA VIAGEM
       </Text>
-      <View style={{marginLeft:scale(10), marginTop:scale(15)}}>
+      <View style={styles.contentStyle}>
         <View>
           <View style={styles.containerText}>
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: scale(12),
-                alignSelf: "center",
-              }}
-            >
+            <Text style={styles.labelStyle}>
               Indo para 
             </Text>
           </View>
@@ -36,14 +25,7 @@ const DetailsItem = ({destination, driver, clientCar, paymentMethod }) => {
         </View>
         <View>
           <View style={styles.containerText}>
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: scale(12),
-                alignSelf: "center",
-              
-              }}
-            >
+            <Text style={styles.labelStyle}>
               Seu Motorista
             </Text>
           </View>
@@ -52,13 +34,7 @@ const DetailsItem = ({destination, driver, clientCar, paymentMethod }) => {
         </View>
         <View>
           <View style={styles.containerText}>
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: scale(12),
-                alignSelf: "center",
-              }}
-            >
+            <Text style={styles.labelStyle}>
               Detalhes do carro
             </Text>
           </View>
@@ -67,28 +43,16 @@ const DetailsItem = ({destination, driver, clientCar, paymentMethod }) => {
         </View>
         <View>
           <View style={styles.containerText}>
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: scale(12),
-                alignSelf: "center",
-              }}
-            >
+            <Text style={styles.labelStyle}>
               Carro Reboque
             </Text>
           </View>
-          <Text> {driver?.car?.name} | {driver?.car?.licensePlate}</Text>
+          <Text> {towCarInfo}</Text>
           <View style={styles.divider} />
         </View>
         <View>
           <View style={styles.containerText}>
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: scale(12),
-                alignSelf: "center",
-              }}
-            >
+            <Text style={styles.labelStyle}>
               Pagamento
             </Text>
           </View>
@@ -97,9 +61,28 @@ const DetailsItem = ({destination, driver, clientCar, paymentMethod }) => {
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
+  containerStyle: {
+    marginLeft: scale(15)
+  },
+  titleStyle: {
+    fontSize: scale(18),
+    alignSelf: "center",
+    color: "#0089FF",
+    fontWeight: "900",
+    marginBottom: scale(10),
+  },
+  contentStyle: {
+    marginLeft: scale(10),
+    marginTop: scale(15)
+  },
+  labelStyle: {
+    color: "#fff",
+    fontSize: scale(12),
+    alignSelf: "center",
+  },
   containerText: {
     width: scale(120),
     height: scale(25),

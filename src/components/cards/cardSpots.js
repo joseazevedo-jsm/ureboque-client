@@ -1,15 +1,19 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Icon } from "react-native-elements/dist/icons/Icon";
 import { scale } from "react-native-size-matters";
 
 // card view that receives props like title, description
-const CardSpots = (props) => {
+const CardSpots = memo(({ title, description, onPress }) => {
+  const handlePress = useCallback(() => {
+    onPress();
+  }, [onPress]);
+
   return (
-    <TouchableOpacity onPress={props.onPress}>
+    <TouchableOpacity onPress={handlePress}>
       <View style={styles.container}>
-        <Text style={styles.title}>{props.title}</Text>
-        <Text style={styles.description}>{props.description}</Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.description}>{description}</Text>
         <View style={styles.bottom}>
           <Image
             style={styles.image}
@@ -26,7 +30,7 @@ const CardSpots = (props) => {
       </View>
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

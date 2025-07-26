@@ -1,37 +1,41 @@
-import React from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Icon } from "react-native-elements/dist/icons/Icon";
 import { scale } from "react-native-size-matters";
 
+// Memoized image sources for performance
+const imageMap = {
+  JEEP: require("../../../resources/icons/UREB_JEEP.png"),
+  DEFAULT: require("../../../resources/icons/UREB_TUR.png")
+};
+
 // card view that receives props like title, description
-const CarTypes = ({ typeCar, descr, descr2, price, route, onPress }) => {
-    const distance = route?.distance;
-    const duration = route?.duration;
-    console.log(distance, "KM", typeCar, descr, descr2, price);
-    // const priceperkm = (Math.floor(distance) * 1000) + Number(price);
+const CarTypes = memo(({ typeCar, descr, descr2, price, route, onPress }) => {
+  const distance = route?.distance;
+  const duration = route?.duration;
+  console.log(distance, "KM", typeCar, descr, descr2, price);
+
+  const handlePress = useCallback(() => {
+    onPress();
+  }, [onPress]);
+
+  const carImage = useMemo(() => {
+    return typeCar === "JEEP" ? imageMap.JEEP : imageMap.DEFAULT;
+  }, [typeCar]);
+
+  const formattedPrice = useMemo(() => {
+    return price.toLocaleString();
+  }, [price]);
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={onPress}>
-        <View
-          style={{
-            flexDirection: "row",
-            marginBottom: scale(19),
-          }}
-        >
-          {typeCar !== "JEEP" ? (
-            <Image
-              source={require("../../../resources/icons/UREB_TUR.png")}
-              style={styles.image}
-              resizeMode="cover"
-            />
-          ) : (
-            <Image
-              source={require("../../../resources/icons/UREB_JEEP.png")}
-              style={styles.image}
-              resizeMode="cover"
-            />
-          )}
+      <TouchableOpacity onPress={handlePress}>
+        <View style={styles.containerStyle}>
+          <Image
+            source={carImage}
+            style={styles.image}
+            resizeMode="cover"
+          />
 
           <View style={styles.text}>
             <Text style={styles.title}>{typeCar}</Text>
@@ -40,16 +44,20 @@ const CarTypes = ({ typeCar, descr, descr2, price, route, onPress }) => {
           </View>
           <View style={styles.priceBox}>
             <Text style={styles.coin}>AOA </Text>
-            <Text style={styles.price}>{price.toLocaleString()}</Text>
+            <Text style={styles.price}>{formattedPrice}</Text>
           </View>
         </View>
       </TouchableOpacity>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {},
+  containerStyle: {
+    flexDirection: "row",
+    marginBottom: scale(19),
+  },
   title: {
     marginTop: scale(8),
     fontSize: scale(17),

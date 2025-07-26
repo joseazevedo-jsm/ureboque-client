@@ -1,7 +1,11 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { UserContext } from "../../context/UserContext";
-import { useNavigation } from "@react-navigation/native"; // Import the necessary hooks from React Navigation
-
+import { useAuth } from "../../context/AuthContext";
+import { useForm } from "../../hooks/useForm";
+import { loginValidationSchema, otpValidationSchema } from "../../utils/validationSchemas";
+import { useNavigation } from "@react-navigation/native";
+import api from "../../services/APIService";
+import ErrorService from "../../services/ErrorService";
 import axios from "axios";
 import { Alert } from "react-native";
 
@@ -16,49 +20,52 @@ const apiOTP = axios.create({
   maxRedirects: 20,
 });
 
-const api = axios.create({
-  baseURL: `${IP}/users`,
-});
-
 export const useLoginScreen = () => {
-  const [callingCode, setCallingCode] = useState("244");
-  const [number, setNumber] = useState("");
-  const [password, setPassword] = useState("");
+  // Form validation for phone number
+  const phoneForm = useForm(
+    { phoneNumber: "", callingCode: "244" },
+    { phoneNumber: loginValidationSchema.phoneNumber }
+  );
+  
+  // Form validation for OTP
+  const otpForm = useForm(
+    { otpCode: "" },
+    otpValidationSchema
+  );
+
   const [codeOTP, setCodeOTP] = useState();
   const [modalRegisterVisible, setModalRegisterVisible] = useState(false);
   const [modalOtpVisible, setModalOtpVisible] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
   const { setUser, login } = useContext(UserContext);
+  const auth = useAuth();
   const [warning, setWarning] = useState("");
 
   const navigation = useNavigation();
 
   useEffect(() => {
-    if (otpCode.length === 4) {
+    if (otpForm.values.otpCode.length === 4) {
       verifyOTPCode();
     }
-  }, [otpCode]);
+  }, [otpForm.values.otpCode]);
 
   const generateRandom4DigitNumber = () => {
     return Math.floor(1000 + Math.random() * 9000);
   };
 
   const handleCallingCodeSelect = (selectedCallingCode) => {
-    setCallingCode(selectedCallingCode);
+    phoneForm.setValue("callingCode", selectedCallingCode);
   };
 
   const handleNumberChange = (text) => {
-    setNumber(text);
-  };
-
-  const handlePasswordChange = (password) => {
-    setPassword(password);
+    phoneForm.setValue("phoneNumber", text);
+    setWarning(""); // Clear warning when user types
   };
 
   const handleOTPChange = (text) => {
-    setOtpCode((prevCode) => prevCode + text);
     if (text === "") {
-      setOtpCode("");
+      otpForm.setValue("otpCode", "");
+    } else {
+      otpForm.setValue("otpCode", otpForm.values.otpCode + text);
     }
   };
 

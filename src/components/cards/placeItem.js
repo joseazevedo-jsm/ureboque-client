@@ -1,32 +1,34 @@
-import React from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Icon } from "react-native-elements/dist/icons/Icon";
 import { scale } from "react-native-size-matters";
 
-const PlaceItem = ({ name, address, iconUrl, onPress, saved }) => {
+const PlaceItem = memo(({ name, address, iconUrl, onPress, saved }) => {
+  const handlePress = useCallback(() => {
+    onPress();
+  }, [onPress]);
+
+  const iconComponent = useMemo(() => {
+    if (saved) {
+      return <Icon name={iconUrl} size={scale(25)} color="#0089FF" />;
+    } else if (iconUrl) {
+      return <Image source={{ uri: iconUrl }} style={styles.iconImage} />;
+    } else {
+      return <Icon name="location-on" size={scale(25)} color="#0089FF" />;
+    }
+  }, [saved, iconUrl]);
+
   return (
-    <TouchableOpacity onPress={onPress}>
+    <TouchableOpacity onPress={handlePress}>
       <View style={styles.container}>
         <View style={styles.iconContainer}>
-          {saved ? (
-            <Icon name={iconUrl} size={scale(25)} color="#0089FF" />
-          ) : iconUrl ? (
-            <Image source={{ uri: iconUrl }} style={styles.iconImage} />
-          ) : (
-            <Icon name={"location-on"} size={scale(25)} color="#0089FF" />
-          )}
+          {iconComponent}
         </View>
         <View style={styles.textContainer}>
-          <Text
-            style={{
-              marginBottom: scale(1),
-              fontSize: scale(12),
-              fontWeight: "bold",
-            }}
-          >
+          <Text style={styles.nameStyle}>
             {name}
           </Text>
-          <Text style={{ marginBottom: scale(1), fontSize: scale(10) }}>
+          <Text style={styles.addressStyle}>
             {address}
           </Text>
           <View style={styles.divider} />
@@ -34,7 +36,7 @@ const PlaceItem = ({ name, address, iconUrl, onPress, saved }) => {
       </View>
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -60,6 +62,15 @@ const styles = StyleSheet.create({
   textContainer: {
     flex: 1,
     flexShrink: 1,
+  },
+  nameStyle: {
+    marginBottom: scale(1),
+    fontSize: scale(12),
+    fontWeight: "bold",
+  },
+  addressStyle: {
+    marginBottom: scale(1),
+    fontSize: scale(10),
   },
   divider: {
     borderBottomColor: "#ccc",

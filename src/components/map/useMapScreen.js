@@ -11,7 +11,7 @@ import { set } from "react-native-reanimated";
 
 const IP = process.env.EXPO_PUBLIC_UREBOQUE_API; //attt ao apagar
 
-Geocoder.init("AIzaSyBqPFzMJ7TgohKLMZ8Q0Z1iRVmk63OWWpk");
+Geocoder.init(process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY);
 
 const LATITUDE_DELTA = 0.0022;
 const LONGITUDE_DELTA = 0.005;
@@ -21,6 +21,7 @@ export const useMapScreen = () => {
   // --- Refs ---
   const mapRef = useRef(null);
   const bottomSheetModalRef = useRef(null);
+  const pollingTimerRef = useRef(null);
 
   // Modals
   const [modalVisible, setModalVisible] = useState(false);
@@ -298,7 +299,7 @@ export const useMapScreen = () => {
         console.log("driverDeclined event:", data);
         const { idUser, idService, userLocation } = data;
         const { longitude, latitude } = userLocation;
-        if (socket) {
+        if (socket?.connected) {
           socket.emit("chooseBestDriver", {
             idUser,
             idService,
@@ -524,6 +525,11 @@ export const useMapScreen = () => {
     }
 
     return () => {
+      // Clear polling timer to prevent memory leaks
+      if (pollingTimerRef.current) {
+        clearTimeout(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
       setIsSearchingNearby(true);
     };
   }, [userLocation, isSearchingNearby]);
@@ -560,8 +566,10 @@ export const useMapScreen = () => {
     switch (status) {
       case "in-progress":
         console.log("Socket connected!", room);
-        if (socket) {
+        if (socket?.connected) {
           socket.emit("join", room);
+        } else {
+          console.warn("Socket not connected for room join:", room);
         }
         bottomSheetModalRef.current.dismiss();
         tripEndingSheetRef.current.present();
@@ -571,8 +579,10 @@ export const useMapScreen = () => {
 
       case "assigned":
         console.log("Socket connected!", room);
-        if (socket) {
+        if (socket?.connected) {
           socket.emit("join", room);
+        } else {
+          console.warn("Socket not connected for room join:", room);
         }
         bottomSheetModalRef.current.dismiss();
         tripStartedSheetRef.current.present();
@@ -622,7 +632,7 @@ export const useMapScreen = () => {
 
       if (!service) {
         // Continue searching if a service doesn't exist
-        setTimeout(getNearbyDrivers, 20000);
+        pollingTimerRef.current = setTimeout(getNearbyDrivers, 20000);
       }
 
       console.log("PROCURA CONCLUIDA... ");
@@ -630,7 +640,7 @@ export const useMapScreen = () => {
       console.error(error);
       if (!service) {
         // Retry after a delay if a service doesn't exist
-        setTimeout(getNearbyDrivers, 20000);
+        pollingTimerRef.current = setTimeout(getNearbyDrivers, 20000);
       }
     }
   };
@@ -805,8 +815,10 @@ export const useMapScreen = () => {
           user: user._id,
         };
 
-        if (socket) {
+        if (socket?.connected) {
           socket.emit("chooseBestDriver", data);
+        } else {
+          console.warn("Socket not connected for chooseBestDriver");
         }
 
         return resp.data;
@@ -923,8 +935,10 @@ export const useMapScreen = () => {
   };
 
   const onConfirmCancelSearch = (complaints) => {
-    if (socket) {
+    if (socket?.connected) {
       socket.emit("searchCancel", { idService: service._id, complaints });
+    } else {
+      console.warn("Socket not connected for searchCancel");
     }
     tripStartedSheetRef.current?.dismiss();
     rideSearchSheetRef.current.dismiss();
@@ -939,8 +953,10 @@ export const useMapScreen = () => {
 
   const onConfirmCancelTrip = (complaints) => {
     if (service) {
-      if (socket) {
+      if (socket?.connected) {
         socket.emit("serviceCancel", { idService: service._id, complaints });
+      } else {
+        console.warn("Socket not connected for serviceCancel");
       }
       tripStartedSheetRef.current?.dismiss();
       rideSearchSheetRef.current.dismiss();

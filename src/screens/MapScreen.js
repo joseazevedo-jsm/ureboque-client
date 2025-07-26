@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, memo, useMemo, useCallback } from "react";
 import {
   Image,
   Modal,
@@ -18,8 +18,7 @@ import {
   BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
 import { Platform } from "react-native";
-import { useMemo } from "react";
-import CardSpots from "../components/cards/cardSpots";
+ import CardSpots from "../components/cards/cardSpots";
 import DestinationModal from "../components/modals/Destination/DestinationModal";
 import { Marker } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
@@ -40,34 +39,26 @@ import PaymentOptions from "../components/map/paymentOptions";
 import CustomMarker from "../components/map/customMarker";
 import { KeyboardAvoidingView } from "react-native";
 
-const getCarIconByColor = (color) => {
-  const defaultIcon = require("../../resources/icons/car/UREB_TOPVIEW_BLACK.png");
+// Memoized car icon mapping for performance
+const carIconMap = {
+  'BLACK': require("../../resources/icons/car/UREB_TOPVIEW_BLACK.png"),
+  'WHITE': require("../../resources/icons/car/UREB_TOPVIEW_WHITE.png"),
+  'BLUE': require("../../resources/icons/car/UREB_TOPVIEW_BLUE.png"),
+  'GREEN': require("../../resources/icons/car/UREB_TOPVIEW_GREEN.png"),
+  'YELLOW': require("../../resources/icons/car/UREB_TOPVIEW_YELLOW.png"),
+};
 
+const defaultIcon = require("../../resources/icons/car/UREB_TOPVIEW_BLACK.png");
+
+const getCarIconByColor = (color) => {
   try {
-    switch (color?.toUpperCase()) {
-      case 'BLACK':
-        return require("../../resources/icons/car/UREB_TOPVIEW_BLACK.png");
-      case 'WHITE':
-        return require("../../resources/icons/car/UREB_TOPVIEW_WHITE.png");
-      case 'RED':
-        return require("../../resources/icons/car/UREB_TOPVIEW_RED.png");
-      case 'BLUE':
-        return require("../../resources/icons/car/UREB_TOPVIEW_BLUE.png");
-      case 'SILVER':
-        return require("../../resources/icons/car/UREB_TOPVIEW_SILVER.png");
-      case 'GRAY':
-        return require("../../resources/icons/car/UREB_TOPVIEW_GRAY.png");
-      case 'YELLOW':
-        return require("../../resources/icons/car/UREB_TOPVIEW_YELLOW.png");
-      default:
-        return defaultIcon;
-    }
+    return carIconMap[color?.toUpperCase()] || defaultIcon;
   } catch (error) {
     return defaultIcon;
   }
 };
 
-const MapScreen = () => {
+const MapScreen = memo(() => {
   const { models, operations } = useMapScreen();
 
   const snapPoints = useMemo(
@@ -75,7 +66,8 @@ const MapScreen = () => {
     []
   );
 
-  const getBackButtonStyle = () => {
+  // Memoized back button style calculation
+  const backButtonStyle = useMemo(() => {
     const baseStyle = {
       position: 'absolute',
       left: scale(20),
@@ -110,16 +102,17 @@ const MapScreen = () => {
     }
 
     return { ...baseStyle, top: topOffset };
-  };
+  }, [models.activeBottomSheet]);
 
-  const renderMapMarker = () => {
+  // Memoized map markers for performance
+  const memoizedMapMarkers = useMemo(() => {
     return models.mapMarkers.map((item, index) => {
 
       if (models.driver && index === 0 && models.driverLocation) {
         
         const carColor = models.driver?.car?.color;
- 
         const carIcon = getCarIconByColor(carColor);
+        const heading = models?.driverLocation?.heading || "0";
  
         return (
           <Marker
@@ -127,22 +120,15 @@ const MapScreen = () => {
               latitude: models.driverLocation.latitude,
               longitude: models.driverLocation.longitude,
             }}
-            key={`${models.driverLocation.latitude}-${models.driverLocation.longitude}`}
+            key={`driver-${models.driverLocation.latitude}-${models.driverLocation.longitude}-${heading}`}
             anchor={{ x: 0.5, y: 0.5 }}
           >
             <Image
-              source={carIcon || require("../../resources/icons/car/UREB_TOPVIEW_BLACK.png")}
+              source={carIcon}
               style={{
                 width: 50,
                 height: 50,
-                transform: [
-                  {
-                    rotate: `${models?.driverLocation?.heading
-                      ? models?.driverLocation?.heading
-                      : "0"
-                      }deg`,
-                  },
-                ],
+                transform: [{ rotate: `${heading}deg` }],
               }}
               resizeMode="contain"
             />
@@ -151,7 +137,7 @@ const MapScreen = () => {
       }
 
       return (
-        <Marker coordinate={item} key={index}>
+        <Marker coordinate={item} key={`marker-${index}-${item.latitude}-${item.longitude}`}>
           <CustomMarker
             title={
               models?.tripState
@@ -174,9 +160,19 @@ const MapScreen = () => {
         </Marker>
       );
     });
-  };
+  }, [
+    models.mapMarkers, 
+    models.driver, 
+    models.driverLocation, 
+    models.tripState, 
+    models.originCity, 
+    models.destinationCity, 
+    models.tripDuration,
+    operations.formatDuration
+  ]);
 
-  const renderSpotsItem = ({ item }) => {
+  // Memoized spots item renderer
+  const renderSpotsItem = useCallback(({ item }) => {
     return item.place.name === "Adicionar Favorito" ? (
       <CardSpots
         title={item.place.name}
@@ -190,17 +186,18 @@ const MapScreen = () => {
         onPress={operations.handleOnFavouriteButtonPress(item)}
       />
     );
-  };
+  }, [operations.handleAddFavouriteButtonPress, operations.handleOnFavouriteButtonPress]);
 
-  const renderCarTypesItem = ({ item }) => {
+  // Memoized car types item renderer
+  const renderCarTypesItem = useCallback(({ item }) => {
     if (models.mapDirections && models.prices) {
       const priceperkm =
         Math.floor(models.mapDirections.distance) * 1000 + Number(item.price);
       console.log("ORIGINAL PRICE: ", priceperkm);
 
       const price =
-        models.user.discount && models.user.discount.active
-          ? priceperkm - priceperkm * (models.user.discount.percentage / 100)
+        models.user?.discount?.active
+          ? priceperkm - priceperkm * (models.user?.discount?.percentage / 100)
           : priceperkm;
 
       return (
@@ -214,7 +211,26 @@ const MapScreen = () => {
         />
       );
     }
-  };
+  }, [models.mapDirections, models.prices, models.user?.discount || {}, operations.handleTypeCarPress]);
+
+  // Memoized cars around markers for performance
+  const memoizedCarsAround = useMemo(() => {
+    if (models?.service) return null;
+    
+    return models.carsAround.map((item, index) => (
+      <Marker coordinate={item} key={`car-around-${index}-${item.latitude}-${item.longitude}`}>
+        <Image
+          source={getCarIconByColor(item.color || 'default')}
+          style={{
+            width: 50,
+            height: 50,
+            transform: [{ rotate: "-90deg" }],
+          }}
+          resizeMode="contain"
+        />
+      </Marker>
+    ));
+  }, [models.carsAround, models?.service]);
 
   const navigation = useNavigation();
 
@@ -245,7 +261,7 @@ const MapScreen = () => {
           />
         )}
 
-        {renderMapMarker()}
+        {memoizedMapMarkers}
         {models.isRouteVisible && (
           <MapViewDirections
             origin={
@@ -254,7 +270,7 @@ const MapScreen = () => {
                 : models.mapMarkers[0]
             }
             destination={models.mapMarkers[1]}
-            apikey="AIzaSyBqPFzMJ7TgohKLMZ8Q0Z1iRVmk63OWWpk"
+            apikey={process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}
             strokeColor="#0089FF"
             strokeWidth={scale(7)}
             onReady={operations.handleMapDirectionsReady}
@@ -262,20 +278,7 @@ const MapScreen = () => {
           />
         )}
 
-        {!models?.service &&
-          models.carsAround.map((item, index) => (
-            <Marker coordinate={item} key={index.toString()}>
-              <Image
-                source={getCarIconByColor(item.color || 'default')}
-                style={{
-                  width: 50,
-                  height: 50,
-                  transform: [{ rotate: "-90deg" }],
-                }}
-                resizeMode="contain"
-              />
-            </Marker>
-          ))}
+        {memoizedCarsAround}
       </MapView>
 
       <LocationPermissionsService />
@@ -287,7 +290,7 @@ const MapScreen = () => {
       {models.isRouteVisible && !models.service && (
         <TouchableOpacity 
           onPress={operations.handleBackButtonPress} 
-          style={getBackButtonStyle()}
+          style={backButtonStyle}
         >
           <View style={styles.backDetails}>
             <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
@@ -582,7 +585,7 @@ const MapScreen = () => {
       />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
