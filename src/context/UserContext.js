@@ -1,10 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { createContext, useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import SocketService from '../services/SocketService';
 
 const IP = process.env.EXPO_PUBLIC_UREBOQUE_API;
-const socketID = io(`${IP}`);
 
 console.log("IP: ", IP);
 const api = axios.create({
@@ -15,12 +14,26 @@ export const UserContext = createContext();
 
 // Create a provider component for the API context
 export const UserContextProvider = ({ children }) => {
-  const [socket, setSocket] = useState(socketID);
+  const [socket, setSocket] = useState(null);
   const [user, setUser] = useState();
   const [isLoading, setIsLoading] = useState();
   const [userToken, setUserToken] = useState(null);
   const [serviceStatus, setServiceStatus] = useState(null);
   const [prices, setPrices] = useState(null);
+
+  const connectSocket = async (token) => {
+    try {
+      const socketConnection = await SocketService.connect(token);
+      setSocket(socketConnection);
+    } catch (error) {
+      console.error('Failed to connect socket:', error);
+    }
+  };
+
+  const disconnectSocket = () => {
+    SocketService.disconnect();
+    setSocket(null);
+  };
 
   // Define functions to interact with your API
   const fetchUsers = async () => {
@@ -223,6 +236,20 @@ export const UserContextProvider = ({ children }) => {
   useEffect(() => {
     if (userToken === null) isLoggedIn();
   }, []);
+
+  // Connect socket when user logs in
+  useEffect(() => {
+    if (userToken && !socket) {
+      connectSocket(userToken);
+    }
+  }, [userToken]);
+
+  // Disconnect socket when user logs out
+  useEffect(() => {
+    if (!userToken && socket) {
+      disconnectSocket();
+    }
+  }, [userToken]);
 
   // Provide the API context value to consuming components
   const userContextValue = {
