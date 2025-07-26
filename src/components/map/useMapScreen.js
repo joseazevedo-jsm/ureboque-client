@@ -234,6 +234,11 @@ export const useMapScreen = () => {
   // --- Socket Event Handlers ---
 
   const handleSocketEvents = () => {
+    if (!socket) {
+      console.warn("Socket not available, skipping event listeners");
+      return () => {}; // Return empty cleanup function
+    }
+
     // Handle events from the server
 
     const handleBestDriver = (data) => {
@@ -293,11 +298,13 @@ export const useMapScreen = () => {
         console.log("driverDeclined event:", data);
         const { idUser, idService, userLocation } = data;
         const { longitude, latitude } = userLocation;
-        socket.emit("chooseBestDriver", {
-          idUser,
-          idService,
-          userLocation: [longitude, latitude],
-        });
+        if (socket) {
+          socket.emit("chooseBestDriver", {
+            idUser,
+            idService,
+            userLocation: [longitude, latitude],
+          });
+        }
       } catch (error) {
         console.error("Error handling driverDeclined event:", error);
       }
@@ -398,8 +405,18 @@ export const useMapScreen = () => {
     socket.on("serviceCancelled", handleServiceCancelled);
     socket.on("noDriver", handleNoDriver);
     return () => {
-      // Clean up the socket connection
-      socket.disconnect();
+      // Clean up the socket event listeners
+      if (socket) {
+        socket.off("bestDriver", handleBestDriver);
+        socket.off("driverConnected", handleDriverConnected);
+        socket.off("driverLocation", handleDriverLocation);
+        socket.off("serviceAccepted", handleServiceAccepted);
+        socket.off("serviceDeclined", handleDriverDeclined);
+        socket.off("serviceStarted", handleServiceStarted);
+        socket.off("serviceEnded", handleServiceEnded);
+        socket.off("serviceCancelled", handleServiceCancelled);
+        socket.off("noDriver", handleNoDriver);
+      }
     };
   };
 
@@ -543,7 +560,9 @@ export const useMapScreen = () => {
     switch (status) {
       case "in-progress":
         console.log("Socket connected!", room);
-        socket.emit("join", room);
+        if (socket) {
+          socket.emit("join", room);
+        }
         bottomSheetModalRef.current.dismiss();
         tripEndingSheetRef.current.present();
         setService(service);
@@ -552,7 +571,9 @@ export const useMapScreen = () => {
 
       case "assigned":
         console.log("Socket connected!", room);
-        socket.emit("join", room);
+        if (socket) {
+          socket.emit("join", room);
+        }
         bottomSheetModalRef.current.dismiss();
         tripStartedSheetRef.current.present();
         setService(service);
@@ -784,7 +805,9 @@ export const useMapScreen = () => {
           user: user._id,
         };
 
-        socket.emit("chooseBestDriver", data);
+        if (socket) {
+          socket.emit("chooseBestDriver", data);
+        }
 
         return resp.data;
       } catch (error) {
@@ -900,7 +923,9 @@ export const useMapScreen = () => {
   };
 
   const onConfirmCancelSearch = (complaints) => {
-    socket.emit("searchCancel", { idService: service._id, complaints });
+    if (socket) {
+      socket.emit("searchCancel", { idService: service._id, complaints });
+    }
     tripStartedSheetRef.current?.dismiss();
     rideSearchSheetRef.current.dismiss();
     setService();
@@ -914,7 +939,9 @@ export const useMapScreen = () => {
 
   const onConfirmCancelTrip = (complaints) => {
     if (service) {
-      socket.emit("serviceCancel", { idService: service._id, complaints });
+      if (socket) {
+        socket.emit("serviceCancel", { idService: service._id, complaints });
+      }
       tripStartedSheetRef.current?.dismiss();
       rideSearchSheetRef.current.dismiss();
       setService();

@@ -16,14 +16,18 @@ export const useChatModal = (idService) => {
     fetchMessages(idService);
 
     // Listen for incoming messages via WebSocket and update the chat screen
-    socket.on("message", (messages) => {
-      handleIncomingMessage(messages);
-    });
-    // return () => {
-    //   // Clean up the socket event listener when the component is unmounted
-    //   socket.off("message", handleIncomingMessage);
-    // };
-  }, []);
+    if (socket) {
+      socket.on("message", (messages) => {
+        handleIncomingMessage(messages);
+      });
+    }
+    return () => {
+      // Clean up the socket event listener when the component is unmounted
+      if (socket) {
+        socket.off("message", handleIncomingMessage);
+      }
+    };
+  }, [socket, idService]);
 
   // Function to fetch previous messages from the backend
   const fetchMessages = async (idService) => {
@@ -40,6 +44,10 @@ export const useChatModal = (idService) => {
 
   // Function to send a new message
   const sendMessage = () => {
+    if (!socket) {
+      console.warn("Socket not connected, cannot send message");
+      return;
+    }
 
     console.log("CHAT: ", newMessage, user.id, idService);
     // Emit the new message via WebSocket to the backend for real-time updates
