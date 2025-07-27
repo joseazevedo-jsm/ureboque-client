@@ -1,23 +1,17 @@
 import React, { createContext } from "react";
-import { AuthProvider, useAuth } from './AuthContext';
-import { UserDataProvider, useUserData } from './UserDataContext';
-import { SocketProvider, useSocket } from './SocketContext';
+import {  useAuth } from './AuthContext';
+import {   useUserData } from './UserDataContext';
+import {  useSocket } from './SocketContext';
 
 // Create the legacy API context for backward compatibility
 export const UserContext = createContext();
 
-// Create a provider component that combines all the new contexts
+// Create a provider component that just provides the legacy compatibility layer
 export const UserContextProvider = ({ children }) => {
   return (
-    <AuthProvider>
-      <UserDataProvider>
-        <SocketProvider>
-          <LegacyUserProvider>
-            {children}
-          </LegacyUserProvider>
-        </SocketProvider>
-      </UserDataProvider>
-    </AuthProvider>
+    <LegacyUserProvider>
+      {children}
+    </LegacyUserProvider>
   );
 };
 

@@ -1,10 +1,10 @@
-import { useContext, useState } from "react";
-import { UserContext } from "../../context/UserContext"; // Import your UserContext here
+import { useState } from "react";
+import { useUserData } from "../../context/UserDataContext";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 
 const useProfileScreen = () => {
-  const { user, updateUser } = useContext(UserContext);
+  const { user, updateUser } = useUserData();
   const [name, setName] = useState();
   const [surname, setSurname] = useState();
   const [photo, setPhoto] = useState(user?.photo);

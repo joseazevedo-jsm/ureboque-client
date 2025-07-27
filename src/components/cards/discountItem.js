@@ -1,15 +1,15 @@
-import React from "react";
+import React, { memo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { scale } from "react-native-size-matters";
 
-const DiscountItem = ({ code, description }) => {
+const DiscountItem = memo(({ code, description }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.code}>{code}</Text>
       <Text style={styles.description}>{description}</Text>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

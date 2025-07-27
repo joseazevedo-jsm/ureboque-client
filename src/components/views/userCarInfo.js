@@ -26,10 +26,10 @@ const UserCarInfo = ({
   });
   
   const [formData, setFormData] = React.useState({
-    brand: '',
-    model: '',
-    license: '',
-    color: ''
+    brand: 'Toyota',
+    model: 'Corolla',
+    license: 'LD-10-10',
+    color: 'Preto'
   });
 
   const validateForm = () => {

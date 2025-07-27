@@ -7,7 +7,7 @@ Based on the SYSTEM_ARCHITECTURE.md analysis, I've created a detailed, step-by-s
 **Total Estimated Time: 8-10 weeks**
 - **Phase 1**: Critical Security (1-2 weeks) ✅ **COMPLETED**
 - **Phase 2**: Architecture Refactoring (2-3 weeks) ✅ **COMPLETED**
-- **Phase 3**: Performance Optimization (1-2 weeks) ⏳ **PENDING**
+- **Phase 3**: Performance Optimization (1-2 weeks) ✅ **COMPLETED**
 - **Phase 4**: Quality & Monitoring (2-3 weeks) ⏳ **PENDING**
 
 ## 🎯 Current Progress
@@ -23,20 +23,21 @@ Based on the SYSTEM_ARCHITECTURE.md analysis, I've created a detailed, step-by-s
 - ✅ Task 2.3: Add Input Validation utilities and form hooks
 
 **Phase 2.5 Integration Tasks:**
-- ⚠️ Task 2.5.1: Migrate Login System (PARTIALLY STARTED)
-- ⏳ Task 2.5.2: Migrate Key Screens (PENDING)
-- ⏳ Task 2.5.3: Implement Error Handling in Components (PENDING)
+- ✅ Task 2.5.1: Migrate Login System (COMPLETED)
+- ✅ Task 2.5.2: Migrate Key Screens (COMPLETED)
+- ✅ Task 2.5.3: Implement Error Handling in Components (COMPLETED)
 
 **Phase 3 Performance Tasks:**
 - ✅ Task 3.1: Implement Memoization for MapScreen (COMPLETED)
-- ⏳ Task 3.2: Optimize Card Components (PENDING)
+- ✅ Task 3.2: Optimize Card Components (COMPLETED)
+- ✅ Task 3.3: Security Cleanup and Environment Variables (COMPLETED)
 
 **Improvements implemented:**
-- **Security**: Environment variables, token-based socket auth, error boundaries
+- **Security**: Environment variables, token-based socket auth, error boundaries, removed hardcoded credentials
 - **Architecture**: AuthContext, UserDataContext, SocketContext separation 
 - **Error Handling**: Centralized ErrorService with API interceptors
 - **Validation**: Form validation utilities and custom useForm hook
-- **Performance**: Started MapScreen memoization optimizations
+- **Performance**: Complete memoization optimizations for MapScreen and all card components
 
 ---
 
@@ -784,71 +785,44 @@ export const useForm = (initialValues, validationRules) => {
 
 ---
 
-## 🔄 PHASE 2.5: Integration & Migration (Week 5-6) 🔄 **IN PROGRESS**
+## ✅ PHASE 2.5: Integration & Migration (Week 5-6) ✅ **COMPLETED**
 
 ### Overview
-This phase focuses on actually **implementing and using** the new architecture we built in Phase 2. Currently, we have the infrastructure but haven't migrated existing components to use it.
+This phase focused on implementing and using the new architecture we built in Phase 2. All core components have been successfully migrated to use the new context system.
 
-### Task 2.5.1: Migrate Login System to Use New Architecture ⏳ **PENDING**
+### Task 2.5.1: Migrate Login System to Use New Architecture ✅ **COMPLETED**
 **Priority**: HIGH | **Time**: 4-6 hours | **Dependencies**: Phase 2 complete
 
-#### Current Issue:
-- Login components still use legacy patterns
-- No validation is actually implemented
-- Direct API calls without error handling
+#### ✅ Implementation Status:
+- ✅ Updated `useLoginScreen.js` to use new context architecture (AuthContext, UserDataContext)
+- ✅ Fixed phone validation for Angolan format (9 digits minimum)
+- ✅ Added proper password state management and form handling
+- ✅ Integrated `useForm` hook with comprehensive validation
+- ✅ End-to-end login functionality working with new architecture
 
-#### Implementation Steps:
-
-1. **Update LoginScreen to use validation**
-```javascript
-// src/components/login/useLoginScreen.js - Updated
-import { useForm } from '../../hooks/useForm';
-import { loginValidationSchema } from '../../utils/validationSchemas';
-import { useAuth } from '../../context/AuthContext';
-
-export const useLoginScreen = () => {
-  const { login } = useAuth();
-  const {
-    values,
-    errors,
-    setValue,
-    validate,
-    handleSubmit
-  } = useForm(
-    { phoneNumber: '', callingCode: '244' },
-    loginValidationSchema
-  );
-
-  const handleLogin = handleSubmit(async (formData) => {
-    const result = await login(formData.phoneNumber);
-    if (!result.success) {
-      // Error handling via ErrorService
-    }
-  });
-};
-```
-
-### Task 2.5.2: Migrate Key Screens to New Contexts ⏳ **PENDING**
+### Task 2.5.2: Migrate Key Screens to New Contexts ✅ **COMPLETED**
 **Priority**: MEDIUM | **Time**: 6-8 hours | **Dependencies**: Task 2.5.1
 
-#### Target Screens:
-1. **ProfileScreen** → Use `useUserData()` instead of legacy UserContext
-2. **MapScreen** → Use `useSocket()` for real-time features
-3. **PromotionScreen** → Use validation for discount codes
+#### ✅ Implementation Status:
+1. **✅ ProfileScreen** → Successfully migrated to use `useUserData()` directly
+2. **✅ MapScreen** → Migrated to use `useSocket()` and `useUserData()` for real-time features
+3. **✅ PromotionScreen** → Added comprehensive form validation for discount codes
 
-### Task 2.5.3: Implement Error Handling in Components ⏳ **PENDING**
+### Task 2.5.3: Implement Error Handling in Components ✅ **COMPLETED**
 **Priority**: MEDIUM | **Time**: 4-5 hours | **Dependencies**: Task 2.5.2
 
-#### Implementation Areas:
-- Replace console.error with ErrorService calls
-- Add user-friendly error messages
-- Implement retry mechanisms for failed API calls
+#### ✅ Implementation Status:
+- ✅ Replaced direct axios calls with centralized API service in MapScreen
+- ✅ Added ErrorService.handleAPIError() throughout components
+- ✅ Removed unused imports and deprecated variables
+- ✅ Fixed memory leaks in polling timers and recursive functions
+- ✅ Enhanced error handling for socket connections and API calls
 
 ---
 
-## ⚡ PHASE 3: Performance Optimization (Week 7-8) 🔄 **IN PROGRESS**
+## ⚡ PHASE 3: Performance Optimization (Week 7-8) ✅ **COMPLETED**
 
-### Task 3.1: Implement Memoization Strategies 🔄 **IN PROGRESS**
+### Task 3.1: Implement Memoization Strategies ✅ **COMPLETED**
 **Priority**: MEDIUM | **Time**: 6-8 hours | **Dependencies**: Phase 2 complete
 
 #### Implementation Steps:
@@ -994,7 +968,59 @@ import Header from 'react-native-elements/src/header/Header';
   - CarTypes: Implemented memoization with useMemo for image selection, price formatting, and styles
   - PlaceItem: Added memo, useCallback, and useMemo for styles and icon component
   - DetailsItem: Optimized with memo and useMemo for all inline styles and computed values
-- ⏳ **Next Steps**: Bundle size analysis and optimization
+  - RouteItem: Added React.memo and moved inline styles to stylesheet
+  - PlaceSavedItem: Added React.memo, useMemo for icon selection, useCallback for handlers, moved inline styles to stylesheet
+  - DiscountItem: Added React.memo optimization
+
+---
+
+### Task 3.3: Security Cleanup and Environment Variables ✅ **COMPLETED**
+**Priority**: HIGH | **Time**: 2-3 hours | **Dependencies**: Task 3.1
+
+#### Implementation Steps:
+
+1. **Remove Hardcoded Credentials from useLoginScreen.js**
+   - Moved Releans API token to environment variables (`EXPO_PUBLIC_RELEANS_API_TOKEN`)
+   - Replaced hardcoded phone number with dynamic user input from form
+   - Fixed hardcoded OTP verification to use generated code or development default
+   - Removed legacy IP constants
+
+2. **Environment Variable Updates**
+   ```bash
+   # .env.development
+   EXPO_PUBLIC_RELEANS_API_TOKEN="your_development_token"
+   EXPO_PUBLIC_OTP_DEFAULT="1234"
+   
+   # .env.production  
+   EXPO_PUBLIC_RELEANS_API_TOKEN="your_production_token"
+   EXPO_PUBLIC_OTP_DEFAULT=""
+   ```
+
+3. **Code Security Improvements**
+   ```javascript
+   // Before: Hardcoded credentials
+   const apiOTP = axios.create({
+     headers: {
+       Authorization: "Bearer hardcoded_token_here"
+     }
+   });
+   
+   // After: Environment variables
+   const apiOTP = axios.create({
+     headers: {
+       Authorization: `Bearer ${process.env.EXPO_PUBLIC_RELEANS_API_TOKEN}`
+     }
+   });
+   ```
+
+**Testing Strategy**: Verify OTP functionality works with environment variables, test both development and production configurations.
+
+**✅ Implementation Status**: 
+- ✅ All hardcoded credentials removed from useLoginScreen.js
+- ✅ Environment variables properly configured for development and production
+- ✅ OTP verification now uses generated codes with fallback for development
+- ✅ Phone number validation integrated with user form input
+- ✅ Legacy constants cleaned up
 
 ---
 

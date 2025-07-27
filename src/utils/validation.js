@@ -6,7 +6,7 @@ export const validators = {
 
   phone: (phone) => {
     const phoneRegex = /^\+?[\d\s-()]+$/;
-    return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 10;
+    return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 9;
   },
 
   required: (value) => {

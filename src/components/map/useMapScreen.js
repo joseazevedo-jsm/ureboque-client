@@ -1,13 +1,13 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { useUserLocationStateContext } from "../../context/UserLocationStateContext";
 import { scale } from "react-native-size-matters";
-import { useCallback } from "react";
-import { UserContext } from "../../context/UserContext";
-import axios from "axios";
+import { useSocket } from "../../context/SocketContext";
+import { useUserData } from "../../context/UserDataContext";
 import Geocoder from "react-native-geocoding";
 import { Alert, Keyboard } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { set } from "react-native-reanimated";
+import api from "../../services/APIService";
+import ErrorService from "../../services/ErrorService";
 
 const IP = process.env.EXPO_PUBLIC_UREBOQUE_API; //attt ao apagar
 
@@ -83,8 +83,8 @@ export const useMapScreen = () => {
   const [isActive, setIsActive] = useState(false);
 
   // --- Context ---
+  const { socket } = useSocket();
   const {
-    socket,
     user,
     fetchUserById,
     removeDiscount,
@@ -92,7 +92,7 @@ export const useMapScreen = () => {
     setServiceStatus,
     prices,
     fetchPrices,
-  } = useContext(UserContext);
+  } = useUserData();
 
   const { userLocation, setUserLocation } = useUserLocationStateContext();
 
@@ -182,14 +182,9 @@ export const useMapScreen = () => {
     );
   };
 
-  const simulateMovement = (newLatitude, newLongitude) => {
-    animateMarker(newLatitude, newLongitude, 7000);
+  // Note: simulateMovement removed to prevent memory leaks
 
-    // Call the function again after a delay
-    setTimeout(simulateMovement, 7000);
-  };
-
-  const centerToUserLocation = useCallback(() => {
+  const centerToUserLocation = () => {
     if (userLocation && !driver && !hasCentered) {
       // when user moves it centers
       mapRef.current?.animateToRegion({
@@ -201,7 +196,7 @@ export const useMapScreen = () => {
       console.log(userLocation?.latitude, userLocation?.longitude);
       setHasCentered(true);
     }
-  }, [userLocation?.latitude, userLocation?.longitude, hasCentered]);
+  };
 
   const handleUserLocationChange = ({ nativeEvent: { coordinate } }) => {
     if (coordinate && !modalVisible && !isRouteVisible) {
@@ -328,7 +323,7 @@ export const useMapScreen = () => {
                 setServiceStatus(null);
               }
 
-              simulateMovement(location.longitude, location.longitude, 10000);
+              // Driver location will be updated through real-time socket events
               const distance = getDistanceInKm(
                 service.pickupLocation,
                 location
@@ -614,7 +609,7 @@ export const useMapScreen = () => {
         longitude: userLocation?.longitude,
         maxDistance: 5000,
       };
-      const resp = await axios.get(`${IP}/drivers/nearby`, {
+      const resp = await api.get("/drivers/nearby", {
         params: params,
       });
 
@@ -637,7 +632,7 @@ export const useMapScreen = () => {
 
       console.log("PROCURA CONCLUIDA... ");
     } catch (error) {
-      console.error(error);
+      ErrorService.handleAPIError(error);
       if (!service) {
         // Retry after a delay if a service doesn't exist
         pollingTimerRef.current = setTimeout(getNearbyDrivers, 20000);
@@ -804,7 +799,7 @@ export const useMapScreen = () => {
         };
 
         //maybe alter here
-        const resp = await axios.post(`${IP}/service/`, requestData);
+        const resp = await api.post("/service/", requestData);
         console.log("Request successful:", resp.data);
         setService(resp.data);
 
@@ -823,7 +818,7 @@ export const useMapScreen = () => {
 
         return resp.data;
       } catch (error) {
-        console.error("An error occurred:", error.message);
+        ErrorService.handleAPIError(error);
         return null;
       }
     };

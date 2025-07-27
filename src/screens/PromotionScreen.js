@@ -70,15 +70,21 @@ const PromotionScreen = () => {
                 color: "black",
                 fontSize: scale(14),
                 borderBottomWidth: scale(0.5),
-                borderColor: "#6B6969",
+                borderColor: models.codeError ? "red" : "#6B6969",
                 padding: scale(5),
-                marginBottom: scale(15),
+                marginBottom: scale(5),
               }}
               placeholder={"Inserir código promocional"}
               placeholderTextColor={"#6B6969"}
+              value={models.code}
               onChangeText={operations.onCodeTextChange}
               // editable={!models.user.discount}
             />
+            {models.codeError && (
+              <Text style={{ color: "red", fontSize: scale(12), marginBottom: scale(10) }}>
+                {models.codeError}
+              </Text>
+            )}
             <TouchableOpacity
               style={
                 isPromoActive

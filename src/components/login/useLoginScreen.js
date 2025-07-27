@@ -9,13 +9,10 @@ import ErrorService from "../../services/ErrorService";
 import axios from "axios";
 import { Alert } from "react-native";
 
-const IP = process.env.EXPO_PUBLIC_UREBOQUE_API; //attt ao apagar
-
 const apiOTP = axios.create({
   baseURL: "https://api.releans.com/v2/message",
   headers: {
-    Authorization:
-      "Bearer eyJhbGciOiJIUzI1NiJ9.eyJpZCI6IjkyNjgyMGQwLTAwZDctNGQ2MS04MDAyLTc3YWJkYTEwZjMyZiIsImlhdCI6MTY5MjIyODM3NCwiaXNzIjoxNzA4OH0.UO5976E-4CBqc4hFNIjxrwgbzkmQO8lcNALUmbSW8s0", // Replace with your actual authorization header
+    Authorization: `Bearer ${process.env.EXPO_PUBLIC_RELEANS_API_TOKEN}`,
   },
   maxRedirects: 20,
 });
@@ -34,6 +31,7 @@ export const useLoginScreen = () => {
   );
 
   const [codeOTP, setCodeOTP] = useState();
+  const [password, setPassword] = useState("");
   const [modalRegisterVisible, setModalRegisterVisible] = useState(false);
   const [modalOtpVisible, setModalOtpVisible] = useState(false);
   const { setUser, login } = useContext(UserContext);
@@ -69,12 +67,16 @@ export const useLoginScreen = () => {
     }
   };
 
+  const handlePasswordChange = (text) => {
+    setPassword(text);
+  };
+
   const handleOnConfirmNumber = async () => {
     try {
       const random4DigitNumber = generateRandom4DigitNumber();
 
       const message = {
-        mobile: "+34663120477", // Replace with the recipient's phone number
+        mobile: `+${phoneForm.values.callingCode}${phoneForm.values.phoneNumber}`,
         sender: "UREBOQUE",
         content: `O seu codigo para ativação é ${random4DigitNumber}`,
       };
@@ -98,35 +100,38 @@ export const useLoginScreen = () => {
     setModalRegisterVisible(false);
     navigation.navigate("Login", {
       passwordState: 1,
-      phone: "244", // `${callingCode} ${number}` phone
+      phone: `${phoneForm.values.callingCode}${phoneForm.values.phoneNumber}`,
     });
   };
 
   const onLogin = async (phone) => {
     console.log(password, phone);
-    await api
-      .post("/login", {
+    try {
+      const response = await api.post("/users/login", {
         password: password,
         phone: phone,
-      })
-      .then((response) => {
-        const data = response.data;
-        console.log("-->", data);
-        if (data) {
-          setUser(data.user);
-          // navigation.navigate("SideMenu");
-          login(data.token, data.user.id);
-        }
       });
+      const data = response.data;
+      console.log("-->", data);
+      if (data) {
+        setUser(data.user);
+        login(data.token, data.user.id);
+      }
+    } catch (error) {
+      ErrorService.handleAPIError(error);
+    }
   };
 
   const verifyOTPCode = () => {
-    if (otpCode === "1234") {
+    // Check against generated OTP or development default
+    const expectedOTP = codeOTP?.code?.toString() || process.env.EXPO_PUBLIC_OTP_DEFAULT;
+    
+    if (otpForm.values.otpCode === expectedOTP) {
       // if user not exist modalRegVisible
       setModalOtpVisible(false);
       navigation.navigate("Login", {
         passwordState: 1,
-        phone: number, // `${callingCode} ${number}`
+        phone: phoneForm.values.phoneNumber, // `${callingCode} ${number}`
       });
       // You can navigate to the next screen or perform further actions here
     } else {
@@ -135,35 +140,36 @@ export const useLoginScreen = () => {
   };
 
   const onVerifyOtp = () => {
-    if (number.length < 9) {
+    if (phoneForm.values.phoneNumber.length < 9) {
       setWarning("O número de telefone deve ter pelo menos 9 caracteres");
     } else {
       setWarning("");
-      // Perform your verification logic here
-      // setModalOtpVisible(true);
-
-      // handleOnConfirmNumber();
-
-      setModalOtpVisible(true);
+      const isValid = phoneForm.validate();
+      if (isValid) {
+        setModalOtpVisible(true);
+      }
     }
   };
   return {
     models: {
-      callingCode,
-      number,
-      codeOTP,
+      callingCode: phoneForm.values.callingCode,
+      number: phoneForm.values.phoneNumber,
       password,
+      codeOTP,
+      otpCode: otpForm.values.otpCode,
       modalRegisterVisible,
       modalOtpVisible,
       warning,
+      phoneForm,
+      otpForm,
     },
     operations: {
       handleCallingCodeSelect,
       handleNumberChange,
+      handlePasswordChange,
       handleOnConfirmNumber,
       onChangeLoginState,
       onLogin,
-      handlePasswordChange,
       handleOTPChange,
       onVerifyOtp,
     },
