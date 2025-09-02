@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useUserData } from "../../context/UserDataContext";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
+import { useLogger } from "../../hooks/useLogger";
 
 const useProfileScreen = () => {
+  const logger = useLogger('useProfileScreen');
   const { user, updateUser } = useUserData();
   const [name, setName] = useState();
   const [surname, setSurname] = useState();
@@ -48,7 +50,7 @@ const useProfileScreen = () => {
     try {
       await updateUser(user.id,userData); // Update the user data without specifying 'user.id'
     } catch (error) {
-      console.error(error);
+      logger.error('Error updating user profile', error);
     }
   };
 
@@ -61,7 +63,7 @@ const useProfileScreen = () => {
       quality: 1,
     });
 
-    console.log(result.assets[0]);
+    logger.info('Image picker result', { hasAssets: !!result.assets?.[0], canceled: result.canceled });
     if (!result.canceled) {
       setImage(result.assets[0].uri);
     }
@@ -90,10 +92,10 @@ const useProfileScreen = () => {
         },
       });
 
-      console.log("API Response:", response.data);
+      logger.info('Image upload successful', { hasDisplayUrl: !!response.data.image?.display_url });
       return response.data.image.display_url;
     } catch (error) {
-      console.error("API Error:", error.message);
+      logger.error('Image upload failed', error);
       throw error; // Re-throw the error to handle it in the caller if needed.
     }
   };

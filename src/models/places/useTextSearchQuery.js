@@ -1,8 +1,11 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useUserLocationStateContext } from "../../context/UserLocationStateContext";
+import { useLogger } from "../../hooks/useLogger";
 
 export const useTextSearchQuery = (searchQuery) => {
+  const logger = useLogger('useTextSearchQuery');
+  
   const [responseData, setResponseData] = useState(null);
   const { userLocation } = useUserLocationStateContext();
 
@@ -22,7 +25,7 @@ export const useTextSearchQuery = (searchQuery) => {
           });
           setResponseData(data);
         } catch (error) {
-          console.log(error);
+          logger.error('Text search query failed', error);
         }
       })();
     } else {

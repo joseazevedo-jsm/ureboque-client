@@ -4,17 +4,19 @@ import { useDebounce } from "use-debounce";
 import { useRef } from "react";
 import { useEffect } from "react";
 import { UserContext } from "../../../../context/UserContext";
+import { useLogger } from "../../../../hooks/useLogger";
 import { Alert } from "react-native";
 import axios from "axios";
 
 const IP = process.env.EXPO_PUBLIC_UREBOQUE_API; //attt ao apagar
 
 export const useConfirmationModal = (serviceId, close) => {
+  const logger = useLogger('useConfirmationModal');
   const { user, removeDiscount } = useContext(UserContext);
   const [rating, setRating] = useState(0);
 
   const handleConfirmRate = () => {
-    console.log(rating);
+    logger.info('Confirming rating', { rating });
     if (user?.discount?.active) {
       const code = user.discount.promotion.code;
       removeDiscount(code);
@@ -25,7 +27,7 @@ export const useConfirmationModal = (serviceId, close) => {
 
   const addReview = async () => {
     try {
-      console.log("serviceId", serviceId);
+      logger.info('Adding review', { serviceId, rating });
       const requestData = {
         rating: rating,
         comment: "",
@@ -34,7 +36,7 @@ export const useConfirmationModal = (serviceId, close) => {
         `${IP}/service/${serviceId}/add-review`,
         requestData
       );
-      console.log(resp.data);
+      logger.info('Review submitted successfully', { reviewData: resp.data });
       Alert.alert("Avaliação", "Avaliação enviada com sucesso", [
         {
           text: "OK",
@@ -45,7 +47,7 @@ export const useConfirmationModal = (serviceId, close) => {
         },
       ]);
     } catch (error) {
-      console.error(error.message);
+      logger.error('Error submitting review', error);
     }
   };
   const handleRate = (newRating) => {

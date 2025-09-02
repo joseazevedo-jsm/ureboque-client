@@ -5,7 +5,9 @@
       "Bash(grep:*)",
       "Bash(npm ls:*)",
       "Bash(npm run android:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(rm:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

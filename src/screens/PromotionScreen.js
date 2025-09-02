@@ -17,11 +17,18 @@ import { usePromotionScreen } from "../components/promotion/usePromotionScreen";
 import DiscountItem from "../components/cards/discountItem";
 import { KeyboardAvoidingView } from "react-native";
 import { Platform } from "react-native";
+import { useLogger } from "../hooks/useLogger";
 
 const PromotionScreen = () => {
+  const logger = useLogger('PromotionScreen', { enableLifecycleLogging: true });
   const { models, operations } = usePromotionScreen();
-
   const navigation = useNavigation();
+  
+  logger.debug('PromotionScreen rendered', {
+    hasActivePromo: !!(models.user?.discount?.active),
+    promoCode: models.user?.discount?.code,
+    discountsCount: models.discounts?.length || 0
+  });
 
   const isPromoActive = models.user?.discount && models.user?.discount.active
 

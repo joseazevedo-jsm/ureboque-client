@@ -38,6 +38,7 @@ import DetailsItem from "../components/cards/detailsItem";
 import PaymentOptions from "../components/map/paymentOptions";
 import CustomMarker from "../components/map/customMarker";
 import { KeyboardAvoidingView } from "react-native";
+import { useLogger } from "../hooks/useLogger";
 
 // Memoized car icon mapping for performance
 const carIconMap = {
@@ -59,7 +60,15 @@ const getCarIconByColor = (color) => {
 };
 
 const MapScreen = memo(() => {
+  const logger = useLogger('MapScreen');
   const { models, operations } = useMapScreen();
+  
+  logger.debug('MapScreen rendered', { 
+    activeBottomSheet: models.activeBottomSheet,
+    hasDestination: !!models.destination,
+    hasSelectedCar: !!models.selectedCar,
+    driverCount: models.nearbyDrivers?.length || 0
+  });
 
   const snapPoints = useMemo(
     () => [scale(230), scale(250), scale(260), scale(520)],
@@ -193,7 +202,7 @@ const MapScreen = memo(() => {
     if (models.mapDirections && models.prices) {
       const priceperkm =
         Math.floor(models.mapDirections.distance) * 1000 + Number(item.price);
-      console.log("ORIGINAL PRICE: ", priceperkm);
+      logger.debug("Price calculation", { originalPrice: priceperkm, distance: models.mapDirections.distance });
 
       const price =
         models.user?.discount?.active

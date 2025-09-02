@@ -11,6 +11,7 @@ import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import useProfileScreen from "../components/profile/useProfileScreen";
+import { useLogger } from "../hooks/useLogger";
 
 // Import your images
 import phoneIcon from "../../resources/icons/profile_settings/phone.png";
@@ -19,22 +20,40 @@ import leaveIcon from "../../resources/icons/profile_settings/leave.png";
 import optionsIcon from "../../resources/icons/profile_settings/options.png";
 
 const ProfileScreen = () => {
+  const logger = useLogger('ProfileScreen', { 
+    enableLifecycleLogging: true,
+    logProps: true 
+  });
+  
   const { models, operations } = useProfileScreen();
   const navigation = useNavigation();
+  
+  logger.debug('ProfileScreen rendered', {
+    hasUser: !!models?.user,
+    userName: models?.user?.name,
+    hasProfileImage: !!models?.image || !!models?.user?.photo
+  });
 
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            logger.logUserInteraction('back_button_pressed', { from: 'ProfileScreen' });
+            logger.logNavigation('ProfileScreen', 'previous', { action: 'back' });
+            navigation.goBack();
+          }}
         >
           <Icon name="arrow-back" size={scale(25)} color="#0089FF" />
         </TouchableOpacity>
         <Text style={styles.headerText}>PERFIL</Text>
       </View>
       <View style={styles.profileImageContainer}>
-        <TouchableOpacity onPress={operations.handleOpenImagePicker}>
+        <TouchableOpacity onPress={() => {
+          logger.logUserInteraction('profile_image_picker_opened', { hasCurrentImage: !!models?.image || !!models?.user?.photo });
+          operations.handleOpenImagePicker();
+        }}>
           <Image
             source={{
               uri: models?.image ? models?.image : models?.user?.photo,

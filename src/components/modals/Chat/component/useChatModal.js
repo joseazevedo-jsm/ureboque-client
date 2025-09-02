@@ -1,11 +1,13 @@
 import { useContext, useEffect, useState } from "react";
 import { UserContext } from "../../../../context/UserContext";
+import { useLogger } from "../../../../hooks/useLogger";
 import axios from "axios";
 
 const api = axios.create({
   baseURL:  process.env.EXPO_PUBLIC_UREBOQUE_API
 });
 export const useChatModal = (idService) => {
+  const logger = useLogger('useChatModal');
   const { user, socket } = useContext(UserContext);
 
   const [messages, setMessages] = useState([]);
@@ -33,23 +35,23 @@ export const useChatModal = (idService) => {
   const fetchMessages = async (idService) => {
     try {
       const response = await api.get(`/chats/${idService}`);
-      console.log("OLD:", response.data.messages);
+      logger.info('Previous messages fetched', { messageCount: response.data.messages?.length });
       const data = await response.data;
       if(data)
         setMessages(data.messages);
     } catch (error) {
-      console.error("Error fetching messages:", error);
+      logger.error('Error fetching chat messages', error);
     }
   };
 
   // Function to send a new message
   const sendMessage = () => {
     if (!socket) {
-      console.warn("Socket not connected, cannot send message");
+      logger.warn('Socket not connected, cannot send message');
       return;
     }
 
-    console.log("CHAT: ", newMessage, user.id, idService);
+    logger.info('Sending chat message', { hasMessage: !!newMessage, userId: user.id, serviceId: idService });
     // Emit the new message via WebSocket to the backend for real-time updates
     socket.emit("message", {
       chatRoomId: idService,
@@ -67,7 +69,7 @@ export const useChatModal = (idService) => {
 
   // Function to handle incoming messages via WebSocket
   const handleIncomingMessage = (incoming_messages) => {
-    console.log("MSG: ", incoming_messages);
+    logger.info('Incoming chat messages received', { messageCount: incoming_messages?.length });
     setMessages(incoming_messages);
   };
 

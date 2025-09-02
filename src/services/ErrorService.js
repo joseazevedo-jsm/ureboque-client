@@ -1,13 +1,33 @@
+import Logger from '../utils/Logger';
+
 class ErrorService {
-  static handleAPIError(error, showToUser = true) {
+  static handleAPIError(error, showToUser = true, component = 'Unknown') {
     const errorMessage = this.getErrorMessage(error);
     
-    // Log error for debugging
-    console.error('API Error:', {
+    // Enhanced logging with structured data
+    Logger.logApiResponse(
+      component,
+      error.config?.method?.toUpperCase() || 'UNKNOWN',
+      error.config?.url || 'unknown-url',
+      error.response?.status || 0,
+      {
+        message: errorMessage,
+        errorType: this.getErrorType(error),
+        requestData: error.config?.data ? '[REQUEST_DATA]' : null,
+        responseData: error.response?.data ? '[RESPONSE_DATA]' : null
+      },
+      null // duration not available here
+    );
+
+    // Additional error context logging
+    Logger.error('ErrorService', 'API Error Details', {
       message: errorMessage,
       status: error.response?.status,
       url: error.config?.url,
       method: error.config?.method,
+      component,
+      stack: error.stack,
+      type: 'api_error'
     });
 
     // Show user-friendly message
@@ -42,9 +62,21 @@ class ErrorService {
     }
   }
 
+  static getErrorType(error) {
+    if (error.response) {
+      return 'server_error';
+    } else if (error.request) {
+      return 'network_error';
+    } else {
+      return 'client_error';
+    }
+  }
+
   static showUserError(message) {
     // Import Alert from react-native at the top of file for this to work
     const { Alert } = require('react-native');
+    
+    Logger.warn('ErrorService', 'Showing user error dialog', { message });
     
     // Show user-visible error alert
     Alert.alert(
@@ -59,8 +91,16 @@ class ErrorService {
       { cancelable: true }
     );
     
-    // Also log for debugging
-    console.warn('User Error:', message);
+    Logger.logUserInteraction('ErrorService', 'error_dialog_shown', { message });
+  }
+
+  static logGeneralError(component, error, context = {}) {
+    Logger.error(component, `General Error: ${error.message || error}`, {
+      error: error.message || error,
+      stack: error.stack,
+      context,
+      type: 'general_error'
+    });
   }
 }
 

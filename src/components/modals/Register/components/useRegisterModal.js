@@ -1,12 +1,15 @@
 import axios from "axios";
 import { useRef, useState } from "react";
 import { EXPO_PUBLIC_UREBOQUE_API } from '@env';
+import { useLogger } from '../../../../hooks/useLogger';
 
 const api = axios.create({
   baseURL: `${EXPO_PUBLIC_UREBOQUE_API}/users`,
 });
 
 export const useRegisterModal = (OTPChange) => {
+  const logger = useLogger('useRegisterModal');
+  
   const inputRef1 = useRef(null);
   const inputRef2 = useRef(null);
   const inputRef3 = useRef(null);
@@ -106,7 +109,7 @@ export const useRegisterModal = (OTPChange) => {
   const handleCreateUser = async (phone) => {
     try {
       if (validateRegistrationUser()) {
-        console.log(password, name, email, surname, phone);
+        logger.debug("User registration data", { password: "***", name, email, surname, phone });
         const result = await api.post("/register", {
           password: password,
           details: {
@@ -118,7 +121,7 @@ export const useRegisterModal = (OTPChange) => {
         });
 
         const data = result.data;
-        console.log("--> ", data);
+        logger.info("Registration response received", data);
 
         if (data) {
           return true;
@@ -126,7 +129,7 @@ export const useRegisterModal = (OTPChange) => {
         return false;
       }
     } catch (error) {
-      console.error(error.message);
+      logger.error("Registration failed", error.message);
     }
   };
 

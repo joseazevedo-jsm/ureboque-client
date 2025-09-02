@@ -4,8 +4,11 @@ import { useState } from "react";
 import { UserContext } from "../../../../context/UserContext";
 import Geocoder from "react-native-geocoding";
 import { useUserLocationStateContext } from "../../../../context/UserLocationStateContext";
+import { useLogger } from "../../../../hooks/useLogger";
 
 export const useSavedPlacesModal = () => {
+  const logger = useLogger('useSavedPlacesModal');
+  
   const { user, saveUserFavouriteAddress, removeUserFavouriteAddress, updateUserFavouriteAddress } = useContext(UserContext);
   const { userLocation } = useUserLocationStateContext();
   const bottomSheetModalAddAddress = useRef(null);
@@ -55,7 +58,7 @@ export const useSavedPlacesModal = () => {
   };
   const handleAddressEditButtonPress = (place, placeId) => {
     return () => {
-      console.log("edit place", place, placeId);
+      logger.debug("Edit place operation", { place, placeId });
       setName(place.name);
       setDescription(place.description);
       setAddress(place.description);
@@ -69,7 +72,7 @@ export const useSavedPlacesModal = () => {
   };
 
   const handleDeleteFavouriteButtonPress = (placeId) => {
-    console.log("delete place", placeId);
+    logger.debug("Delete place operation", { placeId });
     removeUserFavouriteAddress(placeId);
   };
 
@@ -90,7 +93,7 @@ export const useSavedPlacesModal = () => {
   };
 
   const handleSaveFavouriteButtonPress = (callback, type) => {
-    console.log("nameFAV and name", nameFAV, name);
+    logger.debug("Save favourite name data", { nameFAV, name });
        let place = {
         place: {
           name: name || nameFAV,
@@ -107,15 +110,15 @@ export const useSavedPlacesModal = () => {
 
       switch (type) {
         case "NOVO":
-          console.log("Saving new place", place);
+          logger.info("Saving new place", place);
           saveUserFavouriteAddress(place);
           break;
         case "EDITAR":
-          console.log("Updating existing place", place);
+          logger.info("Updating existing place", place);
           updateUserFavouriteAddress(place, placeId);
           break;
         default:
-          console.log("Invalid type");
+          logger.warn("Invalid type provided");
           break;
       }
   };
@@ -125,7 +128,7 @@ export const useSavedPlacesModal = () => {
   };
 
   const handleLocationPress = () => {
-    console.log(bottomSheetModalAddAddress.current);
+    logger.debug("Bottom sheet modal ref", { ref: bottomSheetModalAddAddress.current });
     
     bottomSheetModalAddAddress.current.present();
   };
@@ -149,12 +152,12 @@ export const useSavedPlacesModal = () => {
 
   const handleNameChangeText = (text) => {
     setName(text);
-    console.log(text);
+    logger.debug("Name text changed", { text });
   };
 
   const handleInstructionsChangeText = (text) => {
     setInstructions(text);
-    console.log(text);
+    logger.debug("Instructions text changed", { text });
   };
 
   const handleCurrentLocationPress = async () => {
@@ -182,7 +185,7 @@ export const useSavedPlacesModal = () => {
 
 
     } catch (error) {
-      console.error('Error handling current location:', error);
+      logger.error('Error handling current location', error);
       Alert.alert('Error', 'Something went wrong. Please try again.');
     }
   };

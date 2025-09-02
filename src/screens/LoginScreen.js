@@ -15,12 +15,21 @@ import { useLoginScreen } from "../components/login/useLoginScreen";
 import { useRoute } from "@react-navigation/native";
 import OTPModal from "../components/modals/OTP/OTPModal";
 import RegisterPassModal from "../components/modals/Register/RegisterPassModal";
+import { useLogger } from "../hooks/useLogger";
 
 const LoginScreen = () => {
+  const logger = useLogger('LoginScreen', { 
+    enableLifecycleLogging: true,
+    logProps: true 
+  });
+  
   const route = useRoute();
   const { passwordState, phone } = route.params
     ? route.params
     : { passwordState: false, phone: "" };
+    
+  logger.debug('LoginScreen initialized', { passwordState, hasPhone: !!phone });
+  
   const { models, operations } = useLoginScreen();
 
   // const verifyPhoneNumber = () => {

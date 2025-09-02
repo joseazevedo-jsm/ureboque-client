@@ -8,6 +8,7 @@ import api from "../../services/APIService";
 import ErrorService from "../../services/ErrorService";
 import axios from "axios";
 import { Alert } from "react-native";
+import { useLogger } from "../../hooks/useLogger";
 
 const apiOTP = axios.create({
   baseURL: "https://api.releans.com/v2/message",
@@ -18,6 +19,8 @@ const apiOTP = axios.create({
 });
 
 export const useLoginScreen = () => {
+  const logger = useLogger('useLoginScreen');
+  
   // Form validation for phone number
   const phoneForm = useForm(
     { phoneNumber: "", callingCode: "244" },
@@ -83,15 +86,15 @@ export const useLoginScreen = () => {
 
       const response = await apiOTP.post("", message).then();
       const data = response.data;
-      console.log(data);
+      logger.info('OTP API response received', data);
       setCodeOTP({ confirm: data, code: random4DigitNumber });
 
       if (data) {
-        console.log({ message: response.data, otp: random4DigitNumber });
+        logger.info('OTP sent successfully', { messageStatus: response.data.status, otpGenerated: true });
         setModalOtpVisible(true);
       }
     } catch (error) {
-      console.error("Error fetching user by ID:", error);
+      logger.error('Error sending OTP', error);
     }
   };
 
@@ -105,14 +108,14 @@ export const useLoginScreen = () => {
   };
 
   const onLogin = async (phone) => {
-    console.log(password, phone);
+    logger.info('Login attempt', { phone, hasPassword: !!password });
     try {
       const response = await api.post("/users/login", {
         password: password,
         phone: phone,
       });
       const data = response.data;
-      console.log("-->", data);
+      logger.info('Login successful', { userId: data.user?.id, hasToken: !!data.token });
       if (data) {
         setUser(data.user);
         login(data.token, data.user.id);

@@ -8,6 +8,7 @@ import { Alert, Keyboard } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/APIService";
 import ErrorService from "../../services/ErrorService";
+import { useLogger } from "../../hooks/useLogger";
 
 const IP = process.env.EXPO_PUBLIC_UREBOQUE_API; //attt ao apagar
 
@@ -18,6 +19,8 @@ const LONGITUDE_DELTA = 0.005;
 const DEFAULT_TIMER_DURATION = 180; // 3 minutes in seconds
 
 export const useMapScreen = () => {
+  const logger = useLogger('useMapScreen');
+  
   // --- Refs ---
   const mapRef = useRef(null);
   const bottomSheetModalRef = useRef(null);
@@ -129,7 +132,7 @@ export const useMapScreen = () => {
       setMarkerCity(address);
       return address;
     } catch (error) {
-      console.log("Error fetching address:", error);
+      logger.error("Error fetching address", error);
     }
   };
 
@@ -193,7 +196,7 @@ export const useMapScreen = () => {
         latitudeDelta: LATITUDE_DELTA,
         longitudeDelta: LONGITUDE_DELTA,
       });
-      console.log(userLocation?.latitude, userLocation?.longitude);
+      logger.debug("User location updated", { latitude: userLocation?.latitude, longitude: userLocation?.longitude });
       setHasCentered(true);
     }
   };
@@ -231,7 +234,7 @@ export const useMapScreen = () => {
 
   const handleSocketEvents = () => {
     if (!socket) {
-      console.warn("Socket not available, skipping event listeners");
+      logger.warn("Socket not available, skipping event listeners");
       return () => {}; // Return empty cleanup function
     }
 
@@ -239,16 +242,16 @@ export const useMapScreen = () => {
 
     const handleBestDriver = (data) => {
       try {
-        console.log("bestDriver event:", data);
+        logger.info("Socket event: bestDriver", data);
         // handleDriverAccept(data.location, data.atual);
       } catch (error) {
-        console.error("Error handling bestDriver event:", error);
+        logger.error("Error handling bestDriver event", error);
       }
     };
 
     const handleNoDriver = (data) => {
       try {
-        console.log("noDriver event:");
+        logger.info("Socket event: noDriver");
         Alert.alert(
           "Não há um motorista disponível",
           "Tente novamente mais tarde",
@@ -262,13 +265,13 @@ export const useMapScreen = () => {
           ]
         );
       } catch (error) {
-        console.error("Error handling noDriver event:", error);
+        logger.error("Error handling noDriver event", error);
       }
     };
 
     const handleDriverConnected = (data) => {
       try {
-        console.log("driverConnected event:", data);
+        logger.info("Socket event: driverConnected", data);
         if (data && data.location && data.service && data.service.pickup) {
           setDriverConnected(true);
           handleDriverConnect(data.location, data.service.pickup);
@@ -276,22 +279,22 @@ export const useMapScreen = () => {
           setDriverLocation(data.location);
         }
       } catch (error) {
-        console.error("Error handling driverConnected event:", error);
+        logger.error("Error handling driverConnected event", error);
       }
     };
 
     const handleServiceAccepted = (data) => {
       try {
-        console.log("serviceAccepted event:", data);
+        logger.info("Socket event: serviceAccepted", data);
         handleDriverAccepted(data);
       } catch (error) {
-        console.error("Error handling serviceAccepted event:", error);
+        logger.error("Error handling serviceAccepted event", error);
       }
     };
 
     const handleDriverDeclined = (data) => {
       try {
-        console.log("driverDeclined event:", data);
+        logger.info("Socket event: driverDeclined", data);
         const { idUser, idService, userLocation } = data;
         const { longitude, latitude } = userLocation;
         if (socket?.connected) {
@@ -302,13 +305,13 @@ export const useMapScreen = () => {
           });
         }
       } catch (error) {
-        console.error("Error handling driverDeclined event:", error);
+        logger.error("Error handling driverDeclined event", error);
       }
     };
 
     const handleDriverLocation = (data) => {
       try {
-        console.log("driverLocation event:", data);
+        logger.info("Socket event: driverLocation", data);
         if (data && data.service && data.location) {
           const { service, location } = data;
 
@@ -319,7 +322,7 @@ export const useMapScreen = () => {
               setMapMarkers([location, service.pickupLocation]);
 
               if (serviceStatus) {
-                console.log("AQUI");
+                logger.debug("Service status reset");
                 setServiceStatus(null);
               }
 
@@ -345,7 +348,7 @@ export const useMapScreen = () => {
           }
         }
       } catch (error) {
-        console.error("Error handling driverLocation event:", error);
+        logger.error("Error handling driverLocation event", error);
       }
     };
 
@@ -357,7 +360,7 @@ export const useMapScreen = () => {
           setTripState('in-progress'); // Update trip state
         }
       } catch (error) {
-        console.error("Error handling serviceStarted event:", error);
+        logger.error("Error handling serviceStarted event", error);
       }
     };
 
@@ -367,16 +370,16 @@ export const useMapScreen = () => {
           tripEndingSheetRef.current.dismiss();
           setModalConfirmationVisible(true);
 
-          console.log("Trip completed:", user);
+          logger.info("Trip completed", { userId: user?.id });
         }
       } catch (error) {
-        console.error("Error handling serviceEnded event:", error);
+        logger.error("Error handling serviceEnded event", error);
       }
     };
 
     const handleServiceCancelled = (data) => {
       try {
-        console.log("serviceCancelled event:", data);
+        logger.info("Socket event: serviceCancelled", data);
         // Handle the service cancellation here
         Alert.alert("Serviço cancelado", "O motorista cancelou o serviço", [
           {
@@ -387,7 +390,7 @@ export const useMapScreen = () => {
           },
         ]);
       } catch (error) {
-        console.error("Error handling serviceCancelled event:", error);
+        logger.error("Error handling serviceCancelled event", error);
       }
     };
 
@@ -466,7 +469,7 @@ export const useMapScreen = () => {
 
     if (timer === 0) {
       // Timer has reached 0, perform any action you need here
-      console.log("Timer has reached 0!");
+      logger.warn("Timer has reached 0!");
       clearInterval(interval);
 
       if (driver) return;
@@ -537,7 +540,7 @@ export const useMapScreen = () => {
 
   // Effect - Manage service status updates
   useEffect(() => {
-    console.log("SERVICE STATUS", serviceStatus);
+    logger.info('useMapScreen', 'Service status update', { status: serviceStatus?.service?.status });
     if (
       !serviceStatus ||
       serviceStatus?.service?.status === "nodriver" ||
@@ -546,7 +549,7 @@ export const useMapScreen = () => {
       return;
     const { service, car } = serviceStatus;
     const status = service.status;
-    console.log("STATUS", status);
+    logger.info('useMapScreen', 'Processing service status', { status });
     const room = `service-request-${serviceStatus.service._id}`;
     setDriver({
       id: service.driver._id,
@@ -566,11 +569,11 @@ export const useMapScreen = () => {
     setDestinationCity(service.locations[1].name);
     switch (status) {
       case "in-progress":
-        console.log("Socket connected!", room);
+        logger.info('useMapScreen', 'Socket connected for room join (in-progress)', { room });
         if (socket?.connected) {
           socket.emit("join", room);
         } else {
-          console.warn("Socket not connected for room join:", room);
+          logger.warn('useMapScreen', 'Socket not connected for room join', { room });
         }
         bottomSheetModalRef.current.dismiss();
         tripEndingSheetRef.current.present();
@@ -579,11 +582,11 @@ export const useMapScreen = () => {
         break;
 
       case "assigned":
-        console.log("Socket connected!", room);
+        logger.info('useMapScreen', 'Socket connected for room join (assigned)', { room });
         if (socket?.connected) {
           socket.emit("join", room);
         } else {
-          console.warn("Socket not connected for room join:", room);
+          logger.warn('useMapScreen', 'Socket not connected for room join', { room });
         }
         bottomSheetModalRef.current.dismiss();
         tripStartedSheetRef.current.present();
@@ -621,7 +624,7 @@ export const useMapScreen = () => {
         params: params,
       });
 
-      console.log("NEARBY", resp.data);
+      logger.info("Nearby drivers found", { count: resp.data?.length });
 
       const nearbyDrivers = resp.data.map((driverData) => ({
         latitude: driverData.location.latitude,
@@ -629,9 +632,9 @@ export const useMapScreen = () => {
         color: driverData.driver.car.color,
       }));
 
-      console.log("A PROCURAR... ", nearbyDrivers);
+      logger.debug("Searching for nearby drivers", { count: nearbyDrivers?.length });
       setCarsAround(nearbyDrivers);
-      console.log("PROCURA CONCLUIDA... ");
+      logger.info("Driver search completed");
     } catch (error) {
       ErrorService.handleAPIError(error);
     } finally {
@@ -686,7 +689,7 @@ export const useMapScreen = () => {
 
     setModalVisible(true);
     if (inputLocationObject === 0) {
-      console.log(inputLocationObject, originCoords);
+      logger.debug("Origin coordinates set", { inputLocationObject, coordinates: originCoords });
       setOriginCity(markerCity);
       if (destinationCity != null) {
         setMapMarkers([originCoords, destinationCoords]);
@@ -695,7 +698,7 @@ export const useMapScreen = () => {
         carTypeSelectionSheetRef.current.present();
       }
     } else if (inputLocationObject === 1) {
-      console.log(inputLocationObject, destinationCoords);
+      logger.debug("Destination coordinates set", { inputLocationObject, coordinates: destinationCoords });
       setDestinationCity(markerCity);
       if (originCity != null) {
         setMapMarkers([originCoords, destinationCoords]);
@@ -710,8 +713,8 @@ export const useMapScreen = () => {
 
   const handleTypeCarPress = (type, price) => {
     return () => {
-      console.log("Type car pressed:", type, price);
-      console.log("Current state:", {
+      logger.info("Type car pressed", { type, price });
+      logger.debug("Current state", {
         typeCar,
         ridePrice,
         carTypeSelectionSheetRef: carTypeSelectionSheetRef.current ? 'exists' : 'null',
@@ -723,21 +726,21 @@ export const useMapScreen = () => {
       setActiveBottomSheet('carTypeSelection');
 
       if (carTypeSelectionSheetRef.current) {
-        console.log("Dismissing carTypeSelectionSheetRef");
+        logger.debug("Dismissing carTypeSelectionSheetRef");
         carTypeSelectionSheetRef.current.dismiss();
       } else {
-        console.log("carTypeSelectionSheetRef is not available");
+        logger.warn("carTypeSelectionSheetRef is not available");
       }
 
       // Add a delay and use requestAnimationFrame for smoother transitions
       setTimeout(() => {
         requestAnimationFrame(() => {
           if (userCarInfoSheetRef.current) {
-            console.log("Attempting to present userCarInfoSheetRef");
+            logger.debug("Attempting to present userCarInfoSheetRef");
             userCarInfoSheetRef.current.present();
             setActiveBottomSheet('userCarInfo');
           } else {
-            console.log("userCarInfoSheetRef is not available");
+            logger.warn("userCarInfoSheetRef is not available");
           }
         });
       }, 500);
@@ -754,13 +757,13 @@ export const useMapScreen = () => {
   const handleConfirmPaymentPress = (payment_type) => {
     return async () => {
       if (!socket.connected) {
-        console.warn("Socket is not connected. Unable to emit data.");
+        logger.warn("Socket is not connected. Unable to emit data.");
         Alert.alert("Não há conexão com o servidor.");
         return;
       }
 
-      console.log("Confirm Payment");
-      console.log(typeCar);
+      logger.info("Confirm Payment");
+      logger.debug("Selected car type", { typeCar });
 
       paymentOptionsSheetRef.current.dismiss();
       rideSearchSheetRef.current.present();
@@ -799,7 +802,7 @@ export const useMapScreen = () => {
 
         //maybe alter here
         const resp = await api.post("/service/", requestData);
-        console.log("Request successful:", resp.data);
+        logger.info("Service request successful", { serviceId: resp.data?._id });
         setService(resp.data);
 
         //console.log("SERVICO",service)
@@ -812,7 +815,7 @@ export const useMapScreen = () => {
         if (socket?.connected) {
           socket.emit("chooseBestDriver", data);
         } else {
-          console.warn("Socket not connected for chooseBestDriver");
+          logger.warn("Socket not connected for chooseBestDriver");
         }
 
         return resp.data;
@@ -825,15 +828,15 @@ export const useMapScreen = () => {
 
   const handlePressItemPress = (coords, address, inputRef) => {
     if (inputLocationObject === 0) {
-      console.log("orign ", coords);
+      logger.debug("Origin coordinates", { coords });
       setOriginCoords(coords);
       setOriginCity(address);
       setIsCurrLocation();
       inputRef.current.focus();
-      console.log(inputLocationObject, coords, address);
+      logger.debug("Location data updated", { inputLocationObject, coords, address });
     } else if (inputLocationObject === 1) {
-      console.log("dest ", coords);
-      console.log(inputLocationObject, coords, address);
+      logger.debug("Destination coordinates", { coords });
+      logger.debug("Location data updated", { inputLocationObject, coords, address });
 
       if (address === "CurrLocation") {
         coords = {
@@ -856,7 +859,7 @@ export const useMapScreen = () => {
 
   const handleMarkerDragPress = () => {
     return () => {
-      console.log("AQUI");
+      logger.debug("Debug checkpoint - AQUI");
       setModalVisible(false);
       setMarkerVisible(true);
       bottomSheetModalRef.current.dismiss();
@@ -865,7 +868,7 @@ export const useMapScreen = () => {
   };
 
   const handleMarkerDragSavedPlaces = () => {
-    console.log("AQUI");
+    logger.debug("Debug checkpoint - AQUI");
     setNewSavedPlaceAddress({ pos: 1, city: "", callback: false });
     setModalSavedPlacesVisible(false);
     setMarkerVisible(true);
@@ -875,7 +878,7 @@ export const useMapScreen = () => {
 
   const handleMarkerDragEnd = ({ latitude, longitude }) => {
     getAddressFromCoordinates(latitude, longitude);
-    console.log("AQUI 2", latitude, longitude, newSavedPlaceAddress);
+    logger.debug("Debug checkpoint - AQUI 2", { latitude, longitude, newSavedPlaceAddress });
 
     if (newSavedPlaceAddress.pos > 0) {
       setNewSavedPlaceAddress({
@@ -893,7 +896,7 @@ export const useMapScreen = () => {
   };
 
   const handleLocationTextInputFocus = (value) => {
-    console.log(value);
+    logger.debug("Value logged", { value });
     setInputLocationObject(value);
   };
 
@@ -918,7 +921,7 @@ export const useMapScreen = () => {
   };
 
   const handleDetailsForm = (bottomSheet) => {
-    console.log(detailsInfo);
+    logger.debug("Details info", { detailsInfo });
     setDetailsInfo({ bottomSheet: bottomSheet });
     bottomSheet.current.dismiss();
     bottomSheetModalRefDetails.current.present();
@@ -932,7 +935,7 @@ export const useMapScreen = () => {
     if (socket?.connected) {
       socket.emit("searchCancel", { idService: service._id, complaints });
     } else {
-      console.warn("Socket not connected for searchCancel");
+      logger.warn("Socket not connected for searchCancel");
     }
     tripStartedSheetRef.current?.dismiss();
     rideSearchSheetRef.current.dismiss();
@@ -950,7 +953,7 @@ export const useMapScreen = () => {
       if (socket?.connected) {
         socket.emit("serviceCancel", { idService: service._id, complaints });
       } else {
-        console.warn("Socket not connected for serviceCancel");
+        logger.warn("Socket not connected for serviceCancel");
       }
       tripStartedSheetRef.current?.dismiss();
       rideSearchSheetRef.current.dismiss();
@@ -965,13 +968,13 @@ export const useMapScreen = () => {
   };
 
   const handleCancelSearch = () => {
-    console.log("Canceling search...");
+    logger.info("Canceling search...");
     const complaints = {
       title: "Search Cancellation",
       description: "User cancelled the search",
       idUser: user.id,
     };
-    console.log("Complaint registered: ", complaints);
+    logger.info("Complaint registered", { complaints });
     onConfirmCancelSearch(complaints);
     resetTimer();
   };
@@ -982,7 +985,7 @@ export const useMapScreen = () => {
       description: question,
       idUser: user.id,
     };
-    console.log("cancel", complaints);
+    logger.debug("Cancel complaints", { complaints });
     onConfirmCancelTrip(complaints);
     resetTimer();
   };
@@ -993,13 +996,13 @@ export const useMapScreen = () => {
   };
 
   const handleMapDirectionsReady = (routeInfo) => {
-    console.log(routeInfo.coordinates);
+    logger.debug("Route coordinates", { coordinates: routeInfo.coordinates });
     setMapDirections(routeInfo);
     setTripDuration(routeInfo?.duration);
   };
 
   const handleDriverConnect = (driverLocation, coords) => {
-    console.log("MAPMARKERS: ", coords);
+    logger.debug("Map markers set", { coords });
     setMapMarkers([driverLocation, coords]);
     setTripState('assigned');
   };
@@ -1012,7 +1015,7 @@ export const useMapScreen = () => {
       setActiveBottomSheet('tripStarted');
       resetTimer();
     } catch (error) {
-      console.error("Error saving app state: ", error);
+      logger.error("Error saving app state", error);
     }
   };
 

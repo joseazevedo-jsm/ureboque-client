@@ -2,6 +2,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Icon } from "react-native-elements/dist/icons/Icon";
 import { scale } from "react-native-size-matters";
+import { useLogger } from "../../hooks/useLogger";
 
 // Memoized image sources for performance
 const imageMap = {
@@ -11,9 +12,10 @@ const imageMap = {
 
 // card view that receives props like title, description
 const CarTypes = memo(({ typeCar, descr, descr2, price, route, onPress }) => {
+  const logger = useLogger('CarTypes');
   const distance = route?.distance;
   const duration = route?.duration;
-  console.log(distance, "KM", typeCar, descr, descr2, price);
+  logger.debug("Car type selection details", { distance, typeCar, descr, descr2, price });
 
   const handlePress = useCallback(() => {
     onPress();

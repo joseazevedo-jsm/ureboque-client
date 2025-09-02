@@ -13,11 +13,17 @@ import { useContext } from "react";
 import { useNavigation } from "@react-navigation/native"; // Import the necessary hooks from React Navigation
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useInviteScreen } from "../components/invite/useInviteScreen";
+import { useLogger } from "../hooks/useLogger";
 
 const InviteScreen = () => {
+  const logger = useLogger('InviteScreen', { enableLifecycleLogging: true });
   const { models, operations } = useInviteScreen();
-
   const navigation = useNavigation();
+  
+  logger.debug('InviteScreen rendered', {
+    hasInviteCode: !!models.inviteCode,
+    userId: models.user?.id
+  });
 
   return (
     <View style={styles.container}>

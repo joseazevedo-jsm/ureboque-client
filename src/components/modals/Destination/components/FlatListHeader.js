@@ -5,6 +5,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import { Picker } from "react-native";
 import { useState } from "react";
 import { Dropdown } from "react-native-element-dropdown";
+import { useLogger } from "../../../../hooks/useLogger";
 
 const FlatListHeader = ({
   destinationValue,
@@ -17,7 +18,8 @@ const FlatListHeader = ({
   inputCurr,
   onInputIndex,
 }) => {
-  console.log("-> dest ", inputDestination);
+  const logger = useLogger('FlatListHeader');
+  logger.debug("Destination value", { inputDestination });
 
   return (
     <View style={styles.header}>

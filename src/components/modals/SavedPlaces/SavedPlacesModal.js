@@ -12,6 +12,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import PlaceSavedItem from "../../cards/placeSavedItem";
 import { useSavedPlacesModal } from "./components/useSavedPlacesModal.js";
 import AddressModal from "./AddressModal";
+import { useLogger } from "../../../hooks/useLogger";
 
 const SavedPlacesModal = ({
   visible,
@@ -19,8 +20,10 @@ const SavedPlacesModal = ({
   addressCallBack,
   mapDrag,
 }) => {
+  const logger = useLogger('SavedPlacesModal');
+  
   const { models, operations } = useSavedPlacesModal();
-  console.log(addressCallBack, mapDrag);
+  logger.debug("Modal props received", { addressCallBack, mapDrag });
   const handeBackButtonPress = () => {
     closeModal();
   };
