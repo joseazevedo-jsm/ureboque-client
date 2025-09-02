@@ -64,8 +64,12 @@ const OTPModal = ({
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.closeButton}>
-            {/* CHANGE TO MAKE onClose WORK  onPress={onClose} */}
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={onClose}
+            accessibilityLabel="Fechar modal OTP"
+            accessibilityRole="button"
+          >
             <Text style={styles.closeButtonText}>Fechar</Text>
           </TouchableOpacity>
         </View>

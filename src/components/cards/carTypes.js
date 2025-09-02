@@ -29,7 +29,11 @@ const CarTypes = memo(({ typeCar, descr, descr2, price, route, onPress }) => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={handlePress}>
+      <TouchableOpacity 
+        onPress={handlePress}
+        accessibilityLabel={`Selecionar ${typeCar}, ${descr}, preço ${formattedPrice} AOA`}
+        accessibilityRole="button"
+      >
         <View style={styles.containerStyle}>
           <Image
             source={carImage}

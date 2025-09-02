@@ -23,7 +23,7 @@ const UserProfile = ({ user }) => (
   <View style={styles.userProfileContainer}>
     <View style={styles.userImageContainer}>
       <Image
-        source={{ uri: user?.photo }}
+        source={user?.photo ? { uri: user.photo } : require('../../../resources/icons/side_bar/profile.png')}
         style={styles.userImage}
       />
     </View>

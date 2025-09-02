@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { Text } from 'react-native';
 import { io } from 'socket.io-client';
+import { EXPO_PUBLIC_UREBOQUE_API } from '@env';
 
-const socket = io('http://192.168.1.130:9000');
+const socket = io(EXPO_PUBLIC_UREBOQUE_API);
 
 const TestScreen = () => {
   useEffect(() => {

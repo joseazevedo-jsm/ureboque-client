@@ -79,6 +79,8 @@ const LoginScreen = () => {
                         keyboardType="numeric"
                         defaultValue={`+${models.callingCode}`}
                         editable={false}
+                        accessibilityLabel="Código do país"
+                        accessibilityRole="text"
                       />
                     </View>
                     <Text
@@ -96,6 +98,8 @@ const LoginScreen = () => {
                       placeholder="Telefone"
                       value={models.number}
                       onChangeText={operations.handleNumberChange}
+                      accessibilityLabel="Campo de número de telefone"
+                      accessibilityRole="text"
                     />
                   </>
                 ) : (
@@ -107,6 +111,8 @@ const LoginScreen = () => {
                       placeholder="Senha"
                       value={models.password}
                       onChangeText={operations.handlePasswordChange}
+                      accessibilityLabel="Campo de senha"
+                      accessibilityRole="text"
                     />
                   </>
                 )}
@@ -122,13 +128,21 @@ const LoginScreen = () => {
                 termos descritos na Política de Privacidade
               </Text>
               {!passwordState ? (
-                <TouchableOpacity onPress={operations.onVerifyOtp}>
+                <TouchableOpacity 
+                  onPress={operations.onVerifyOtp}
+                  accessibilityLabel="Avançar com número de telefone"
+                  accessibilityRole="button"
+                >
                   <View style={styles.button}>
                     <Text style={styles.buttonText}>AVANÇAR</Text>
                   </View>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity onPress={() => operations.onLogin(phone)}>
+                <TouchableOpacity 
+                  onPress={() => operations.onLogin(phone)}
+                  accessibilityLabel="Fazer login com senha"
+                  accessibilityRole="button"
+                >
                   <View style={styles.button}>
                     <Text style={styles.buttonText}>AVANÇAR</Text>
                   </View>

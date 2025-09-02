@@ -43,12 +43,24 @@ class ErrorService {
   }
 
   static showUserError(message) {
-    // For now, just log to console
-    // In a real app, this could show a toast notification or alert
-    console.warn('User Error:', message);
+    // Import Alert from react-native at the top of file for this to work
+    const { Alert } = require('react-native');
     
-    // TODO: Implement toast notification or alert system
-    // Example: Toast.show({ type: 'error', text1: 'Error', text2: message });
+    // Show user-visible error alert
+    Alert.alert(
+      'Erro',
+      message,
+      [
+        {
+          text: 'OK',
+          style: 'default'
+        }
+      ],
+      { cancelable: true }
+    );
+    
+    // Also log for debugging
+    console.warn('User Error:', message);
   }
 }
 

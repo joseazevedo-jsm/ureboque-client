@@ -49,7 +49,7 @@ export const useMapScreen = () => {
   const [mapDirections, setMapDirections] = useState(null);
   const [carsAround, setCarsAround] = useState([]);
   const [driverLocation, setDriverLocation] = useState(null);
-  const [isSearchingNearby, setIsSearchingNearby] = useState(false);
+  const [isLoadingDrivers, setIsLoadingDrivers] = useState(false);
   const [markerVisible, setMarkerVisible] = useState();
   const [markerCity, setMarkerCity] = useState();
   const [hasCentered, setHasCentered] = useState(false);
@@ -512,22 +512,28 @@ export const useMapScreen = () => {
       bottomSheetModalRef.current.present();
   }, []);
 
-  // Effect - Fetch nearby drivers when the component mounts and when service is null
+  // Effect - Fetch nearby drivers with interval polling
   useEffect(() => {
-    // Check if a service is not active before fetching nearby drivers
-    if (!service && userLocation && !isSearchingNearby) {
-      getNearbyDrivers();
+    // Don't search if service exists or no user location
+    if (!userLocation || service) {
+      setCarsAround([]); // Clear cars when service is active
+      return;
     }
+
+    // Initial fetch
+    getNearbyDrivers();
+    
+    // Set up interval for continuous polling
+    pollingTimerRef.current = setInterval(getNearbyDrivers, 20000);
 
     return () => {
       // Clear polling timer to prevent memory leaks
       if (pollingTimerRef.current) {
-        clearTimeout(pollingTimerRef.current);
+        clearInterval(pollingTimerRef.current);
         pollingTimerRef.current = null;
       }
-      setIsSearchingNearby(true);
     };
-  }, [userLocation, isSearchingNearby]);
+  }, [userLocation, service]);
 
   // Effect - Manage service status updates
   useEffect(() => {
@@ -602,8 +608,10 @@ export const useMapScreen = () => {
   // --- Data Fetching Functions ---
 
   const getNearbyDrivers = async () => {
+    if (isLoadingDrivers || service) return; // Don't search if already loading or service exists
+    
+    setIsLoadingDrivers(true);
     try {
-      if (isSearchingNearby) return;
       const params = {
         latitude: userLocation?.latitude,
         longitude: userLocation?.longitude,
@@ -622,21 +630,12 @@ export const useMapScreen = () => {
       }));
 
       console.log("A PROCURAR... ", nearbyDrivers);
-      setCarsAround(nearbyDrivers); //nearbyDrivers
-      setIsSearchingNearby(true);
-
-      if (!service) {
-        // Continue searching if a service doesn't exist
-        pollingTimerRef.current = setTimeout(getNearbyDrivers, 20000);
-      }
-
+      setCarsAround(nearbyDrivers);
       console.log("PROCURA CONCLUIDA... ");
     } catch (error) {
       ErrorService.handleAPIError(error);
-      if (!service) {
-        // Retry after a delay if a service doesn't exist
-        pollingTimerRef.current = setTimeout(getNearbyDrivers, 20000);
-      }
+    } finally {
+      setIsLoadingDrivers(false);
     }
   };
 

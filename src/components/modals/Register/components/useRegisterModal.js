@@ -1,8 +1,9 @@
 import axios from "axios";
 import { useRef, useState } from "react";
+import { EXPO_PUBLIC_UREBOQUE_API } from '@env';
 
 const api = axios.create({
-  baseURL: "http://192.168.0.176:9000/users",
+  baseURL: `${EXPO_PUBLIC_UREBOQUE_API}/users`,
 });
 
 export const useRegisterModal = (OTPChange) => {

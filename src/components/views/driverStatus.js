@@ -40,7 +40,7 @@ const DriverStatus = ({
   bttmSheetRef,
 }) => {
   if (!driver)
-    return  
+    return null;
 
   return (
     <View>
@@ -62,7 +62,11 @@ const DriverStatus = ({
       </View>
 
       <View style={styles.spacer} />
-      <TouchableOpacity onPress={() => onDetailsTrip(bttmSheetRef)}>
+      <TouchableOpacity 
+        onPress={() => onDetailsTrip(bttmSheetRef)}
+        accessibilityLabel="Ver detalhes da viagem"
+        accessibilityRole="button"
+      >
         <View style={styles.options}>
           <View style={styles.circle}>
             <Icon name="priority-high" size={scale(13)} color="#000" />
@@ -75,7 +79,11 @@ const DriverStatus = ({
 
       <View style={styles.spacer} />
       {status === 0 && (
-        <TouchableOpacity onPress={onCancelTrip}>
+        <TouchableOpacity 
+          onPress={onCancelTrip}
+          accessibilityLabel="Cancelar viagem atual"
+          accessibilityRole="button"
+        >
           <View style={styles.options}>
             <View style={[styles.circle, { borderColor: "red" }]}>
               <Icon name="close" size={scale(13)} color="red" />

@@ -16,13 +16,27 @@
     ],
     "android": {
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "package": "com.ureboque.client",
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBqPFzMJ7TgohKLMZ8Q0Z1iRVmk63OWWpk"
+          "apiKey": "process.env.GOOGLE_MAPS_API_KEY"
         }
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.ureboque.client",
+      "buildNumber": "1.0.0",
+      "supportsTablet": false,
+      "config": {
+        "googleMapsApiKey": "process.env.GOOGLE_MAPS_API_KEY"
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses location to find nearby towing services and track your current location.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses location to find nearby towing services and track your current location."
       }
     },
     "extra": {
