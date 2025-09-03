@@ -1,7 +1,9 @@
 /**
  * Logger System for Ureboque Client
- * Provides structured logging with environment-aware behavior
+ * Provides structured logging with environment-aware behavior and Sentry integration
  */
+
+import * as Sentry from '@sentry/react-native';
 
 // Log levels with priority values
 const LOG_LEVELS = {
@@ -176,6 +178,27 @@ class Logger {
    */
   error(component, message, data) {
     this.log('ERROR', component, message, data);
+    
+    // Send to Sentry if it's a real error object
+    if (data && data.error && data.error instanceof Error) {
+      try {
+        Sentry.captureException(data.error, {
+          contexts: {
+            logger: {
+              component: component,
+              message: message,
+              additionalData: data,
+            }
+          },
+          tags: {
+            logger: component,
+            level: 'error'
+          }
+        });
+      } catch (sentryError) {
+        console.error('Failed to send error to Sentry:', sentryError);
+      }
+    }
   }
 
   /**
@@ -186,6 +209,25 @@ class Logger {
    */
   critical(component, message, data) {
     this.log('CRITICAL', component, message, data);
+    
+    // Always send critical messages to Sentry
+    try {
+      Sentry.captureMessage(message, 'error', {
+        contexts: {
+          logger: {
+            component: component,
+            level: 'critical',
+            additionalData: data,
+          }
+        },
+        tags: {
+          logger: component,
+          level: 'critical'
+        }
+      });
+    } catch (sentryError) {
+      console.error('Failed to send critical message to Sentry:', sentryError);
+    }
   }
 
   /**
@@ -202,6 +244,22 @@ class Logger {
       data: requestData,
       type: 'api_request'
     });
+    
+    // Add Sentry breadcrumb for API request
+    try {
+      Sentry.addBreadcrumb({
+        category: 'api',
+        message: `${method} ${url}`,
+        data: {
+          method,
+          url,
+          hasRequestData: !!requestData,
+        },
+        level: 'info',
+      });
+    } catch (sentryError) {
+      console.error('Failed to add Sentry breadcrumb for API request:', sentryError);
+    }
   }
 
   /**
@@ -223,6 +281,24 @@ class Logger {
       duration,
       type: 'api_response'
     });
+    
+    // Add Sentry breadcrumb for API response
+    try {
+      Sentry.addBreadcrumb({
+        category: 'api',
+        message: `${method} ${url} - ${status}`,
+        data: {
+          method,
+          url,
+          status,
+          duration,
+          hasResponseData: !!responseData,
+        },
+        level: status >= 400 ? 'error' : 'info',
+      });
+    } catch (sentryError) {
+      console.error('Failed to add Sentry breadcrumb for API response:', sentryError);
+    }
   }
 
   /**
@@ -237,6 +313,21 @@ class Logger {
       details,
       type: 'user_interaction'
     });
+    
+    // Add Sentry breadcrumb for user interaction
+    try {
+      Sentry.addBreadcrumb({
+        category: 'user',
+        message: action,
+        data: {
+          component,
+          details,
+        },
+        level: 'info',
+      });
+    } catch (sentryError) {
+      console.error('Failed to add Sentry breadcrumb for user interaction:', sentryError);
+    }
   }
 
   /**
@@ -252,6 +343,22 @@ class Logger {
       params,
       type: 'navigation'
     });
+    
+    // Add Sentry breadcrumb for navigation
+    try {
+      Sentry.addBreadcrumb({
+        category: 'navigation',
+        message: `${from} → ${to}`,
+        data: {
+          from,
+          to,
+          params,
+        },
+        level: 'info',
+      });
+    } catch (sentryError) {
+      console.error('Failed to add Sentry breadcrumb for navigation:', sentryError);
+    }
   }
 
   /**

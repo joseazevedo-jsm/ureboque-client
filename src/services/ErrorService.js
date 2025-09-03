@@ -1,8 +1,10 @@
 import Logger from '../utils/Logger';
+import sentryService from './SentryService';
 
 class ErrorService {
   static handleAPIError(error, showToUser = true, component = 'Unknown') {
     const errorMessage = this.getErrorMessage(error);
+    const errorType = this.getErrorType(error);
     
     // Enhanced logging with structured data
     Logger.logApiResponse(
@@ -12,7 +14,7 @@ class ErrorService {
       error.response?.status || 0,
       {
         message: errorMessage,
-        errorType: this.getErrorType(error),
+        errorType: errorType,
         requestData: error.config?.data ? '[REQUEST_DATA]' : null,
         responseData: error.response?.data ? '[RESPONSE_DATA]' : null
       },
@@ -29,6 +31,51 @@ class ErrorService {
       stack: error.stack,
       type: 'api_error'
     });
+
+    // Send comprehensive error data to Sentry
+    try {
+      sentryService.captureError(error, {
+        api: {
+          url: error.config?.url,
+          method: error.config?.method,
+          status: error.response?.status,
+          errorType: errorType,
+          component: component,
+          userMessage: errorMessage
+        },
+        request: {
+          hasData: !!error.config?.data,
+          headers: error.config?.headers ? Object.keys(error.config.headers) : [],
+        },
+        response: {
+          hasData: !!error.response?.data,
+          statusText: error.response?.statusText
+        }
+      }, {
+        error_service: true,
+        api_error: true,
+        error_type: errorType,
+        status_code: error.response?.status?.toString(),
+        component: component
+      });
+
+      // Add API error breadcrumb
+      sentryService.addApiCall(
+        error.config?.method?.toUpperCase() || 'UNKNOWN',
+        error.config?.url || 'unknown-url',
+        error.response?.status || 0,
+        {
+          errorMessage,
+          errorType,
+          component,
+          showToUser
+        }
+      );
+    } catch (sentryError) {
+      Logger.warn('ErrorService', 'Failed to send API error to Sentry', { 
+        sentryError: sentryError.message 
+      });
+    }
 
     // Show user-friendly message
     if (showToUser) {
@@ -101,6 +148,25 @@ class ErrorService {
       context,
       type: 'general_error'
     });
+
+    // Send general errors to Sentry with context
+    try {
+      sentryService.captureError(error, {
+        general: {
+          component,
+          context,
+          errorMessage: error.message || error.toString()
+        }
+      }, {
+        error_service: true,
+        general_error: true,
+        component
+      });
+    } catch (sentryError) {
+      Logger.warn('ErrorService', 'Failed to send general error to Sentry', { 
+        sentryError: sentryError.message 
+      });
+    }
   }
 }
 

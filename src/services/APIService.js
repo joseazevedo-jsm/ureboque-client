@@ -2,6 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ErrorService from './ErrorService';
 import Logger from '../utils/Logger';
+import sentryService from './SentryService';
 
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_UREBOQUE_API,
@@ -30,7 +31,28 @@ api.interceptors.request.use(
       });
     } else {
       Logger.debug('APIService', 'No authorization token found', { url: config.url });
+      
+      // Add Sentry breadcrumb for unauthenticated requests
+      sentryService.addApiCall(
+        config.method?.toUpperCase() || 'UNKNOWN',
+        config.url,
+        0, // No status yet
+        {
+          hasToken: false,
+          unauthenticated: true
+        }
+      );
     }
+    
+    // Set API context in Sentry for this request
+    sentryService.setContext('api_request', {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      hasAuth: !!token,
+      hasData: !!config.data,
+      timeout: config.timeout,
+      timestamp: new Date().toISOString()
+    });
     
     return config;
   },
@@ -39,6 +61,16 @@ api.interceptors.request.use(
       error: error.message,
       config: error.config?.url
     });
+    
+    // Capture request setup errors in Sentry
+    sentryService.captureError(error, {
+      api: {
+        phase: 'request_setup',
+        url: error.config?.url,
+        operation: 'interceptor_error'
+      }
+    }, { api_interceptor: 'request' });
+    
     return Promise.reject(error);
   }
 );
@@ -59,6 +91,26 @@ api.interceptors.response.use(
       duration
     );
     
+    // Update Sentry context with successful response
+    sentryService.setContext('api_response', {
+      method: response.config.method?.toUpperCase(),
+      url: response.config.url,
+      status: response.status,
+      duration,
+      success: true,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Add performance breadcrumb for slow requests
+    if (duration > 2000) {
+      sentryService.addUserAction('slow_api_request', {
+        method: response.config.method?.toUpperCase(),
+        url: response.config.url,
+        duration,
+        status: response.status
+      });
+    }
+    
     return response;
   },
   (error) => {
@@ -75,6 +127,18 @@ api.interceptors.response.use(
       duration
     );
     
+    // Update Sentry context with error response
+    sentryService.setContext('api_response', {
+      method: error.config?.method?.toUpperCase(),
+      url: error.config?.url,
+      status: error.response?.status || 0,
+      duration,
+      success: false,
+      errorType: error.response ? 'server_error' : error.request ? 'network_error' : 'client_error',
+      timestamp: new Date().toISOString()
+    });
+    
+    // ErrorService will handle Sentry error reporting
     ErrorService.handleAPIError(error, true, 'APIService');
     return Promise.reject(error);
   }

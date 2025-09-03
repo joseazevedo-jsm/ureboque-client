@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import SocketService from '../services/SocketService';
 import { useAuth } from './AuthContext';
 import { useLogger } from '../hooks/useLogger';
+import sentryService from '../services/SentryService';
 
 const SocketContext = createContext();
 
@@ -23,14 +24,42 @@ export const SocketProvider = ({ children }) => {
     const timer = logger.startTimer('socket_connection');
     logger.info('Attempting socket connection');
     
+    // Add Sentry breadcrumb for connection attempt
+    sentryService.addSocketEvent('connection_attempt', {
+      hasToken: !!token,
+      timestamp: Date.now()
+    });
+    
     try {
       const socketConnection = await SocketService.connect(token);
       setSocket(socketConnection);
       setIsConnected(true);
       
+      // Add Sentry breadcrumb for successful connection
+      sentryService.addSocketEvent('connection_success', {
+        duration: timer.end(),
+        socketId: socketConnection?.id || 'unknown'
+      });
+      
+      // Set socket connection context in Sentry
+      sentryService.setContext('socket', {
+        connected: true,
+        connectionTime: new Date().toISOString(),
+        socketId: socketConnection?.id || 'unknown'
+      });
+      
       logger.info('Socket connection successful', { duration: timer.end() });
       logger.logStateChange('isConnected', false, true, 'connection_established');
     } catch (error) {
+      // Capture socket connection error in Sentry
+      sentryService.captureError(error, {
+        socket: {
+          operation: 'connect',
+          duration: timer.end(),
+          hasToken: !!token
+        }
+      }, { socket_operation: 'connect' });
+      
       logger.logError(error, { operation: 'socket_connection', duration: timer.end() });
       setIsConnected(false);
       logger.logStateChange('isConnected', null, false, 'connection_failed');
@@ -40,12 +69,34 @@ export const SocketProvider = ({ children }) => {
   const disconnectSocket = () => {
     logger.info('Disconnecting socket');
     
-    SocketService.disconnect();
-    setSocket(null);
-    setIsConnected(false);
+    // Add Sentry breadcrumb for disconnection
+    sentryService.addSocketEvent('disconnection_attempt');
     
-    logger.info('Socket disconnected successfully');
-    logger.logStateChange('isConnected', true, false, 'manual_disconnect');
+    try {
+      SocketService.disconnect();
+      setSocket(null);
+      setIsConnected(false);
+      
+      // Update socket context in Sentry
+      sentryService.setContext('socket', {
+        connected: false,
+        disconnectionTime: new Date().toISOString()
+      });
+      
+      sentryService.addSocketEvent('disconnection_success');
+      
+      logger.info('Socket disconnected successfully');
+      logger.logStateChange('isConnected', true, false, 'manual_disconnect');
+    } catch (error) {
+      // Capture disconnection error in Sentry
+      sentryService.captureError(error, {
+        socket: {
+          operation: 'disconnect'
+        }
+      }, { socket_operation: 'disconnect' });
+      
+      logger.logError(error, { operation: 'socket_disconnection' });
+    }
   };
 
   // Connect socket when user logs in

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
+import * as Sentry from '@sentry/react-native';
 import ErrorService from '../../services/ErrorService';
 import Logger from '../../utils/Logger';
 
@@ -48,6 +49,44 @@ class ErrorBoundary extends React.Component {
       type: 'component_crash'
     });
 
+    // Send component crash to Sentry with full context
+    try {
+      Sentry.captureException(error, {
+        contexts: {
+          errorBoundary: {
+            errorId,
+            componentStack: errorInfo.componentStack,
+            retryCount: this.state.retryCount,
+            props: this.props.children?.props ? Object.keys(this.props.children.props) : 'no-props',
+            timestamp: new Date().toISOString(),
+          },
+          react: {
+            componentStack: errorInfo.componentStack,
+          }
+        },
+        tags: {
+          errorBoundary: true,
+          errorId: errorId,
+          retryCount: this.state.retryCount.toString(),
+        },
+        fingerprint: [error.message, errorInfo.componentStack],
+      });
+
+      // Add breadcrumb for error boundary activation
+      Sentry.addBreadcrumb({
+        category: 'error',
+        message: 'ErrorBoundary caught component crash',
+        data: {
+          errorId,
+          errorMessage: error.message,
+          retryCount: this.state.retryCount,
+        },
+        level: 'error',
+      });
+    } catch (sentryError) {
+      console.error('Failed to send error boundary crash to Sentry:', sentryError);
+    }
+
     // Log component hierarchy for debugging
     Logger.debug('ErrorBoundary', 'Component hierarchy at error', {
       errorId,
@@ -74,6 +113,24 @@ class ErrorBoundary extends React.Component {
       retryCount: newRetryCount,
       type: 'error_recovery_attempt'
     });
+    
+    // Track error recovery attempt in Sentry
+    try {
+      Sentry.addBreadcrumb({
+        category: 'user',
+        message: 'Error recovery retry attempted',
+        data: {
+          errorId,
+          retryCount: newRetryCount,
+        },
+        level: 'info',
+      });
+
+      // Set tag to track recovery success/failure
+      Sentry.setTag('error_recovery_attempt', newRetryCount.toString());
+    } catch (sentryError) {
+      console.error('Failed to track error recovery in Sentry:', sentryError);
+    }
     
     this.setState({ 
       hasError: false, 

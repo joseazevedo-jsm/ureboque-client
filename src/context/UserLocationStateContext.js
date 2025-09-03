@@ -1,5 +1,6 @@
 import React, { useContext, createContext, useState } from 'react';
 import { useLogger } from '../hooks/useLogger';
+import sentryService from '../services/SentryService';
 
 const UserLocationStateContext = createContext(null);
 
@@ -33,6 +34,32 @@ export const UserLocationStateContextProvider = ({ children }) => {
         location ? 'has_location' : 'no_location',
         location ? 'location_updated' : 'location_cleared'
       );
+      
+      // Update Sentry location context
+      try {
+        if (location) {
+          sentryService.setLocation({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            accuracy: location.accuracy,
+            timestamp: location.timestamp || Date.now()
+          });
+          
+          // Add breadcrumb for location update
+          sentryService.addUserAction('location_updated', {
+            accuracy: location.accuracy,
+            hasCoordinates: !!(location.latitude && location.longitude),
+            provider: location.provider || 'unknown',
+            locationAge: location.timestamp ? (Date.now() - location.timestamp) : 0
+          });
+        } else {
+          // Location cleared
+          sentryService.setContext('location', null);
+          sentryService.addUserAction('location_cleared');
+        }
+      } catch (error) {
+        logger.logError(error, { operation: 'sentry_location_update' });
+      }
       
       setUserLocation(location);
     };
