@@ -7,6 +7,7 @@ import { SocketProvider } from "./context/SocketContext";
 import AppNav from "./navigation/AppNav";
 import ErrorBoundary from './components/common/ErrorBoundary';
 import Logger from './utils/Logger';
+import { LocationPermissionsService } from './services/LocationPermissionsService';
 import React, { useEffect } from 'react';
 
 // Initialize Sentry
@@ -90,6 +91,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      <LocationPermissionsService />
       <AuthProvider>
         <UserDataProvider>
           <SocketProvider>

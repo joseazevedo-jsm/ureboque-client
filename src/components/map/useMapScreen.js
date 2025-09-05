@@ -1028,6 +1028,7 @@ export const useMapScreen = () => {
 
   const closeSavedPlacesModal = () => {
     setModalSavedPlacesVisible(false);
+    setNewSavedPlaceAddress({ pos: 0, city: "", callback: undefined });
     bottomSheetModalRef.current.present();
   };
 

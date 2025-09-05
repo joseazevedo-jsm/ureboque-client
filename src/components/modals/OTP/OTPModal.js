@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import {
+  ActivityIndicator,
   Image,
   StyleSheet,
   Text,
@@ -16,7 +17,8 @@ const OTPModal = ({
   visible,
   OTPChange,
   number,
-  isLoading
+  isLoading,
+  onClose
 }) => {
   const {models, operations} = useOTPModal(OTPChange)
 

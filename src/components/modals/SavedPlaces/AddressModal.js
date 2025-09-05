@@ -180,10 +180,18 @@ const AddressModal = ({
             alignSelf: "center",
             padding: scale(18),
           }}
-          onPress={() => {
-            onSaveAddress(callbackAddress,type)
-            onGoHomePress()
-            closeModal()
+          onPress={async () => {
+            try {
+              await onSaveAddress(callbackAddress,type)
+              console.log("Save completed, calling onGoHomePress")
+              onGoHomePress()
+              console.log("onGoHomePress completed, calling closeModal")
+              closeModal()
+              console.log("closeModal completed")
+            } catch (error) {
+              console.log("Save error:", error)
+              Alert.alert("Erro", "Não foi possível salvar o endereço. Tente novamente.")
+            }
           }}
         >
           <Text style={{ color: "#FFF", fontWeight: "700" }}>SALVAR</Text>
