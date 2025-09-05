@@ -35,6 +35,9 @@ export const useMapScreen = () => {
   const [modalConfirmationVisible, setModalConfirmationVisible] =
     useState(null);
 
+  // Saved addresses map drag callback
+  const [savedAddressMapDragCallback, setSavedAddressMapDragCallback] = useState(null);
+
   // Bottom Sheets
   const carTypeSelectionSheetRef = useRef(null);
   const userCarInfoSheetRef = useRef(null);
@@ -55,6 +58,7 @@ export const useMapScreen = () => {
   const [isLoadingDrivers, setIsLoadingDrivers] = useState(false);
   const [markerVisible, setMarkerVisible] = useState();
   const [markerCity, setMarkerCity] = useState();
+  const [markerCoordinates, setMarkerCoordinates] = useState(null);
   const [hasCentered, setHasCentered] = useState(false);
 
   // User Input
@@ -102,12 +106,7 @@ export const useMapScreen = () => {
   // Marker for animation
   const markerAnimated = useRef(null);
 
-  // Saved Places
-  const [favPlaces, setFavPlaces] = useState([]);
-  const [newSavedPlaceAddress, setNewSavedPlaceAddress] = useState({
-    pos: 0,
-    city: "",
-  });
+  // Saved Places - Simplified (new system manages its own state)
 
   // --- Derived State ---
   const isRouteVisible = mapMarkers.length === 2;
@@ -427,18 +426,33 @@ export const useMapScreen = () => {
   }, [centerToUserLocation]);
 
   // Effect - Update favorite places when user's saved places change
-  useEffect(() => {
-    const addFavouriteCard = {
-      _id: "fav",
-      place: {
-        name: "Adicionar Favorito",
-        description: "",
-      },
-    };
-    const data = [...(user?.saved_places || [])];
-    if (!data.includes(addFavouriteCard)) data.push(addFavouriteCard);
+  // Computed favPlaces for bottom sheet display
+  const [favPlaces, setFavPlaces] = useState([]);
 
-    setFavPlaces(data);
+  useEffect(() => {
+    // Build favPlaces array from user's saved_places
+    const userSavedPlaces = user?.saved_places || [];
+    const addFavoriteItem = {
+      _id: 'add-favorite',
+      place: {
+        name: 'Adicionar Favorito',
+        description: 'Toque para adicionar um novo local favorito',
+        coordinates: { latitude: 0, longitude: 0 }
+      }
+    };
+
+    // Convert saved places to favPlaces format
+    const convertedPlaces = userSavedPlaces.map(savedPlace => ({
+      _id: savedPlace._id,
+      place: {
+        name: savedPlace.place.name,
+        description: savedPlace.place.description,
+        coordinates: savedPlace.place.coordinates
+      }
+    }));
+
+    // Add "Adicionar Favorito" button at the end
+    setFavPlaces([...convertedPlaces, addFavoriteItem]);
   }, [user?.saved_places]);
 
   // Effect - Fit map to route coordinates when they change
@@ -674,19 +688,24 @@ export const useMapScreen = () => {
   };
 
   const handleConfirmDraggablePress = () => {
-    if (newSavedPlaceAddress.pos > 0) {
-      setModalSavedPlacesVisible(true);
-      setNewSavedPlaceAddress({
-        pos: newSavedPlaceAddress.pos,
-        city: markerCity,
-        coordinates: newSavedPlaceAddress.coordinates,
-        callback: true,
-      });
+    // Check if this is for saved addresses
+    if (savedAddressMapDragCallback) {
+      // Call the saved addresses callback with selected location
+      const selectedLocation = {
+        coordinates: markerCoordinates || { latitude: 0, longitude: 0 },
+        address: markerCity,
+        name: markerCity?.split(',')[0] || 'Local selecionado'
+      };
+      savedAddressMapDragCallback(selectedLocation);
+      setSavedAddressMapDragCallback(null);
       setMarkerVisible(false);
+      setMarkerCoordinates(null); // Clear marker coordinates
       bottomSheetModalDragMarker.current.dismiss();
+      setModalSavedPlacesVisible(true); // Reopen saved addresses modal
       return;
     }
 
+    // Original destination selection logic
     setModalVisible(true);
     if (inputLocationObject === 0) {
       logger.debug("Origin coordinates set", { inputLocationObject, coordinates: originCoords });
@@ -867,10 +886,14 @@ export const useMapScreen = () => {
     };
   };
 
-  const handleMarkerDragSavedPlaces = () => {
-    logger.debug("Debug checkpoint - AQUI");
-    setNewSavedPlaceAddress({ pos: 1, city: "", callback: false });
+  const handleSavedAddressMapDragRequest = (callback) => {
+    // Store the callback and initiate map drag
+    setSavedAddressMapDragCallback(() => callback);
+    
+    // Close saved addresses modal
     setModalSavedPlacesVisible(false);
+    
+    // Start map drag process
     setMarkerVisible(true);
     carTypeSelectionSheetRef.current.dismiss();
     bottomSheetModalDragMarker.current.present();
@@ -878,16 +901,13 @@ export const useMapScreen = () => {
 
   const handleMarkerDragEnd = ({ latitude, longitude }) => {
     getAddressFromCoordinates(latitude, longitude);
-    logger.debug("Debug checkpoint - AQUI 2", { latitude, longitude, newSavedPlaceAddress });
+    logger.debug("Marker drag ended", { latitude, longitude });
+    
+    // Store current marker coordinates for use in handleConfirmDraggablePress
+    setMarkerCoordinates({ latitude, longitude });
 
-    if (newSavedPlaceAddress.pos > 0) {
-      setNewSavedPlaceAddress({
-        pos: newSavedPlaceAddress.pos,
-        city: "",
-        coordinates: { latitude, longitude },
-        callback: false,
-      });
-    } else if (inputLocationObject === 0) {
+    // Removed newSavedPlaceAddress logic - handled by new saved addresses system
+    if (inputLocationObject === 0) {
       setOriginCoords({ latitude, longitude });
     } else if (inputLocationObject === 1) {
       fetchPrices();
@@ -1028,7 +1048,6 @@ export const useMapScreen = () => {
 
   const closeSavedPlacesModal = () => {
     setModalSavedPlacesVisible(false);
-    setNewSavedPlaceAddress({ pos: 0, city: "", callback: undefined });
     bottomSheetModalRef.current.present();
   };
 
@@ -1208,7 +1227,6 @@ export const useMapScreen = () => {
       inputLocationObject,
       mapDirections,
       tripDuration,
-      favPlaces,
       bottomSheetModalRef,
       carTypeSelectionSheetRef,
       userCarInfoSheetRef,
@@ -1234,9 +1252,9 @@ export const useMapScreen = () => {
       isCurrLocation,
       driverLocation,
       questions,
-      newSavedPlaceAddress,
       activeBottomSheet,
       tripState,
+      favPlaces,
     },
     operations: {
       handleUserLocationChange,
@@ -1254,7 +1272,7 @@ export const useMapScreen = () => {
       handlePressSelectTypeRoad,
       handleMapDirectionsReady,
       handleMarkerDragPress,
-      handleMarkerDragSavedPlaces,
+      handleSavedAddressMapDragRequest,
       handleMarkerDragEnd,
       handleConfirmDraggablePress,
       handleLocationTextInputFocus,

@@ -24,7 +24,9 @@ import { Marker } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import { FlatList } from "react-native-gesture-handler";
 import CarTypes from "../components/cards/carTypes";
-import SavedPlacesModal from "../components/modals/SavedPlaces/SavedPlacesModal";
+// OLD: import SavedPlacesModal from "../components/modals/SavedPlaces/SavedPlacesModal";
+// NEW: Simplified saved addresses system
+import SavedAddressesModal from "../components/savedAddresses/SavedAddressesModal";
 import { useNavigation } from "@react-navigation/native";
 import ConfirmationModal from "../components/modals/Confirmation/ConfirmationModal";
 import DriverSearch from "../components/views/driverSearch";
@@ -553,11 +555,11 @@ const MapScreen = memo(() => {
         inputCurr={models.isCurrLocation}
       />
 
-      <SavedPlacesModal
+      {/* NEW: Simplified saved addresses system - no complex state management */}
+      <SavedAddressesModal
         visible={models.modalSavedPlacesVisible}
-        closeModal={operations.closeSavedPlacesModal}
-        addressCallBack={models.newSavedPlaceAddress}
-        mapDrag={operations.handleMarkerDragSavedPlaces}
+        onClose={operations.closeSavedPlacesModal}
+        onMapDragRequest={operations.handleSavedAddressMapDragRequest}
       />
 
       <ChatModal

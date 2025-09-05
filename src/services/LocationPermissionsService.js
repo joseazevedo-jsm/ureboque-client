@@ -7,10 +7,20 @@ export const LocationPermissionsService = () => {
   
   useEffect(() => {
     (async () => {
-      let {status} = await Location.requestForegroundPermissionsAsync();
+      // First check if we already have permissions
+      let {status} = await Location.getForegroundPermissionsAsync();
+      
       if (status !== 'granted') {
-        logger.warn('Permission to access location was denied');
-        return;
+        logger.info('Location permission not granted, requesting...');
+        // Only request if we don't have permission
+        let requestResult = await Location.requestForegroundPermissionsAsync();
+        if (requestResult.status !== 'granted') {
+          logger.warn('Permission to access location was denied');
+          return;
+        }
+        logger.info('Location permission granted');
+      } else {
+        logger.info('Location permission already granted');
       }
     })();
   }, []);

@@ -85,26 +85,43 @@ export const UserDataProvider = ({ children }) => {
   const removeUserFavouriteAddress = async (placeId) => {
     try {
       const response = await api.delete(`/users/${user.id}/places/${placeId}`);
-      Logger.info('UserDataContext', 'API response received', response.data);
-      setUser((prevState) => ({
-        ...prevState,
-        saved_places: response.data.saved_places,
-      }));
+      
+      logger.info('Delete API response received', response.data);
+      
+      // Check if response has the expected structure
+      if (response.data && response.data.saved_places) {
+        setUser((prevState) => ({
+          ...prevState,
+          saved_places: response.data.saved_places,
+        }));
+      } else {
+        // If server doesn't return updated saved_places, remove locally
+        logger.info('Server response missing saved_places, removing locally');
+        setUser((prevState) => ({
+          ...prevState,
+          saved_places: prevState.saved_places.filter(place => place._id !== placeId),
+        }));
+      }
     } catch (error) {
-      Logger.error('UserDataContext', 'API operation failed', error);
+      logger.error('Delete API operation failed', error);
+      throw error; // Re-throw to let calling code handle it
     }
   };
 
   const updateUserFavouriteAddress = async (place, placeId) => {
     try {
       const response = await api.put(`/users/${user.id}/places/${placeId}`, place);
-      Logger.info('UserDataContext', 'API response received', response.data);
-      setUser((prevState) => ({
-        ...prevState,
-        saved_places: response.data.saved_places,
-      }));
+      logger.info('Update API response received', response.data);
+      
+      if (response.data && response.data.saved_places) {
+        setUser((prevState) => ({
+          ...prevState,
+          saved_places: response.data.saved_places,
+        }));
+      }
     } catch (error) {
-      Logger.error('UserDataContext', 'API operation failed', error);
+      logger.error('Update API operation failed', error);
+      throw error; // Re-throw to let calling code handle it
     }
   };
 
