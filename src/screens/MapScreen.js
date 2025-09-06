@@ -8,8 +8,7 @@ import {
   View,
 } from "react-native";
 import MapView, { Circle, PROVIDER_GOOGLE } from "react-native-maps";
-import { LocationPermissionsService } from "../services/LocationPermissionsService";
-import { useMapScreen } from "../components/map/useMapScreen";
+ import { useMapScreen } from "../components/map/useMapScreen";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
 import {
@@ -77,43 +76,6 @@ const MapScreen = memo(() => {
     []
   );
 
-  // Memoized back button style calculation
-  const backButtonStyle = useMemo(() => {
-    const baseStyle = {
-      position: 'absolute',
-      left: scale(20),
-      zIndex: 1000,
-    };
-
-    let topOffset;
-    switch (models.activeBottomSheet) {
-      case 'carTypeSelection':
-        topOffset = scale(100);
-        break;
-      case 'userCarInfo':
-        topOffset = scale(150);
-        break;
-      case 'paymentOptions':
-        topOffset = scale(200);
-        break;
-      case 'rideSearch':
-        topOffset = scale(120);
-        break;
-      case 'tripStarted':
-        topOffset = scale(140);
-        break;
-      case 'driverArriving':
-        topOffset = scale(140);
-        break;
-      case 'tripEnding':
-        topOffset = scale(140);
-        break;
-      default:
-        topOffset = scale(120);
-    }
-
-    return { ...baseStyle, top: topOffset };
-  }, [models.activeBottomSheet]);
 
   // Memoized map markers for performance
   const memoizedMapMarkers = useMemo(() => {
@@ -204,7 +166,6 @@ const MapScreen = memo(() => {
     if (models.mapDirections && models.prices) {
       const priceperkm =
         Math.floor(models.mapDirections.distance) * 1000 + Number(item.price);
-      logger.debug("Price calculation", { originalPrice: priceperkm, distance: models.mapDirections.distance });
 
       const price =
         models.user?.discount?.active
@@ -292,22 +253,17 @@ const MapScreen = memo(() => {
         {memoizedCarsAround}
       </MapView>
 
-      <LocationPermissionsService />
-
-      <TouchableOpacity style={styles.details} onPress={() => openDrawer()}>
-        <Icon name="menu" size={scale(30)} color="#0089FF" />
-      </TouchableOpacity>
-
-      {models.isRouteVisible && !models.service && (
-        <TouchableOpacity 
-          onPress={operations.handleBackButtonPress} 
-          style={backButtonStyle}
-        >
-          <View style={styles.backDetails}>
-            <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
-          </View>
+ 
+      {models.isRouteVisible && !models.service ? (
+        <TouchableOpacity style={styles.details} onPress={operations.handleBackButtonPress}>
+          <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={styles.details} onPress={() => openDrawer()}>
+          <Icon name="menu" size={scale(30)} color="#0089FF" />
         </TouchableOpacity>
       )}
+
 
       {models.detailsInfo && (
         <TouchableOpacity onPress={operations.handleBackDetailsButtonPress}>
@@ -359,7 +315,7 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.carTypeSelectionSheetRef}
           index={0}
-          snapPoints={[scale(260)]}
+          snapPoints={[scale(270)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
         >
@@ -384,7 +340,7 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.userCarInfoSheetRef}
           index={0}
-          snapPoints={[scale(260), scale(500)]}
+          snapPoints={[scale(270), scale(500)]}
           enableDynamicSizing={false}
           keyboardBehavior="interactive"
           keyboardBlurBehavior="none"
@@ -409,18 +365,17 @@ const MapScreen = memo(() => {
 
         <BottomSheetModal
           ref={models.paymentOptionsSheetRef}
-          index={1}
-          snapPoints={snapPoints}
+          index={0}
+          snapPoints={[scale(270)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
         >
-          <PaymentOptions operations={operations} models={models} />
+          <PaymentOptions handleConfirmPaymentPress={operations.handleConfirmPaymentPress} models={models} />
         </BottomSheetModal>
         <BottomSheetModal
           ref={models.rideSearchSheetRef}
           index={0}
-          snapPoints={[scale(235), scale(300)]}
-          onChange={operations.handleBottomSheetSearchExtended}
+          snapPoints={[scale(270), scale(320)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
         >

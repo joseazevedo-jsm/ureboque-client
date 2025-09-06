@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     marginBottom: scale(30),
   },
 
-  bottom: { marginTop: scale(50) },
+  bottom: { marginTop: scale(10) },
 
   button: {
     width: scale(280),

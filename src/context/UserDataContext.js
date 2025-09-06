@@ -50,11 +50,11 @@ export const UserDataProvider = ({ children }) => {
   const fetchPrices = async () => {
     try {
       const response = await api.get("/prices/all");
-      Logger.info('UserDataContext', 'Prices fetched successfully', response.data);
+      logger.info('UserDataContext', 'Prices fetched successfully', response.data);
       const data = response.data;
       setPrices(data);
     } catch (error) {
-      Logger.error('UserDataContext', 'Error fetching prices', error.response?.data?.error);
+      logger.error('Error fetching prices', error.response?.data?.error);
     }
   };
 
@@ -130,28 +130,28 @@ export const UserDataProvider = ({ children }) => {
       const response = await api.post(
         `/promotions/${code}/activate/${user.id}`
       );
-      Logger.info('UserDataContext', 'Discount operation completed', response.data.discount);
+      logger.info('UserDataContext', 'Discount operation completed', response.data.discount);
       const newDiscount = response.data.discount;
       setUser((prevState) => ({
         ...prevState,
         discount: newDiscount,
       }));
     } catch (error) {
-      Logger.error('UserDataContext', 'API operation failed', error);
+      logger.error('UserDataContext', 'API operation failed', error);
     }
   };
 
   const removeDiscount = async (code) => {
     try {
       const response = await api.put(`/promotions/${code}/remove/${user.id}`);
-      Logger.info('UserDataContext', 'Discount operation completed', response.data.discount);
+      logger.info('UserDataContext', 'Discount operation completed', response.data.discount);
       const newDiscount = response.data.discount;
       setUser((prevState) => ({
         ...prevState,
         discount: newDiscount,
       }));
     } catch (error) {
-      Logger.error('UserDataContext', 'API operation failed', error);
+      logger.error('UserDataContext', 'API operation failed', error);
     }
   };
 
@@ -188,12 +188,12 @@ export const UserDataProvider = ({ children }) => {
       const response = await api.get(`service/getLastService/${userId}`);
       if (response.status === 200) {
         const { status, review } = response.data.service;
-        Logger.info('UserDataContext', 'Service status retrieved', { status });
+        logger.info('UserDataContext', 'Service status retrieved', { status });
         if (status && !review.rating) setServiceStatus(response.data);
-        Logger.info('UserDataContext', 'App state determined', { currentState: status });
+        logger.info('UserDataContext', 'App state determined', { currentState: status });
       }
     } catch (error) {
-      Logger.error('UserDataContext', 'Error getting app status', error);
+      logger.error('UserDataContext', 'Error getting app status', error);
     }
   };
 

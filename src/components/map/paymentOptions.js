@@ -5,9 +5,9 @@ import { scale } from "react-native-size-matters";
 import CarTypes from "../cards/carTypes";
 import { Image } from "react-native";
 
-const PaymentOptions = ({ operations, models }) => {
+const PaymentOptions = ({handleConfirmPaymentPress, models }) => {
   const renderPaymentOption = (iconName, label, paymentType) => (
-    <TouchableOpacity onPress={operations.handleConfirmPaymentPress(paymentType)}>
+    <TouchableOpacity onPress={handleConfirmPaymentPress(paymentType)}>
       <View style={styles.paymentOption}>
         {iconName === "money" ? (
           <Image
