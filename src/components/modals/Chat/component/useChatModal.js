@@ -6,7 +6,7 @@ import axios from "axios";
 const api = axios.create({
   baseURL:  process.env.EXPO_PUBLIC_UREBOQUE_API
 });
-export const useChatModal = (idService) => {
+export const useChatModal = (idService, setUnreadMessageCount) => {
   const logger = useLogger('useChatModal');
   const { user, socket } = useContext(UserContext);
 
@@ -70,6 +70,8 @@ export const useChatModal = (idService) => {
   // Function to handle incoming messages via WebSocket
   const handleIncomingMessage = (incoming_messages) => {
     logger.info('Incoming chat messages received', { messageCount: incoming_messages?.length });
+    
+    // When chat is open, just update messages - unread count is handled by global listener when chat is closed
     setMessages(incoming_messages);
   };
 

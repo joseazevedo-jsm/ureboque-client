@@ -120,6 +120,10 @@ export const useMapScreen = () => {
   const [timer, setTimer] = useState(DEFAULT_TIMER_DURATION);
   const [isActive, setIsActive] = useState(false);
 
+  // Unread Messages
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const lastMessageCountRef = useRef(0);
+
   // --- Context ---
   const { socket } = useSocket();
   const {
@@ -356,6 +360,48 @@ export const useMapScreen = () => {
       logger.error("Error handling driverDeclined event", error);
     }
   }, [socket]);
+
+  // Effect - Track unread messages when chat modal is closed
+  useEffect(() => {
+    if (!socket || !tripData.service?._id) return;
+
+    const handleGlobalMessage = (messages) => {
+      // Only count messages when chat modal is closed
+      if (!modalState.chat && messages && messages.length > 0) {
+        const currentMessageCount = messages.length;
+        const previousCount = lastMessageCountRef.current;
+        
+        // Only process if there are actually new messages
+        if (currentMessageCount > previousCount) {
+          // Get only the new messages
+          const newMessages = messages.slice(previousCount);
+          
+          // Check for new messages from the driver (not from current user)
+          const newMessagesFromDriver = newMessages.filter(
+            msg => msg.message?.sender !== user?.id
+          );
+          
+          if (newMessagesFromDriver.length > 0) {
+            logger.info('New unread message from driver detected', { 
+              newCount: newMessagesFromDriver.length,
+              totalMessages: currentMessageCount,
+              previousCount 
+            });
+            setUnreadMessageCount(prev => prev + newMessagesFromDriver.length);
+          }
+          
+          // Update the reference to current count
+          lastMessageCountRef.current = currentMessageCount;
+        }
+      }
+    };
+
+    socket.on("message", handleGlobalMessage);
+
+    return () => {
+      socket.off("message", handleGlobalMessage);
+    };
+  }, [socket, modalState.chat, user?.id, tripData.service?._id, logger]);
 
   const handleDriverLocation = useCallback((data) => {
     try {
@@ -1147,11 +1193,33 @@ export const useMapScreen = () => {
 
   const handleMessageDriver = () => {
     updateModal('chat', true);
+    // Reset unread count when opening chat
+    setUnreadMessageCount(0);
   };
 
   const closeChatModel = () => {
     updateModal('chat', false);
   };
+
+  // Update message count reference when chat modal closes
+  useEffect(() => {
+    if (!modalState.chat && tripData.service?._id) {
+      // When chat closes, we need to set the reference to current total message count
+      // to avoid recounting existing messages
+      const fetchCurrentMessageCount = async () => {
+        try {
+          const response = await api.get(`/chats/${tripData.service._id}`);
+          const currentCount = response.data?.messages?.length || 0;
+          lastMessageCountRef.current = currentCount;
+          logger.info('Updated message count reference after chat close', { count: currentCount });
+        } catch (error) {
+          logger.error('Failed to fetch current message count', error);
+        }
+      };
+      
+      fetchCurrentMessageCount();
+    }
+  }, [modalState.chat, tripData.service?._id, logger]);
 
   const handleCancelAlert = () => {
     Alert.alert(
@@ -1243,6 +1311,8 @@ export const useMapScreen = () => {
       modalConfirmationVisible: modalState.confirmation,
       modalChatVisible: modalState.chat,
       modalPreCancelVisible: modalState.preCancel,
+      // Unread messages
+      unreadMessageCount,
       // Map states (consolidated)
       mapState,
       mapMarkers: mapState.markers,
@@ -1299,6 +1369,7 @@ export const useMapScreen = () => {
       handleConfirmButtonPress,
       handleConfirmPaymentPress,
       handleMessageDriver,
+      setUnreadMessageCount,
       handleCancelTrip,
       handleCancelSearch,
       startTimer,

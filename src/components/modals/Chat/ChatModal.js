@@ -16,8 +16,8 @@ import ChatItem from "../../cards/chatItem";
 
 const imgDef = "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
 
-const ChatModal = ({ visible, closeModal, idService, driver,navigation }) => {
-  const { models, operations } = useChatModal(idService);
+const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnreadMessageCount }) => {
+  const { models, operations } = useChatModal(idService, setUnreadMessageCount);
 
   const handeBackButtonPress = () => {
     closeModal();

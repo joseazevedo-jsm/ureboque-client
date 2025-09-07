@@ -56,6 +56,7 @@ const AddressForm = ({
 
   return (
     <View style={styles.container}>
+
       {/* Header - Same design as current AddressModal */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -68,49 +69,53 @@ const AddressForm = ({
         )}
       </View>
 
-      {/* Title */}
-      <Text style={styles.title}>
-        {isEdit ? 'EDITAR' : 'NOVO'} ENDEREÇO
-      </Text>
-
-      {/* Name Input - Same design */}
-      <TextInput
-        style={styles.nameInput}
-        placeholderTextColor="#808080"
-        placeholder="Nome do endereço"
-        value={currentAddress.name}
-        onChangeText={(text) => updateCurrentAddress('name', text)}
-      />
-
-      {/* Address Input - Same design */}
-      <View style={styles.addressContainer}>
-        <TouchableOpacity style={styles.addressButton} onPress={openSearch}>
-          <Text style={styles.addressText}>
-            {currentAddress.description || "Localização"}
+      <View style={styles.content}>
+        <View>
+          {/* Title */}
+          <Text style={styles.title}>
+            {isEdit ? 'EDITAR' : 'NOVO'} ENDEREÇO
           </Text>
+
+          {/* Name Input - Same design */}
+          <TextInput
+            style={styles.nameInput}
+            placeholderTextColor="#808080"
+            placeholder="Nome do endereço"
+            value={currentAddress.name}
+            onChangeText={(text) => updateCurrentAddress('name', text)}
+          />
+
+          {/* Address Input - Same design */}
+          <View style={styles.addressContainer}>
+            <TouchableOpacity style={styles.addressButton} onPress={openSearch}>
+              <Text style={styles.addressText}>
+                {currentAddress.description || "Localização"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Instructions Input - Same design */}
+          <TextInput
+            style={styles.instructionsInput}
+            placeholderTextColor="#808080"
+            placeholder="Instruções para o motorista"
+            value={currentAddress.instructions}
+            onChangeText={(text) => updateCurrentAddress('instructions', text)}
+            multiline
+          />
+        </View>
+
+        {/* Save Button - Same design */}
+        <TouchableOpacity 
+              style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
+              onPress={handleSave}
+              disabled={state.isLoading || !canSave}
+            >
+              <Text style={styles.saveButtonText}>
+                {state.isLoading ? 'SALVANDO...' : 'SALVAR'}
+              </Text>
         </TouchableOpacity>
       </View>
-
-      {/* Instructions Input - Same design */}
-      <TextInput
-        style={styles.instructionsInput}
-        placeholderTextColor="#808080"
-        placeholder="Instruções para o motorista"
-        value={currentAddress.instructions}
-        onChangeText={(text) => updateCurrentAddress('instructions', text)}
-        multiline
-      />
-
-      {/* Save Button - Same design */}
-      <TouchableOpacity 
-        style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
-        onPress={handleSave}
-        disabled={state.isLoading || !canSave}
-      >
-        <Text style={styles.saveButtonText}>
-          {state.isLoading ? 'SALVANDO...' : 'SALVAR'}
-        </Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -180,17 +185,16 @@ const styles = StyleSheet.create({
     borderWidth: scale(3),
     borderColor: "#0089FF",
     fontSize: scale(18),
-    paddingBottom: scale(70),
+    paddingBottom: scale(80),
     padding: scale(8),
-    marginBottom: scale(180),
-  },
+   },
   saveButton: {
     backgroundColor: "#0089FF",
     borderRadius: scale(7),
     width: scale(300),
     alignItems: "center",
     alignSelf: "center",
-    padding: scale(18),
+    padding: scale(15),
   },
   saveButtonDisabled: {
     backgroundColor: "#ccc"
@@ -198,6 +202,10 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: "#FFF", 
     fontWeight: "700"
+  },
+  content: { 
+    justifyContent: "space-between",
+    flex: 1
   }
 });
 

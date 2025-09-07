@@ -406,6 +406,7 @@ const MapScreen = memo(() => {
             onDetailsTrip={operations.handleDetailsForm}
             onMessageDriver={operations.handleMessageDriver}
             bttmSheetRef={models.tripStartedSheetRef}
+            unreadMessageCount={models.unreadMessageCount}
           />
         </BottomSheetModal>
 
@@ -426,6 +427,7 @@ const MapScreen = memo(() => {
             onDetailsTrip={operations.handleDetailsForm}
             onMessageDriver={operations.handleMessageDriver}
             bttmSheetRef={models.driverArrivingSheetRef}
+            unreadMessageCount={models.unreadMessageCount}
           />
         </BottomSheetModal>
 
@@ -446,6 +448,7 @@ const MapScreen = memo(() => {
             onDetailsTrip={operations.handleDetailsForm}
             onMessageDriver={operations.handleMessageDriver}
             bttmSheetRef={models.driverArrivingSheetRef}
+            unreadMessageCount={models.unreadMessageCount}
           />
         </BottomSheetModal>
 
@@ -522,6 +525,7 @@ const MapScreen = memo(() => {
         closeModal={operations.closeChatModel}
         idService={models.service?._id}
         driver={models?.driver}
+        setUnreadMessageCount={operations.setUnreadMessageCount}
       />
 
       <PreCancelationModal

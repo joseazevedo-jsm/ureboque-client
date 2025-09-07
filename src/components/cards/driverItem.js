@@ -12,6 +12,7 @@ const DriverItem = ({
   onCallDriver,
   onMessageDriver,
   status,
+  unreadMessageCount = 0,
 }) => {
   return (
     <View>
@@ -98,6 +99,11 @@ const DriverItem = ({
           <TouchableOpacity onPress={onMessageDriver}>
             <View style={styles.circle}>
               <Icon name="message" size={scale(15)} color="#fff" />
+              {unreadMessageCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unreadMessageCount}</Text>
+                </View>
+              )}
             </View>
           </TouchableOpacity>
         </View>
@@ -125,6 +131,26 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginHorizontal: scale(18),
     marginTop: scale(20),
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: scale(-5),
+    right: scale(-5),
+    backgroundColor: "#ff4444",
+    borderRadius: scale(10),
+    minWidth: scale(18),
+    height: scale(18),
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: scale(1),
+    borderColor: "#fff",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: scale(10),
+    fontWeight: "bold",
+    textAlign: "center",
   },
 });
 export default DriverItem;

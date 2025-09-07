@@ -6,6 +6,7 @@ export const useSavedAddresses = () => {
   const [state, setState] = useState({
     // UI State
     mode: 'closed',           // 'closed' | 'list' | 'add' | 'edit' | 'search'
+    previousMode: null,       // Track mode before search to return correctly
     isLoading: false,
     error: null,
     
@@ -31,12 +32,12 @@ export const useSavedAddresses = () => {
 
   // Modal Controls
   const openList = () => updateState({ mode: 'list' });
-  const close = () => updateState({ mode: 'closed', currentAddress: getEmptyAddress() });
+  const close = () => updateState({ mode: 'closed', previousMode: null, currentAddress: getEmptyAddress() });
 
   // Address Management
-  const startAdd = () => updateState({ 
+  const startAdd = (presetData = {}) => updateState({ 
     mode: 'add',
-    currentAddress: getEmptyAddress()
+    currentAddress: { ...getEmptyAddress(), ...presetData }
   });
 
   const startEdit = (address) => updateState({ 
@@ -44,7 +45,10 @@ export const useSavedAddresses = () => {
     currentAddress: { ...address }
   });
 
-  const openSearch = () => updateState({ mode: 'search' });
+  const openSearch = () => updateState({ 
+    previousMode: state.mode, // Store current mode before switching to search
+    mode: 'search' 
+  });
 
   // Form Handlers
   const updateCurrentAddress = (field, value) => {
@@ -62,8 +66,8 @@ export const useSavedAddresses = () => {
           name: state.currentAddress.name,
           description: state.currentAddress.description,
           coordinates: state.currentAddress.coordinates,
-          instructions: state.currentAddress.instructions
-        }
+          instructions: state.currentAddress.instructions,
+         }
       };
 
       if (state.mode === 'add') {
@@ -101,7 +105,7 @@ export const useSavedAddresses = () => {
 
   const selectSearchResult = (location) => {
     updateState({
-      mode: state.mode === 'search' ? 'add' : state.mode, // Return to previous mode
+      mode: state.previousMode || 'add', // Return to previous mode, default to 'add' if none
       currentAddress: {
         ...state.currentAddress,
         description: location.address,

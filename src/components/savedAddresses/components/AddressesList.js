@@ -42,7 +42,14 @@ const AddressesList = ({
 
   const handleItemPress = (item) => {
     if (item.isAdd) {
-      startAdd();
+      // Auto-populate name and type for home/work addresses
+      if (item._id === "add-home") {
+        startAdd({ name: "Casa"});
+      } else if (item._id === "add-work") {
+        startAdd({ name: "Trabalho" });
+      } else {
+        startAdd();
+      }
     } else {
       startEdit({
         id: item._id,
