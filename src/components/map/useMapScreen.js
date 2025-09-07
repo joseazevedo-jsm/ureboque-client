@@ -9,6 +9,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/APIService";
 import ErrorService from "../../services/ErrorService";
 import { useLogger } from "../../hooks/useLogger";
+import { useNotification } from "../../context/NotificationContext";
 
  
 Geocoder.init(process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY);
@@ -120,8 +121,8 @@ export const useMapScreen = () => {
   const [timer, setTimer] = useState(DEFAULT_TIMER_DURATION);
   const [isActive, setIsActive] = useState(false);
 
-  // Unread Messages
-  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  // Unread Messages - now managed by NotificationContext
+  const { unreadMessageCount, resetUnreadCount, handleIncomingMessages, setUnreadMessageCount } = useNotification();
   const lastMessageCountRef = useRef(0);
 
   // --- Context ---
@@ -361,47 +362,30 @@ export const useMapScreen = () => {
     }
   }, [socket]);
 
-  // Effect - Track unread messages when chat modal is closed
-  useEffect(() => {
-    if (!socket || !tripData.service?._id) return;
-
-    const handleGlobalMessage = (messages) => {
-      // Only count messages when chat modal is closed
-      if (!modalState.chat && messages && messages.length > 0) {
-        const currentMessageCount = messages.length;
-        const previousCount = lastMessageCountRef.current;
+  const handleMessage = useCallback((messages) => {
+    try {
+      logger.info("Socket event: message", { messageCount: messages?.length });
+      
+      if (!messages || messages.length === 0) return;
+      
+      const currentMessageCount = messages.length;
+      const previousCount = lastMessageCountRef.current;
+      
+      // Only process if there are actually new messages
+      if (currentMessageCount > previousCount) {
+        // Get only the new messages
+        const newMessages = messages.slice(previousCount);
         
-        // Only process if there are actually new messages
-        if (currentMessageCount > previousCount) {
-          // Get only the new messages
-          const newMessages = messages.slice(previousCount);
-          
-          // Check for new messages from the driver (not from current user)
-          const newMessagesFromDriver = newMessages.filter(
-            msg => msg.message?.sender !== user?.id
-          );
-          
-          if (newMessagesFromDriver.length > 0) {
-            logger.info('New unread message from driver detected', { 
-              newCount: newMessagesFromDriver.length,
-              totalMessages: currentMessageCount,
-              previousCount 
-            });
-            setUnreadMessageCount(prev => prev + newMessagesFromDriver.length);
-          }
-          
-          // Update the reference to current count
-          lastMessageCountRef.current = currentMessageCount;
-        }
+        // Use NotificationContext to handle incoming messages
+        handleIncomingMessages(newMessages, user, modalState.chat);
+        
+        // Update the reference to current count
+        lastMessageCountRef.current = currentMessageCount;
       }
-    };
-
-    socket.on("message", handleGlobalMessage);
-
-    return () => {
-      socket.off("message", handleGlobalMessage);
-    };
-  }, [socket, modalState.chat, user?.id, tripData.service?._id, logger]);
+    } catch (error) {
+      logger.error("Error handling message event", error);
+    }
+  }, [logger, user, modalState.chat, handleIncomingMessages]);
 
   const handleDriverLocation = useCallback((data) => {
     try {
@@ -554,6 +538,7 @@ export const useMapScreen = () => {
       serviceEnded: handleServiceEnded,
       serviceCancelled: handleServiceCancelled,
       noDriver: handleNoDriver,
+      message: handleMessage,
     };
 
     // Register all handlers
@@ -569,7 +554,7 @@ export const useMapScreen = () => {
     };
   }, [socket]); // Simplified dependencies - handlers are stable
 
-  // Effect - Show initial bottom sheet and fetch nearby drivers
+  // Effect - Show initial bottom sheet
   useEffect(() => {
       bottomSheetModalRef.current.present();
   }, []);
@@ -1194,7 +1179,7 @@ export const useMapScreen = () => {
   const handleMessageDriver = () => {
     updateModal('chat', true);
     // Reset unread count when opening chat
-    setUnreadMessageCount(0);
+    resetUnreadCount();
   };
 
   const closeChatModel = () => {

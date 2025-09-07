@@ -4,6 +4,7 @@ import { UserLocationStateContextProvider } from "./context/UserLocationStateCon
 import { AuthProvider } from "./context/AuthContext";
 import { UserDataProvider } from "./context/UserDataContext";
 import { SocketProvider } from "./context/SocketContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import AppNav from "./navigation/AppNav";
 import ErrorBoundary from './components/common/ErrorBoundary';
 import Logger from './utils/Logger';
@@ -51,6 +52,7 @@ function App() {
     } catch (error) {
       console.warn('Failed to set initial Sentry context:', error);
     }
+
     
     Logger.info('App', 'Application started', {
       environment: __DEV__ ? 'development' : 'production',
@@ -95,11 +97,13 @@ function App() {
       <AuthProvider>
         <UserDataProvider>
           <SocketProvider>
-            <UserContextProvider>
-              <UserLocationStateContextProvider>
-                <AppNav />
-              </UserLocationStateContextProvider>
-            </UserContextProvider>
+            <NotificationProvider>
+              <UserContextProvider>
+                <UserLocationStateContextProvider>
+                  <AppNav />
+                </UserLocationStateContextProvider>
+              </UserContextProvider>
+            </NotificationProvider>
           </SocketProvider>
         </UserDataProvider>
       </AuthProvider>

@@ -180,12 +180,13 @@ const LoginScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: "#FFF",
-    justifyContent: "space-around",
+    flex:1
   },
   content: {
     marginHorizontal: scale(20),
+    paddingVertical:scale(50),
+    justifyContent:"space-around"
   },
   logo: {
     alignItems: "center",
