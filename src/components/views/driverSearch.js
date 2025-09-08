@@ -5,7 +5,7 @@ import ProgressBar from "react-native-progress-bar-horizontal";
 import RouteItem from "../cards/routeItem";
 import Icon from "react-native-vector-icons/MaterialIcons";
 
-const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCancelSearch }) => {
+const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCancelSearch, calculateProgress }) => {
   return (
     <View>
       <View style={{ marginLeft: scale(10), width: scale(325) }}>
@@ -27,7 +27,7 @@ const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCanc
         </View>
 
         <ProgressBar
-          progress={timer / 180}
+          progress={calculateProgress ? calculateProgress() : (1 - timer / 180)}
           borderWidth={scale(0.1)}
           fillColor="#0089FF"
           unfilledColor="black"

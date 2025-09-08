@@ -12,6 +12,7 @@ import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import useProfileScreen from "../components/profile/useProfileScreen";
 import { useLogger } from "../hooks/useLogger";
+import { extractCountryCode, extractPhoneNumber } from "../utils/phoneUtils";
 
 // Import your images
 import phoneIcon from "../../resources/icons/profile_settings/phone.png";
@@ -60,6 +61,9 @@ const ProfileScreen = () => {
             }}
             style={styles.profileImage}
           />
+          <View style={styles.editIconContainer}>
+            <Icon name="edit" size={scale(16)} color="#FFF" />
+          </View>
         </TouchableOpacity>
       </View>
       <View>
@@ -78,8 +82,9 @@ const ProfileScreen = () => {
         <View style={styles.row}>
           <TextInput
             style={[styles.textInput, styles.shortInput]}
-            placeholder="+244"
+            value={`+${extractCountryCode(models?.user?.phone)}`}
             placeholderTextColor="#000"
+            editable={false}
           />
           <View style={styles.inputWithIconUnderline}>
             <Image
@@ -89,9 +94,11 @@ const ProfileScreen = () => {
             />
             <TextInput
               style={[styles.textInput, styles.longInput]}
-              placeholder={models?.user?.phone}
+              placeholder={extractPhoneNumber(models?.user?.phone)}
               placeholderTextColor="#000"
+              value={models?.phoneNumberInput}
               onChangeText={operations.handlePhoneNumberChange}
+              keyboardType="numeric"
             />
           </View>
         </View>
@@ -106,10 +113,13 @@ const ProfileScreen = () => {
         </View>
       </View>
       <TouchableOpacity
-        style={styles.saveButton}
-        onPress={operations.handleSaveChanges}
+        style={[styles.saveButton, models?.isSaving && styles.saveButtonDisabled]}
+        onPress={() => operations.handleSaveChanges(navigation)}
+        disabled={models?.isSaving}
       >
-        <Text style={styles.saveButtonText}>Salvar alterações</Text>
+        <Text style={styles.saveButtonText}>
+          {models?.isSaving ? 'Salvando...' : 'Salvar alterações'}
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity>
         <View style={styles.settingsContainer}>
@@ -162,6 +172,19 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: scale(75),
   },
+  editIconContainer: {
+    position: "absolute",
+    bottom: scale(5),
+    right: scale(5),
+    backgroundColor: "#0089FF",
+    borderRadius: scale(15),
+    width: scale(30),
+    height: scale(30),
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: scale(2),
+    borderColor: "#FFF",
+  },
   textInput: {
     color: "black",
     fontSize: scale(14),
@@ -211,6 +234,9 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginTop: scale(20),
     marginBottom: scale(35),
+  },
+  saveButtonDisabled: {
+    backgroundColor: "#cccccc",
   },
   saveButtonText: {
     color: "#fff",

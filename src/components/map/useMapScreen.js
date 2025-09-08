@@ -288,7 +288,7 @@ export const useMapScreen = () => {
   };
 
   const calculateProgress = () => {
-    return 1 - timer / 180; // Calculate the progress as a decimal value
+    return timer / 180; // Progress decreases as timer counts down
   };
   // --- Socket Event Handlers ---
 
@@ -575,8 +575,8 @@ export const useMapScreen = () => {
       updateMapState({ carsAround: [] }); // Clear cars when service is active
     }
 
-    // Countdown timer - only when active and no service
-    if (isActive && !tripData.service) {
+    // Countdown timer - only when active and during driver search (no driver assigned yet)
+    if (isActive && tripData.service && !tripData.driver) {
       countdownTimer = setInterval(() => {
         setTimer((prevTimer) => {
           const newTimer = prevTimer - 1;
@@ -628,7 +628,8 @@ export const useMapScreen = () => {
     if (
       !serviceStatus ||
       serviceStatus?.service?.status === "nodriver" ||
-      serviceStatus?.service?.status === "cancelled"
+      serviceStatus?.service?.status === "cancelled"  ||
+      serviceStatus?.service?.status === "flagged" 
     )
       return;
     const { service, car } = serviceStatus;

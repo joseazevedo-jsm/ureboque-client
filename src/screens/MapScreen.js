@@ -293,6 +293,7 @@ const MapScreen = memo(() => {
           index={0}
           snapPoints={[scale(220)]}
           enableDynamicSizing={false}
+          enablePanDownToClose={false}
         >
           <View style={styles.svgContainer}>
             <Icon name="my-location" size={scale(18)} color="#0089FF" />
@@ -386,6 +387,7 @@ const MapScreen = memo(() => {
             formatTime={operations.formatTime}
             accepted={models.driverConnected}
             onCancelSearch={operations.handleCancelSearch}
+            calculateProgress={operations.calculateProgress}
           />
         </BottomSheetModal>
 

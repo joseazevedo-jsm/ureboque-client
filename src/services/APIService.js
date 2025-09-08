@@ -139,7 +139,7 @@ api.interceptors.response.use(
     });
     
     // ErrorService will handle Sentry error reporting
-    ErrorService.handleAPIError(error, true, 'APIService');
+    ErrorService.handleAPIError(error, false, 'APIService');
     return Promise.reject(error);
   }
 );

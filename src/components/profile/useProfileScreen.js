@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Alert } from "react-native";
 import { useUserData } from "../../context/UserDataContext";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { useLogger } from "../../hooks/useLogger";
+import { extractPhoneNumber, formatFullPhoneNumber } from "../../utils/phoneUtils";
 
 const useProfileScreen = () => {
   const logger = useLogger('useProfileScreen');
@@ -11,8 +13,10 @@ const useProfileScreen = () => {
   const [surname, setSurname] = useState();
   const [photo, setPhoto] = useState(user?.photo);
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || "");
+  const [phoneNumberInput, setPhoneNumberInput] = useState(extractPhoneNumber(user?.phone) || "");
   const [email, setEmail] = useState(user?.email || "");
   const [image, setImage] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleNameChange = (text) => {
     setName(text);
@@ -23,34 +27,65 @@ const useProfileScreen = () => {
   };
 
   const handlePhoneNumberChange = (text) => {
-    setPhoneNumber(text);
+    // Store only the phone number part (without country code) for display
+    setPhoneNumberInput(text);
+    // Store the full phone number (244 + phone number) for API calls
+    setPhoneNumber(formatFullPhoneNumber("244", text));
   };
 
   const handleEmailChange = (text) => {
     setEmail(text);
   };
 
-  const handleSaveChanges = async () => {
-    let new_photo_url = photo; // Initialize with the current photo URL.
-
-    if (image) {
-      new_photo_url = await sendImageToServer(image); // Use 'await' since 'sendImageToServer' is async
-    }
-
-    const userData = {
-      details: {
-        name: name ? name : user?.name.split(" ", 2)[0],
-        surname: surname ? surname : user?.name.split(" ", 2)[1],
-      },
-      phone: phoneNumber,
-      user_photo_url: new_photo_url,
-      email,
-    };
-
+  const handleSaveChanges = async (navigation) => {
+    setIsSaving(true);
+    
     try {
-      await updateUser(user.id,userData); // Update the user data without specifying 'user.id'
+      let new_photo_url = photo; // Initialize with the current photo URL.
+
+      if (image) {
+        new_photo_url = await sendImageToServer(image); // Use 'await' since 'sendImageToServer' is async
+      }
+
+      const userData = {
+        details: {
+          name: name ? name : user?.name.split(" ", 2)[0],
+          surname: surname ? surname : user?.name.split(" ", 2)[1],
+        },
+        phone: phoneNumber,
+        user_photo_url: new_photo_url,
+        email,
+      };
+
+      await updateUser(user.id, userData);
+      
+      // Show success message and navigate back
+      Alert.alert(
+        "Sucesso",
+        "Perfil atualizado com sucesso!",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              if (navigation) {
+                navigation.goBack();
+              }
+            }
+          }
+        ]
+      );
+      
     } catch (error) {
       logger.error('Error updating user profile', error);
+      
+      // Show error message
+      Alert.alert(
+        "Erro",
+        "Erro ao atualizar perfil. Tente novamente.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -106,8 +141,10 @@ const useProfileScreen = () => {
       name,
       surname,
       phoneNumber,
+      phoneNumberInput,
       email,
       image,
+      isSaving,
     },
     operations: {
       handleNameChange,

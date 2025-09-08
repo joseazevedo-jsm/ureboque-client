@@ -106,6 +106,7 @@ export const useLoginScreen = () => {
 
   const onLogin = async (phone) => {
     logger.info('Login attempt', { phone, hasPassword: !!password });
+    setWarning(""); // Clear any existing warnings
     try {
       const response = await api.post("/users/login", {
         password: password,
@@ -118,7 +119,12 @@ export const useLoginScreen = () => {
         login(data.token, data.user.id);
       }
     } catch (error) {
-      ErrorService.handleAPIError(error);
+      if (error.response?.status === 401) {
+        setWarning("Credenciais inválidas. Verifique sua senha.");
+        logger.warn('Invalid login credentials', { phone, status: 401 });
+      } else {
+        ErrorService.handleAPIError(error,false);
+      }
     }
   };
 
@@ -165,7 +171,7 @@ export const useLoginScreen = () => {
         }
       }
     } else {
-      Alert.alert("Error", "Invalid OTP code. Please try again.");
+      Alert.alert("Error", "Invalid OTP code. Please - try again.");
     }
   };
 

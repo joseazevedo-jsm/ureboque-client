@@ -208,10 +208,10 @@ export const UserDataProvider = ({ children }) => {
         });
  
         const lastService = servicesData[0];
+ 
+        if (lastService.service.status && lastService.service.driver && !lastService.service.review.rating) setServiceStatus(lastService);
 
-        if (lastService.service.status && !lastService.service.review.rating) setServiceStatus(lastService);
-
-        logger.info('App state determined', { currentState: lastService.service.status });
+        logger.info('App state determined', { currentState: lastService.service });
       } else {
         logger.warn('No services data in response', { response: response.data });
         setServices([]);
