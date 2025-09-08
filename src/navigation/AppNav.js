@@ -84,13 +84,7 @@ const AppNav = () => {
     return route.name;
   };
 
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
+  // No loading screen needed - AppLoadingContext ensures everything is ready
 
   return (
     <NavigationContainer 

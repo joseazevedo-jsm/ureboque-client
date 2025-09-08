@@ -1,15 +1,31 @@
 import * as Sentry from '@sentry/react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { UserContextProvider } from "./context/UserContext";
 import { UserLocationStateContextProvider } from "./context/UserLocationStateContext";
 import { AuthProvider } from "./context/AuthContext";
 import { UserDataProvider } from "./context/UserDataContext";
 import { SocketProvider } from "./context/SocketContext";
 import { NotificationProvider } from "./context/NotificationContext";
+import { AppLoadingProvider, useAppLoading } from "./context/AppLoadingContext";
 import AppNav from "./navigation/AppNav";
 import ErrorBoundary from './components/common/ErrorBoundary';
+import SplashScreenComponent from './components/common/SplashScreen';
 import Logger from './utils/Logger';
 import { LocationPermissionsService } from './services/LocationPermissionsService';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+
+// Keep the native splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
+
+// Hide native splash immediately to show our custom splash
+const hideNativeSplash = async () => {
+  try {
+    await SplashScreen.hideAsync();
+  } catch (error) {
+    console.warn('Error hiding native splash:', error);
+  }
+};
+hideNativeSplash();
 
 // Initialize Sentry
 Sentry.init({
@@ -33,75 +49,60 @@ Sentry.init({
   },
 });
 
-function App() {
-  useEffect(() => {
-    // Set initial Sentry context
-    try {
-      Sentry.setTag('app_component', 'App');
-      Sentry.setContext('app', {
-        environment: __DEV__ ? 'development' : 'production',
-        sessionId: Logger.getSessionId(),
-        startTime: new Date().toISOString(),
-      });
-      
-      Sentry.addBreadcrumb({
-        category: 'app',
-        message: 'Application started',
-        level: 'info',
-      });
-    } catch (error) {
-      console.warn('Failed to set initial Sentry context:', error);
-    }
+// Inner App Component that shows splash or main app
+function AppContent() {
+  const { appReady } = useAppLoading();
 
+  useEffect(() => {
+    // Initialize Sentry
+    Sentry.setTag('app_component', 'App');
+    Sentry.setContext('app', {
+      environment: __DEV__ ? 'development' : 'production',
+      sessionId: Logger.getSessionId(),
+      startTime: new Date().toISOString(),
+    });
     
+    Sentry.addBreadcrumb({
+      category: 'app',
+      message: 'Application started',
+      level: 'info',
+    });
+
     Logger.info('App', 'Application started', {
       environment: __DEV__ ? 'development' : 'production',
       timestamp: new Date().toISOString(),
       sessionId: Logger.getSessionId()
     });
-    
-    // Log app lifecycle events
-    const handleAppStateChange = (nextAppState) => {
-      Logger.info('App', `App state changed to: ${nextAppState}`);
-      
-      // Add Sentry breadcrumb for app state changes
-      try {
-        Sentry.addBreadcrumb({
-          category: 'app',
-          message: `App state changed to: ${nextAppState}`,
-          level: 'info',
-        });
-      } catch (error) {
-        console.warn('Failed to add Sentry breadcrumb for app state change:', error);
-      }
-    };
-    
-    return () => {
-      Logger.info('App', 'Application cleanup initiated');
-      
-      try {
-        Sentry.addBreadcrumb({
-          category: 'app',
-          message: 'Application cleanup initiated',
-          level: 'info',
-        });
-      } catch (error) {
-        console.warn('Failed to add Sentry breadcrumb for app cleanup:', error);
-      }
-    };
   }, []);
 
+  // Show splash screen while app is loading
+  if (!appReady) {
+    return <SplashScreenComponent />;
+  }
+
+  // Show main app when everything is ready
   return (
     <ErrorBoundary>
       <LocationPermissionsService />
+      <UserLocationStateContextProvider>
+        <AppNav />
+      </UserLocationStateContextProvider>
+    </ErrorBoundary>
+  );
+}
+
+// Main App Component with all context providers
+function AppWithContexts() {
+  return (
+    <ErrorBoundary>
       <AuthProvider>
         <UserDataProvider>
           <SocketProvider>
             <NotificationProvider>
               <UserContextProvider>
-                <UserLocationStateContextProvider>
-                  <AppNav />
-                </UserLocationStateContextProvider>
+                <AppLoadingProvider>
+                  <AppContent />
+                </AppLoadingProvider>
               </UserContextProvider>
             </NotificationProvider>
           </SocketProvider>
@@ -109,6 +110,10 @@ function App() {
       </AuthProvider>
     </ErrorBoundary>
   );
+}
+
+function App() {
+  return <AppWithContexts />;
 }
 
 export default App;
