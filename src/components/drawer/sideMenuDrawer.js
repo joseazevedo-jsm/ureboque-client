@@ -79,7 +79,7 @@ const SideMenuDrawer = (props) => {
             onPress={() => navigation.navigate("Convidar")}
           />
           <DrawerMenuItem
-            label="Ajuda"
+            label="Sair"
             iconSource={HelpIcon}
             onPress={logout}
           />

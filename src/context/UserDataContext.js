@@ -187,16 +187,16 @@ export const UserDataProvider = ({ children }) => {
 
   const fetchUserServices = async (userId, refreshing = false) => {
     const timer = logger.startTimer('fetch_user_services');
-    logger.logApiRequest('GET', `/service/getLastService/${userId}`);
+    logger.logApiRequest('GET', `/service/allMonthlyClient/${userId}`);
     
     try {
       if (!refreshing) {
         setServicesLoading(true);
       }
       
-      const response = await api.get(`service/getLastService/${userId}`);
+      const response = await api.get(`service/allMonthlyClient/${userId}`);
       
-      logger.logApiResponse('GET', `/service/getLastService/${userId}`, response.status, response.data, timer.end());
+      logger.logApiResponse('GET', `/service/allMonthlyClient/${userId}`, response.status, response.data, timer.end());
       if (response.data) {
         const servicesData = response.data;
      
@@ -218,7 +218,7 @@ export const UserDataProvider = ({ children }) => {
       }
       
     } catch (error) {
-      ErrorService.handleAPIError(error, true, 'UserDataContext');
+      ErrorService.handleAPIError(error, false, 'UserDataContext');
       logger.logError(error, { operation: 'fetchUserServices', userId });
       setServices([]);
     } finally {
