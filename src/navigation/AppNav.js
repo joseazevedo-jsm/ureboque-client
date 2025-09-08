@@ -8,6 +8,12 @@ import HomeMenu from "./HomeMenu";
 import Logger from '../utils/Logger';
 import sentryService from '../services/SentryService';
 
+// Registration screens
+import RegistrationWelcomeScreen from "../screens/RegistrationWelcomeScreen";
+import PasswordCreationScreen from "../screens/PasswordCreationScreen";
+import PersonalInfoScreen from "../screens/PersonalInfoScreen";
+import RegistrationSuccessScreen from "../screens/RegistrationSuccessScreen";
+
 const Stack = createStackNavigator();
 
 const AppNav = () => {
@@ -116,11 +122,33 @@ const AppNav = () => {
     >
       <Stack.Navigator>
         {userToken === null ? (
-          <Stack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{ headerShown: false }}
-          />
+          <>
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="RegistrationWelcome"
+              component={RegistrationWelcomeScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="PasswordCreation"
+              component={PasswordCreationScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="PersonalInfo"
+              component={PersonalInfoScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="RegistrationSuccess"
+              component={RegistrationSuccessScreen}
+              options={{ headerShown: false }}
+            />
+          </>
         ) : (
           <Stack.Screen
             name="HomeMenu"
@@ -128,12 +156,6 @@ const AppNav = () => {
             options={{ headerShown: false }}
           />
         )}
-        {/*            
-        <Stack.Screen
-          name="Map"
-          component={MapScreen}
-          options={{ headerShown: false }}
-        /> */}
       </Stack.Navigator>
     </NavigationContainer>
   );

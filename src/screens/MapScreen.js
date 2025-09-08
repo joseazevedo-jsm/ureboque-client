@@ -551,7 +551,10 @@ const MapScreen = memo(() => {
         }}
         payment_total={models.ridePrice}
         payment_type={models.service?.payment?.method}
-        service={models.service}
+        service={{
+          service:models.service,
+          driver:models.driver
+        }}
       />
     </View>
   );

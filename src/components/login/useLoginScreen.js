@@ -9,7 +9,7 @@ import ErrorService from "../../services/ErrorService";
 import axios from "axios";
 import { Alert } from "react-native";
 import { useLogger } from "../../hooks/useLogger";
-
+ 
 const apiOTP = axios.create({
   baseURL: "https://api.releans.com/v2/message",
   headers: {
@@ -125,18 +125,48 @@ export const useLoginScreen = () => {
     }
   };
 
-  const verifyOTPCode = () => {
+  const verifyOTPCode = async () => {
     // Check against generated OTP or development default
     const expectedOTP = codeOTP?.code?.toString() || process.env.EXPO_PUBLIC_OTP_DEFAULT;
     
     if (otpForm.values.otpCode === expectedOTP) {
-      // if user not exist modalRegVisible
       setModalOtpVisible(false);
-      navigation.navigate("Login", {
-        passwordState: 1,
-        phone: phoneForm.values.phoneNumber, // `${callingCode} ${number}`
-      });
-      // You can navigate to the next screen or perform further actions here
+      
+      const fullPhoneNumber = `${phoneForm.values.callingCode}${phoneForm.values.phoneNumber}`;
+      
+      try {
+        // Check if user exists using GET /phone/:phone endpoint
+        const checkUserResponse = await api.get(`/users/phone/${fullPhoneNumber}`);
+         if (checkUserResponse.data) {
+          // User exists - go to password screen
+          logger.info('User found, navigating to login');
+          navigation.navigate("Login", {
+            passwordState: 1,
+            phone: fullPhoneNumber,
+          });
+        } else {
+          // New user - start registration flow
+          logger.info('User not found, starting registration flow');
+          navigation.navigate("RegistrationWelcome", {
+            phone: fullPhoneNumber
+          });
+        }
+      } catch (error) {
+        logger.error('Error checking user existence', error);
+        // If 404 or user not found, start registration flow
+        if (error.response?.status === 404) {
+          logger.info('User not found (404), starting registration flow');
+          navigation.navigate("RegistrationWelcome", {
+            phone: fullPhoneNumber
+          });
+        } else {
+          // For other errors, fallback to registration
+          logger.warn('Unexpected error, defaulting to registration flow');
+          navigation.navigate("RegistrationWelcome", {
+            phone: fullPhoneNumber
+          });
+        }
+      }
     } else {
       Alert.alert("Error", "Invalid OTP code. Please try again.");
     }

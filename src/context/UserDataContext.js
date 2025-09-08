@@ -20,8 +20,10 @@ export const UserDataProvider = ({ children }) => {
   const { userToken, isAuthenticated } = useAuth();
   const [user, setUser] = useState(null);
   const [prices, setPrices] = useState(null);
+  const [services, setServices] = useState([]);
   const [serviceStatus, setServiceStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [servicesLoading, setServicesLoading] = useState(false);
 
   const fetchUserById = async (userId) => {
     const timer = logger.startTimer('fetch_user_by_id');
@@ -183,18 +185,50 @@ export const UserDataProvider = ({ children }) => {
     }
   };
 
-  const getAppStatus = async (userId) => {
+  const fetchUserServices = async (userId, refreshing = false) => {
+    const timer = logger.startTimer('fetch_user_services');
+    logger.logApiRequest('GET', `/service/getLastService/${userId}`);
+    
     try {
-      const response = await api.get(`service/getLastService/${userId}`);
-      if (response.status === 200) {
-        const { status, review } = response.data.service;
-        logger.info('UserDataContext', 'Service status retrieved', { status });
-        if (status && !review.rating) setServiceStatus(response.data);
-        logger.info('UserDataContext', 'App state determined', { currentState: status });
+      if (!refreshing) {
+        setServicesLoading(true);
       }
+      
+      const response = await api.get(`service/getLastService/${userId}`);
+      
+      logger.logApiResponse('GET', `/service/getLastService/${userId}`, response.status, response.data, timer.end());
+      if (response.data) {
+        const servicesData = response.data;
+     
+        setServices(servicesData);
+        
+        logger.info('User services loaded successfully', {
+          servicesCount: servicesData.length,
+          userId
+        });
+ 
+        const lastService = servicesData[0];
+
+        if (lastService.service.status && !lastService.service.review.rating) setServiceStatus(lastService);
+
+        logger.info('App state determined', { currentState: lastService.service.status });
+      } else {
+        logger.warn('No services data in response', { response: response.data });
+        setServices([]);
+      }
+      
     } catch (error) {
-      logger.error('UserDataContext', 'Error getting app status', error);
+      ErrorService.handleAPIError(error, true, 'UserDataContext');
+      logger.logError(error, { operation: 'fetchUserServices', userId });
+      setServices([]);
+    } finally {
+      setServicesLoading(false);
     }
+  };
+
+  const getAppStatus = async (userId) => {
+    // Now this function focuses only on fetching services
+    await fetchUserServices(userId);
   };
 
   // Auto-fetch user data when authenticated
@@ -215,11 +249,15 @@ export const UserDataProvider = ({ children }) => {
     user,
     setUser,
     prices,
+    services,
+    setServices,
     serviceStatus,
     setServiceStatus,
     isLoading,
+    servicesLoading,
     fetchUserById,
     fetchPrices,
+    fetchUserServices,
     updateUser,
     saveUserFavouriteAddress,
     removeUserFavouriteAddress,

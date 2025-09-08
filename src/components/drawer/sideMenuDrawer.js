@@ -17,6 +17,7 @@ import { UserContext } from "../../context/UserContext";
 import ProfileIcon from "../../../resources/icons/side_bar/profile.png";
 import PromotionsIcon from "../../../resources/icons/side_bar/discount.png";
 import InviteIcon from "../../../resources/icons/side_bar/add_friend.png";
+import HistoryIcon from "../../../resources/icons/side_bar/history.png";
 import HelpIcon from "../../../resources/icons/side_bar/help.png";
 
 const UserProfile = ({ user }) => (
@@ -61,6 +62,11 @@ const SideMenuDrawer = (props) => {
             label="Perfil"
             iconSource={ProfileIcon}
             onPress={() => navigation.navigate("Perfil", 123)}
+          />
+          <DrawerMenuItem
+            label="Histórico"
+            iconSource={HistoryIcon}
+            onPress={() => navigation.navigate("Historico")}
           />
           <DrawerMenuItem
             label="Promoções"

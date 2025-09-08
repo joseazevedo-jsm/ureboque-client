@@ -6,6 +6,7 @@ import MapScreen from "../screens/MapScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import PromotionScreen from "../screens/PromotionScreen";
 import InviteScreen from "../screens/InviteScreen";
+import HistoryScreen from "../screens/HistoryScreen";
 
 const Drawer = createDrawerNavigator();
 
@@ -16,6 +17,7 @@ const HomeMenu = () => {
       screenOptions={drawerScreenOptions}
     >
       <Drawer.Screen name="Map" component={MapScreen} />
+      <Drawer.Screen name="Historico" component={HistoryScreen} />
       <Drawer.Screen name="Promocoes" component={PromotionScreen} />
       <Drawer.Screen name="Convidar" component={InviteScreen} />
       <Drawer.Screen name="Perfil" component={ProfileScreen} />

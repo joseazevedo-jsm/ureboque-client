@@ -20,12 +20,11 @@ const imgDef =
 const ConfirmationModal = ({
   visible,
   closeModal,
-  driver,
   payment_total,
   payment_type,
   service,
 }) => {
-  const { models, operations } = useConfirmationModal(service?._id, closeModal);
+  const { models, operations } = useConfirmationModal(service, closeModal);
   const handeBackButtonPress = () => {
     closeModal();
   };
@@ -64,7 +63,7 @@ const ConfirmationModal = ({
           <View style={{ alignItems: "center" }}>
             <Image
               source={{
-                uri: driver?.photo || imgDef,
+                uri: service.driver?.photo || imgDef,
               }}
               style={{
                 width: scale(110),
@@ -78,7 +77,7 @@ const ConfirmationModal = ({
                 marginTop: scale(15),
               }}
             >
-              {driver.name}
+              {service.driver?.name}
             </Text>
           </View>
 
