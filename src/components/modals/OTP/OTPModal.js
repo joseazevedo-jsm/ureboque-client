@@ -24,9 +24,17 @@ const OTPModal = ({
 
   
   useEffect(() => {
-    // Auto-focus on the first input when the modal opens
     if (visible) {
-      models.inputRefs.current[0].focus();
+      // Clear OTP fields when modal opens to ensure fresh start
+      operations.resetOtp();
+      // Clear the parent form state as well
+      OTPChange("");
+      // Auto-focus on the first input after a small delay
+      setTimeout(() => {
+        if (models.inputRefs.current[0]) {
+          models.inputRefs.current[0].focus();
+        }
+      }, 100);
     }
   }, [visible]);
 

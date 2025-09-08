@@ -63,11 +63,8 @@ export const useLoginScreen = () => {
   };
 
   const handleOTPChange = (text) => {
-    if (text === "") {
-      otpForm.setValue("otpCode", "");
-    } else {
-      otpForm.setValue("otpCode", otpForm.values.otpCode + text);
-    }
+    // This function receives the complete 4-digit OTP from the modal
+    otpForm.setValue("otpCode", text);
   };
 
   const handlePasswordChange = (text) => {

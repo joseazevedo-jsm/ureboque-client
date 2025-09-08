@@ -32,6 +32,10 @@ export const useOTPModal = (OTPChange) => {
     }
   };
 
+  const resetOtp = () => {
+    setOtp(["", "", "", ""]);
+  };
+
   return {
     models: {
       otp,
@@ -40,6 +44,7 @@ export const useOTPModal = (OTPChange) => {
     operations: {
       handleOtpChange,
       handleKeyPress,
+      resetOtp,
     },
   };
 };
