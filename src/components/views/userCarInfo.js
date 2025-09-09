@@ -1,5 +1,4 @@
 import React from "react";
-import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import {
   View,
   StyleSheet,
@@ -99,20 +98,24 @@ const UserCarInfo = ({
       <View style={styles.containerInputs}>
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <BottomSheetTextInput
+            <TextInput
               onChangeText={(value) => handleInputChange('brand', value)}
               style={[styles.input, errors.brand && styles.inputError]}
               placeholder="Marca"
               placeholderTextColor={"#000"}
+              blurOnSubmit={false}
+              returnKeyType="next"
             />
             {errors.brand && <Text style={styles.errorText}>{errors.brand}</Text>}
           </View>
           <View style={{ flex: 1 }}>
-            <BottomSheetTextInput
+            <TextInput
               onChangeText={(value) => handleInputChange('model', value)}
               style={[styles.input, errors.model && styles.inputError]}
               placeholder="Modelo"
               placeholderTextColor={"#000"}
+              blurOnSubmit={false}
+              returnKeyType="next"
             />
             {errors.model && <Text style={styles.errorText}>{errors.model}</Text>}
           </View>
@@ -120,21 +123,25 @@ const UserCarInfo = ({
         
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <BottomSheetTextInput
+            <TextInput
               onChangeText={(value) => handleInputChange('license', value)}
               style={[styles.input, errors.license && styles.inputError]}
               placeholder="Matricula"
               placeholderTextColor={"#000"}
               autoCapitalize="characters"
+              blurOnSubmit={false}
+              returnKeyType="next"
             />
             {errors.license && <Text style={styles.errorText}>{errors.license}</Text>}
           </View>
           <View style={{ flex: 1 }}>
-            <BottomSheetTextInput
+            <TextInput
               onChangeText={(value) => handleInputChange('color', value)}
               style={[styles.input, errors.color && styles.inputError]}
               placeholder="Cor"
               placeholderTextColor={"#000"}
+              blurOnSubmit={false}
+              returnKeyType="done"
             />
             {errors.color && <Text style={styles.errorText}>{errors.color}</Text>}
           </View>

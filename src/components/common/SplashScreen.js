@@ -65,7 +65,7 @@ const SplashScreen = () => {
           color: '#B3D9FF',
           textAlign: 'center',
           fontWeight: '300'
-        }}>© 2024 Ureboque</Text>
+        }}>© 2025 Ureboque</Text>
       </View>
     </View>
   );

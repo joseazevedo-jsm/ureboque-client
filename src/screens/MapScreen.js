@@ -341,27 +341,18 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.userCarInfoSheetRef}
           index={0}
-          snapPoints={[scale(270), scale(500)]}
+          snapPoints={[scale(300), scale(550)]}
           enableDynamicSizing={false}
-          keyboardBehavior="interactive"
-          keyboardBlurBehavior="none"
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.container}
-            keyboardVerticalOffset={Platform.OS === "ios" ? scale(64) : 0}  
-          >
-            <UserCarInfo
-              handleBrandInputValueChange={operations.handleBrandInputValueChange}
-              handleColorInputValueChange={operations.handleColorInputValueChange}
-              handleLicenseInputValueChange={
-                operations.handleLicenseInputValueChange
-              }
-              handleModelInputValueChange={operations.handleModelInputValueChange}
-              handleConfirmButtonPress={operations.handleConfirmButtonPress}
-            />
-
-          </KeyboardAvoidingView>
+          <UserCarInfo
+            handleBrandInputValueChange={operations.handleBrandInputValueChange}
+            handleColorInputValueChange={operations.handleColorInputValueChange}
+            handleLicenseInputValueChange={
+              operations.handleLicenseInputValueChange
+            }
+            handleModelInputValueChange={operations.handleModelInputValueChange}
+            handleConfirmButtonPress={operations.handleConfirmButtonPress}
+          />
         </BottomSheetModal>
 
         <BottomSheetModal
