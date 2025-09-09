@@ -175,6 +175,13 @@ export const useLoginScreen = () => {
     }
   };
 
+  const handleOTPModalClose = () => {
+    setModalOtpVisible(false);
+    // Clear OTP state when modal is closed
+    otpForm.setValue("otpCode", "");
+    setCodeOTP(undefined);
+  };
+
   const onVerifyOtp = () => {
     if (phoneForm.values.phoneNumber.length < 9) {
       setWarning("O número de telefone deve ter pelo menos 9 caracteres");
@@ -207,6 +214,7 @@ export const useLoginScreen = () => {
       onChangeLoginState,
       onLogin,
       handleOTPChange,
+      handleOTPModalClose,
       onVerifyOtp,
     },
   };

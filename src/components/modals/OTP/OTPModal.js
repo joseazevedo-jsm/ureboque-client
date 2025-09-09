@@ -76,7 +76,10 @@ const OTPModal = ({
 
           <TouchableOpacity 
             style={styles.closeButton}
-            onPress={onClose}
+            onPress={() => {
+              operations.resetOtp();
+              onClose();
+            }}
             accessibilityLabel="Fechar modal OTP"
             accessibilityRole="button"
           >

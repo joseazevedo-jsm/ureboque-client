@@ -79,18 +79,6 @@ const LoginScreen = () => {
                       <CountryPickerWithFlag
                         onCallingCodeSelect={operations.handleCallingCodeSelect}
                       ></CountryPickerWithFlag>
-                      <TextInput
-                        style={{
-                          fontSize: 18,
-                          color: "#707070",
-                        }}
-                        placeholderTextColor="#707070"
-                        keyboardType="numeric"
-                        defaultValue={`+${models.callingCode}`}
-                        editable={false}
-                        accessibilityLabel="Código do país"
-                        accessibilityRole="text"
-                      />
                     </View>
                     <Text
                       style={{
@@ -166,6 +154,7 @@ const LoginScreen = () => {
         OTPChange={operations.handleOTPChange}
         code={models.codeOTP}
         number={`+ ${models.callingCode} ${models.number}`}
+        onClose={operations.handleOTPModalClose}
         onChangeLoginState={operations.onChangeLoginState}
         modalRegVisible={models.modalRegisterVisible}
       />

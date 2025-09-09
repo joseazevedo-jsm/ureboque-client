@@ -218,7 +218,7 @@ export const UserContextProvider = ({ children }) => {
 
   const getAppStatus = async (userId) => {
     try {
-    const response = await api.get(`service/getLastService/${userId}`);
+    const response = await api.get(`service/allMonthlyClient/${userId}`);
 
     if (response.status === 200) {
       const { status, review } = response.data.service;
