@@ -1,11 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { UserContext } from "../../../../context/UserContext";
 import { useLogger } from "../../../../hooks/useLogger";
-import axios from "axios";
-
-const api = axios.create({
-  baseURL:  process.env.EXPO_PUBLIC_UREBOQUE_API
-});
+import api from "../../../../services/APIService";
 export const useChatModal = (idService, setUnreadMessageCount) => {
   const logger = useLogger('useChatModal');
   const { user, socket } = useContext(UserContext);

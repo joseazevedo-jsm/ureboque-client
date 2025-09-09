@@ -1,11 +1,6 @@
-import axios from "axios";
 import { useRef, useState } from "react";
-import { EXPO_PUBLIC_UREBOQUE_API } from '@env';
 import { useLogger } from '../../../../hooks/useLogger';
-
-const api = axios.create({
-  baseURL: `${EXPO_PUBLIC_UREBOQUE_API}/users`,
-});
+import api from "../../../../services/APIService";
 
 export const useRegisterModal = (OTPChange) => {
   const logger = useLogger('useRegisterModal');
@@ -110,7 +105,7 @@ export const useRegisterModal = (OTPChange) => {
     try {
       if (validateRegistrationUser()) {
         logger.debug("User registration data", { password: "***", name, email, surname, phone });
-        const result = await api.post("/register", {
+        const result = await api.post("/users/register", {
           password: password,
           details: {
             name: name,

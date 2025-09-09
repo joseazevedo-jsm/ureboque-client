@@ -1,9 +1,7 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { UserContext } from "../../context/UserContext";
-import axios from "axios";
 import { useLogger } from '../../hooks/useLogger';
-
-const IP = process.env.EXPO_PUBLIC_UREBOQUE_API; //attt ao apagar
+import api from "../../services/APIService";
 
 export const useInviteScreen = () => {
   const logger = useLogger('useInviteScreen');
@@ -19,9 +17,9 @@ export const useInviteScreen = () => {
 
   const handleGetInviteCode = async () => {
     try {
-      logger.debug("API endpoint", { IP });
-      const response = await axios.get(
-        `${IP}/promotions/user/${user.id}`
+      logger.debug("Getting invite code for user", { userId: user.id });
+      const response = await api.get(
+        `/promotions/user/${user.id}`
       );
       setInviteCode(response.data.code);
       logger.info("Invite code retrieved", response.data);

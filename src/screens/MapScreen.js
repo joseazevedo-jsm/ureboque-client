@@ -466,6 +466,7 @@ const MapScreen = memo(() => {
               driver={models?.driver}
               clientCar={`${models.brand} | ${models.model} | ${models.color} | ${models.license}`}
               paymentMethod={models?.service?.payment?.method}
+              onBackPress={operations.handleBackDetailsButtonPress}
             />
           )}
         </BottomSheetModal>

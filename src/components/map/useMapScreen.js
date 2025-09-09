@@ -412,7 +412,10 @@ export const useMapScreen = () => {
             if (distance < 0.3) {
               updateMapState({ directions: null });
               tripStartedSheetRef.current.dismiss();
-              driverArrivingSheetRef.current.present();
+              // Don't interfere if user is currently viewing details
+              if (!tripData.detailsInfo?.isViewingDetails) {
+                driverArrivingSheetRef.current.present();
+              }
             }
             break;
           }
@@ -428,19 +431,22 @@ export const useMapScreen = () => {
     } catch (error) {
       logger.error("Error handling driverLocation event", error);
     }
-  }, [serviceStatus]);
+  }, [serviceStatus, tripData.detailsInfo]);
 
   const handleServiceStarted = useCallback((data) => {
     try {
       if (data && data.status === "in-progress") {
-        driverArrivingSheetRef.current.dismiss();
-        tripEndingSheetRef.current.present();
+        // Don't interfere if user is currently viewing details
+        if (!tripData.detailsInfo?.isViewingDetails) {
+          driverArrivingSheetRef.current.dismiss();
+          tripEndingSheetRef.current.present();
+        }
         updateTripData({ status: 'in-progress' }); // Update trip state
       }
     } catch (error) {
       logger.error("Error handling serviceStarted event", error);
     }
-  }, []);
+  }, [tripData.detailsInfo]);
 
   const handleServiceEnded = useCallback((data) => {
     try {
@@ -475,7 +481,7 @@ export const useMapScreen = () => {
   
   // --- Effect Hooks ---
 
-  // Effect - Center map on user location initially
+  // Effect - Center map on user location initially if no current service 
   useEffect(() => {
     centerToUserLocation();
   }, [centerToUserLocation]);
@@ -1002,10 +1008,29 @@ export const useMapScreen = () => {
     updateTripData({ carType: type });
   };
 
+  // Function to get the correct bottom sheet based on trip status
+  const getCorrectBottomSheet = () => {
+    if (tripData.status === 'in-progress') {
+      return tripEndingSheetRef;
+    } else if (tripData.status === 'assigned') {
+      return tripStartedSheetRef;
+    } else {
+      return driverArrivingSheetRef; // fallback
+    }
+  };
+
   const handleDetailsForm = (bottomSheet) => {
     logger.debug("Details info", { detailsInfo: tripData.detailsInfo });
-    updateTripData({ detailsInfo: { bottomSheet: bottomSheet } });
+    // Store that we're in details view but don't store the actual ref
+    updateTripData({ detailsInfo: { isViewingDetails: true } });
+    
+    // Dismiss all other sheets to prevent conflicts
     bottomSheet.current.dismiss();
+    driverArrivingSheetRef.current?.dismiss();
+    tripStartedSheetRef.current?.dismiss();
+    tripEndingSheetRef.current?.dismiss();
+    
+    // Present details sheet
     bottomSheetModalRefDetails.current.present();
   };
 
@@ -1078,7 +1103,6 @@ export const useMapScreen = () => {
   };
 
   const handleMapDirectionsReady = (routeInfo) => {
-    logger.debug("Route coordinates", { coordinates: routeInfo.coordinates });
     updateMapState({ directions: routeInfo });
     updateTripData({ duration: routeInfo?.duration });
   };
@@ -1169,11 +1193,29 @@ export const useMapScreen = () => {
   };
 
   const handleBackDetailsButtonPress = () => {
-    const { bottomSheet } = tripData.detailsInfo;
     if (tripData.detailsInfo) {
       updateTripData({ detailsInfo: null });
       bottomSheetModalRefDetails.current.dismiss();
-      bottomSheet.current.present();
+      
+      // Ensure only the correct sheet is presented and dismiss any conflicting sheets
+      setTimeout(() => {
+        // Dismiss any potentially conflicting sheets first
+        driverArrivingSheetRef.current?.dismiss();
+        tripStartedSheetRef.current?.dismiss();
+        tripEndingSheetRef.current?.dismiss();
+        
+        // Get the correct sheet based on current trip status
+        const correctBottomSheet = getCorrectBottomSheet();
+        
+        // Then present the correct sheet
+        correctBottomSheet.current.present();
+        logger.info('Back to correct bottom sheet', { 
+          status: tripData.status, 
+          sheet: correctBottomSheet === tripEndingSheetRef ? 'tripEnding' : 
+                 correctBottomSheet === tripStartedSheetRef ? 'tripStarted' : 'driverArriving'
+        });
+
+      }, 50);
     }
   };
 

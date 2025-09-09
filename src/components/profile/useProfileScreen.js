@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Alert } from "react-native";
 import { useUserData } from "../../context/UserDataContext";
 import * as ImagePicker from "expo-image-picker";
-import axios from "axios";
+import axios from "axios"; // Keep for external image service
+import api from "../../services/APIService";
 import { useLogger } from "../../hooks/useLogger";
 import { extractPhoneNumber, formatFullPhoneNumber } from "../../utils/phoneUtils";
 

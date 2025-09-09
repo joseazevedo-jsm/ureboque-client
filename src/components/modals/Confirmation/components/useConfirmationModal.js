@@ -7,9 +7,7 @@ import { UserContext } from "../../../../context/UserContext";
 import { useUserData } from "../../../../context/UserDataContext";
 import { useLogger } from "../../../../hooks/useLogger";
 import { Alert } from "react-native";
-import axios from "axios";
-
-const IP = process.env.EXPO_PUBLIC_UREBOQUE_API; //attt ao apagar
+import api from "../../../../services/APIService";
 
 export const useConfirmationModal = (lastService, close) => {
   const logger = useLogger('useConfirmationModal');
@@ -34,8 +32,8 @@ export const useConfirmationModal = (lastService, close) => {
         rating: rating,
         comment: "",
       };
-      const resp = await axios.put(
-        `${IP}/service/${lastService?.service?._id}/add-review`,
+      const resp = await api.put(
+        `/service/${lastService?.service?._id}/add-review`,
         requestData
       );
       logger.info('Review submitted successfully', { reviewData: resp.data });
