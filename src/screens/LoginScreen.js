@@ -9,6 +9,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
+import Icon from "react-native-vector-icons/MaterialIcons";
 import CountryPickerWithFlag from "../components/login/CountryPickerWithFlag";
 import { scale } from "react-native-size-matters";
 import { useLoginScreen } from "../components/login/useLoginScreen";
@@ -22,6 +23,7 @@ const LoginScreen = () => {
     enableLifecycleLogging: true,
     logProps: true 
   });
+  const [showPassword, setShowPassword] = useState(false);
   
   const route = useRoute();
   const { passwordState, phone } = route.params
@@ -100,10 +102,10 @@ const LoginScreen = () => {
                     />
                   </>
                 ) : (
-                  <>
+                  <View style={styles.passwordContainer}>
                     <TextInput
-                      secureTextEntry
-                      style={styles.input}
+                      secureTextEntry={!showPassword}
+                      style={styles.passwordInput}
                       placeholderTextColor="#000"
                       placeholder="Senha"
                       value={models.password}
@@ -111,7 +113,19 @@ const LoginScreen = () => {
                       accessibilityLabel="Campo de senha"
                       accessibilityRole="text"
                     />
-                  </>
+                    <TouchableOpacity
+                      style={styles.eyeButton}
+                      onPress={() => setShowPassword(!showPassword)}
+                      accessibilityLabel={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                      accessibilityRole="button"
+                    >
+                      <Icon
+                        name={showPassword ? "visibility-off" : "visibility"}
+                        size={scale(22)}
+                        color="#707070"
+                      />
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
               {models.warning ? (
@@ -218,6 +232,24 @@ const styles = StyleSheet.create({
     color: "#000",
     fontSize: 18,
     paddingHorizontal: scale(10),
+  },
+  passwordContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: scale(10),
+  },
+  passwordInput: {
+    flex: 1,
+    color: "#000",
+    fontSize: 18,
+    paddingRight: scale(10),
+  },
+  eyeButton: {
+    padding: scale(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: scale(5),
   },
   disclaimerText: {
     paddingBottom: scale(50),
