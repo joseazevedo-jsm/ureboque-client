@@ -6,6 +6,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
@@ -36,7 +39,12 @@ const ProfileScreen = () => {
   });
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 10}
+    >
+      {/* Header */}
       <View style={styles.headerContainer}>
         <TouchableOpacity
           style={styles.backButton}
@@ -50,220 +58,344 @@ const ProfileScreen = () => {
         </TouchableOpacity>
         <Text style={styles.headerText}>PERFIL</Text>
       </View>
-      <View style={styles.profileImageContainer}>
-        <TouchableOpacity onPress={() => {
-          logger.logUserInteraction('profile_image_picker_opened', { hasCurrentImage: !!models?.image || !!models?.user?.photo });
-          operations.handleOpenImagePicker();
-        }}>
-          <Image
-            source={{
-              uri: models?.image ? models?.image : models?.user?.photo,
-            }}
-            style={styles.profileImage}
-          />
-          <View style={styles.editIconContainer}>
-            <Icon name="edit" size={scale(16)} color="#FFF" />
+
+      <View style={styles.contentContainer}>
+        {/* Profile Image Section */}
+        <View style={styles.profileSection}>
+          <View style={styles.profileImageContainer}>
+            <TouchableOpacity onPress={() => {
+              logger.logUserInteraction('profile_image_picker_opened', { hasCurrentImage: !!models?.image || !!models?.user?.photo });
+              operations.handleOpenImagePicker();
+            }}>
+              <Image
+                source={{
+                  uri: models?.image ? models?.image : models?.user?.photo,
+                }}
+                style={styles.profileImage}
+              />
+              <View style={styles.editIconContainer}>
+                <Icon name="edit" size={scale(16)} color="#FFF" />
+              </View>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-      </View>
-      <View>
-        <TextInput
-          style={[styles.textInput, styles.underline]}
-          placeholder={models?.user?.name.split(" ", 2)[0]}
-          placeholderTextColor="#000"
-          onChangeText={operations.handleNameChange}
-        />
-        <TextInput
-          style={[styles.textInput, styles.underline]}
-          placeholder={models?.user?.name.split(" ", 2)[1]}
-          placeholderTextColor="#000"
-          onChangeText={operations.handleSurnameChange}
-        />
-        <View style={styles.row}>
-          <TextInput
-            style={[styles.textInput, styles.shortInput]}
-            value={`+${extractCountryCode(models?.user?.phone)}`}
-            placeholderTextColor="#000"
-            editable={false}
-          />
-          <View style={styles.inputWithIconUnderline}>
-            <Image
-              source={phoneIcon}
-              style={styles.icon_small}
-              resizeMode="contain"
-            />
+        </View>
+
+        {/* Personal Information Section */}
+        <View style={styles.formSection}>
+          <Text style={styles.sectionTitle}>Informações Pessoais</Text>
+          
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Nome</Text>
             <TextInput
-              style={[styles.textInput, styles.longInput]}
-              placeholder={extractPhoneNumber(models?.user?.phone)}
-              placeholderTextColor="#000"
-              value={models?.phoneNumberInput}
-              onChangeText={operations.handlePhoneNumberChange}
-              keyboardType="numeric"
+              style={styles.textInput}
+              placeholder={models?.user?.name.split(" ", 2)[0]}
+              placeholderTextColor="#A0AEC0"
+              onChangeText={operations.handleNameChange}
             />
           </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Sobrenome</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder={models?.user?.name.split(" ", 2)[1]}
+              placeholderTextColor="#A0AEC0"
+              onChangeText={operations.handleSurnameChange}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Telefone</Text>
+            <View style={styles.phoneRow}>
+              <View style={styles.shortInputContainer}>
+                <TextInput
+                  style={styles.textInput}
+                  value={`+${extractCountryCode(models?.user?.phone)}`}
+                  placeholderTextColor="#A0AEC0"
+                  editable={false}
+                />
+              </View>
+              <View style={styles.longInputContainer}>
+                <View style={styles.inputWithIcon}>
+                  <Image
+                    source={phoneIcon}
+                    style={styles.icon_small}
+                    resizeMode="contain"
+                  />
+                  <TextInput
+                    style={styles.textInputInContainer}
+                    placeholder={extractPhoneNumber(models?.user?.phone)}
+                    placeholderTextColor="#A0AEC0"
+                    value={models?.phoneNumberInput}
+                    onChangeText={operations.handlePhoneNumberChange}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Email</Text>
+            <View style={styles.inputWithIcon}>
+              <Image source={emailIcon} style={styles.icon_small} resizeMode="contain" />
+              <TextInput
+                style={styles.textInputInContainer}
+                placeholder={models?.user?.email}
+                placeholderTextColor="#A0AEC0"
+                onChangeText={operations.handleEmailChange}
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.saveButton, models?.isSaving && styles.saveButtonDisabled]}
+            onPress={() => operations.handleSaveChanges(navigation)}
+            disabled={models?.isSaving}
+          >
+            <Text style={styles.saveButtonText}>
+              {models?.isSaving ? 'Salvando...' : 'Salvar alterações'}
+            </Text>
+          </TouchableOpacity>
         </View>
-        <View style={styles.inputWithIconUnderline}>
-          <Image source={emailIcon} style={styles.icon_small} resizeMode="contain" />
-          <TextInput
-            style={styles.textInput}
-            placeholder={models?.user?.email}
-            placeholderTextColor="#000"
-            onChangeText={operations.handleEmailChange}
-          />
+
+        {/* Settings Section */}
+        <View style={styles.actionSection}>
+          <TouchableOpacity 
+            style={styles.actionItem}
+            onPress={() => {
+              logger.logUserInteraction('settings_button_pressed', { from: 'ProfileScreen' });
+              Alert.alert(
+                "Definições",
+                "Funcionalidade em desenvolvimento",
+                [{ text: "OK", style: "default" }]
+              );
+            }}
+          >
+            <Image source={optionsIcon} style={styles.actionIcon} resizeMode="contain" />
+            <Text style={styles.actionText}>Definições</Text>
+            <Icon name="arrow-forward-ios" size={scale(16)} style={styles.actionArrow} />
+          </TouchableOpacity>
         </View>
       </View>
-      <TouchableOpacity
-        style={[styles.saveButton, models?.isSaving && styles.saveButtonDisabled]}
-        onPress={() => operations.handleSaveChanges(navigation)}
-        disabled={models?.isSaving}
-      >
-        <Text style={styles.saveButtonText}>
-          {models?.isSaving ? 'Salvando...' : 'Salvar alterações'}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity>
-        <View style={styles.settingsContainer}>
-          <Image source={optionsIcon} style={styles.icon} resizeMode="contain" />
-          <Text style={styles.settingsText}>Definições</Text>
-          <Icon name="arrow-forward-ios" size={scale(25)} color="#000" />
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity>
-        <View style={styles.logoutContainer}>
-          <Image source={leaveIcon} style={styles.icon} resizeMode="contain" />
-          <Text style={styles.logoutText}>Sair</Text>
-        </View>
-      </TouchableOpacity>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginHorizontal: scale(20),
+    backgroundColor: '#F8FAFE',
   },
   headerContainer: {
-    height: "20%",
+    height: scale(80),
     flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: scale(20),
+    paddingTop: scale(30),
+    backgroundColor: "#fff",
   },
   backButton: {
-    marginTop: scale(50),
+    padding: scale(5),
   },
   headerText: {
     fontWeight: "bold",
     fontSize: scale(18),
-    marginTop: scale(50),
-    marginLeft: scale(100),
-    textAlign: "center",
     color: "#0089FF",
+    marginLeft: scale(100),
+  },
+  contentContainer: {
+    flex: 1,
+    justifyContent:"space-around",
+    paddingHorizontal: scale(20),
+  },
+  profileSection: {
+    alignItems: 'center',
+    marginTop: scale(5),
+    marginBottom: scale(10),
   },
   profileImageContainer: {
-    width: scale(100),
-    height: scale(100),
-    borderRadius: scale(75),
-    borderColor: "#0089FF",
-    borderWidth: scale(2),
+    width: scale(80),
+    height: scale(80),
+    borderRadius: scale(40),
     padding: scale(3),
-    alignSelf: "center",
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0089FF',
+    shadowOffset: {
+      width: 0,
+      height: scale(4),
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: scale(8),
+    elevation: 6,
   },
   profileImage: {
     width: "100%",
     height: "100%",
-    borderRadius: scale(75),
+    borderRadius: scale(37),
   },
   editIconContainer: {
     position: "absolute",
-    bottom: scale(5),
-    right: scale(5),
+    bottom: scale(0),
+    right: scale(0),
     backgroundColor: "#0089FF",
-    borderRadius: scale(15),
+    borderRadius: scale(18),
     width: scale(30),
     height: scale(30),
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: scale(2),
-    borderColor: "#FFF",
+    borderWidth: scale(3),
+    borderColor: "#FFFFFF",
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: scale(2),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: scale(4),
+    elevation: 4,
+  },
+  formSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: scale(12),
+    padding: scale(12),
+    marginBottom: scale(8),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: scale(2),
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: scale(6),
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: scale(14),
+    fontWeight: '600',
+    color: '#2D3748',
+    marginBottom: scale(12),
+    letterSpacing: scale(0.3),
+  },
+  inputContainer: {
+    marginBottom: scale(6),
+  },
+  inputLabel: {
+    fontSize: scale(12),
+    fontWeight: '500',
+    color: '#718096',
+    marginBottom: scale(5),
+    letterSpacing: scale(0.2),
   },
   textInput: {
-    color: "black",
     fontSize: scale(14),
-    padding: scale(5),
-    marginBottom: scale(7),
+    color: '#2D3748',
+    paddingVertical: scale(10),
+    paddingHorizontal: scale(12),
+    backgroundColor: '#F7FAFC',
+    borderRadius: scale(8),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  row: {
+  textInputFocused: {
+    borderColor: '#0089FF',
+    backgroundColor: '#FFFFFF',
+  },
+  phoneRow: {
     flexDirection: "row",
-    
+    gap: scale(10),
   },
-  shortInput: {
-    marginRight: scale(15),
-    width: scale(75),
-    borderBottomWidth: scale(0.5),
+  shortInputContainer: {
+    flex: 0.3,
   },
-  longInput: {
-   width: scale(190),
+  longInputContainer: {
+    flex: 0.7,
   },
   inputWithIcon: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: '#F7FAFC',
+    borderRadius: scale(8),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: scale(12),
   },
-  inputWithIconUnderline: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: scale(0.5),
-    marginBottom: scale(7),
+  inputWithIconFocused: {
+    borderColor: '#0089FF',
+    backgroundColor: '#FFFFFF',
   },
   icon_small: {
-    width: scale(18),
-    height: scale(18),
+    width: scale(20),
+    height: scale(20),
     marginRight: scale(10),
+    tintColor: '#718096',
   },
-  icon: {
-    width: scale(25),
-    height: scale(25),
-    marginRight: scale(5),
+  textInputInContainer: {
+    flex: 1,
+    fontSize: scale(14),
+    color: '#2D3748',
+    paddingVertical: scale(10),
   },
   saveButton: {
-    width: scale(310),
-    height: scale(55),
-    borderRadius: scale(7),
-    backgroundColor: "#0089ff",
-    marginHorizontal: scale(20),
-    justifyContent: "center",
-    alignItems: "center",
-    alignSelf: "center",
-    marginTop: scale(20),
-    marginBottom: scale(35),
+    backgroundColor: '#0089FF',
+    paddingVertical: scale(8),
+    paddingHorizontal: scale(24),
+    borderRadius: scale(10),
+    alignItems: 'center',
+    marginVertical: scale(8),
+    shadowColor: '#0089FF',
+    shadowOffset: {
+      width: 0,
+      height: scale(3),
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: scale(6),
+    elevation: 5,
   },
   saveButtonDisabled: {
-    backgroundColor: "#cccccc",
+    backgroundColor: "#CBD5E0",
+    shadowOpacity: 0,
+    elevation: 0,
   },
   saveButtonText: {
-    color: "#fff",
-    fontSize: scale(18),
+    color: "#FFFFFF",
+    fontSize: scale(16),
+    fontWeight: "600",
+    letterSpacing: scale(0.3),
   },
-  settingsContainer: {
+  actionSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: scale(12),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: scale(2),
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: scale(6),
+    elevation: 3,
+  },
+  actionItem: {
     flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: scale(12),
+    paddingHorizontal: scale(16),
   },
-  settingsText: {
-    fontSize: scale(18),
-    marginLeft: scale(20),
-    marginRight: scale(150),
+  actionIcon: {
+    width: scale(24),
+    height: scale(24),
+    marginRight: scale(15),
+    tintColor: '#4A5568',
   },
-  logoutContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: scale(50),
+  actionText: {
+    flex: 1,
+    fontSize: scale(14),
+    fontWeight: '500',
+    color: '#2D3748',
+    letterSpacing: scale(0.2),
   },
-  logoutText: {
-    fontSize: scale(18),
-    color: "#0089FF",
-    marginLeft: scale(10),
-  },
-  underline: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#000",
-  },
+  actionArrow: {
+    color: '#A0AEC0',
+  }, 
 });
 
 export default ProfileScreen;
