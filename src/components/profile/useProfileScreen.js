@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Alert } from "react-native";
 import { useUserData } from "../../context/UserDataContext";
 import * as ImagePicker from "expo-image-picker";
@@ -18,6 +18,20 @@ const useProfileScreen = () => {
   const [email, setEmail] = useState(user?.email || "");
   const [image, setImage] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // OTP-related state
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingPhoneNumber, setPendingPhoneNumber] = useState("");
+  const [originalPhoneNumber, setOriginalPhoneNumber] = useState(user?.phone || "");
+  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
+  const [onSaveComplete, setOnSaveComplete] = useState(null);
+
+  // Update original phone number when user data changes
+  useEffect(() => {
+    if (user?.phone && !showOTPModal) {
+      setOriginalPhoneNumber(user.phone);
+    }
+  }, [user?.phone, showOTPModal]);
 
   const handleNameChange = (text) => {
     setName(text);
@@ -31,50 +45,77 @@ const useProfileScreen = () => {
     // Store only the phone number part (without country code) for display
     setPhoneNumberInput(text);
     // Store the full phone number (244 + phone number) for API calls
-    setPhoneNumber(formatFullPhoneNumber("244", text));
+    const fullPhoneNumber = formatFullPhoneNumber("244", text);
+    setPhoneNumber(fullPhoneNumber);
   };
 
   const handleEmailChange = (text) => {
     setEmail(text);
   };
 
+  const performSave = async (phoneToSave, navigation) => {
+    let new_photo_url = photo;
+
+    if (image) {
+      new_photo_url = await sendImageToServer(image);
+    }
+
+    const userData = {
+      details: {
+        name: name ? name : user?.name.split(" ", 2)[0],
+        surname: surname ? surname : user?.name.split(" ", 2)[1],
+      },
+      phone: phoneToSave,
+      user_photo_url: new_photo_url,
+      email,
+    };
+
+    await updateUser(user.id, userData);
+    
+    // Show success message and navigate back
+    Alert.alert(
+      "Sucesso",
+      "Perfil atualizado com sucesso!",
+      [
+        {
+          text: "OK",
+          onPress: () => {
+            if (navigation && navigation.goBack) {
+              navigation.goBack();
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleSaveChanges = async (navigation) => {
     setIsSaving(true);
     
     try {
-      let new_photo_url = photo; // Initialize with the current photo URL.
-
-      if (image) {
-        new_photo_url = await sendImageToServer(image); // Use 'await' since 'sendImageToServer' is async
-      }
-
-      const userData = {
-        details: {
-          name: name ? name : user?.name.split(" ", 2)[0],
-          surname: surname ? surname : user?.name.split(" ", 2)[1],
-        },
-        phone: phoneNumber,
-        user_photo_url: new_photo_url,
-        email,
-      };
-
-      await updateUser(user.id, userData);
+      // Check if phone number has changed
+      const hasPhoneChanged = phoneNumber !== originalPhoneNumber;
+      logger.debug('Save attempt', { 
+        phoneNumber, 
+        originalPhoneNumber, 
+        hasPhoneChanged 
+      });
       
-      // Show success message and navigate back
-      Alert.alert(
-        "Sucesso",
-        "Perfil atualizado com sucesso!",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              if (navigation) {
-                navigation.goBack();
-              }
-            }
+      if (hasPhoneChanged) {
+        // Store pending phone number and callback for after OTP verification
+        setPendingPhoneNumber(phoneNumber);
+        setOnSaveComplete(() => () => {
+          if (navigation && navigation.goBack) {
+            navigation.goBack();
           }
-        ]
-      );
+        });
+        setShowOTPModal(true);
+        setIsSaving(false);
+        return; // Exit here, actual save will happen after OTP verification
+      }
+      
+      // Continue with normal save process if phone number hasn't changed
+      await performSave(phoneNumber, navigation);
       
     } catch (error) {
       logger.error('Error updating user profile', error);
@@ -136,6 +177,82 @@ const useProfileScreen = () => {
     }
   };
 
+  const requestOTPForPhoneChange = async (phoneNumber) => {
+    logger.debug('Mock OTP request for phone number change', { phoneNumber });
+    
+    // Mock OTP request - just show the modal without API call
+    logger.info('Using mock OTP (1234) for phone change');
+    setShowOTPModal(true);
+  };
+
+  const handleOTPVerification = async (otp) => {
+    if (!otp || otp.length !== 4) {
+      Alert.alert("Erro", "Por favor, digite o código de 4 dígitos");
+      return;
+    }
+
+    setIsVerifyingOTP(true);
+    logger.debug('Mock OTP verification for phone number change', { otp: otp.length });
+
+    // Mock verification - only check against 1234
+    const defaultOTP = process.env.EXPO_PUBLIC_OTP_DEFAULT || "1234";
+    
+    // Simulate loading time
+    setTimeout(async () => {
+      if (otp === defaultOTP) {
+        logger.info('Mock OTP verification successful for phone change');
+        
+        try {
+          // Complete the save with verified phone number  
+          await performSave(pendingPhoneNumber, null);
+          
+          // Update original phone number to new verified number
+          setOriginalPhoneNumber(pendingPhoneNumber);
+          setShowOTPModal(false);
+          setIsVerifyingOTP(false);
+          
+          // Call the navigation callback if it exists
+          if (onSaveComplete) {
+            onSaveComplete();
+            setOnSaveComplete(null);
+          }
+          
+        } catch (error) {
+          logger.error('Error updating user profile after OTP verification', error);
+          setIsVerifyingOTP(false);
+          setShowOTPModal(false);
+          
+          Alert.alert(
+            "Erro",
+            "Erro ao atualizar perfil. Tente novamente.",
+            [{ text: "OK" }]
+          );
+        }
+      } else {
+        logger.warn('Mock OTP verification failed - incorrect code');
+        setIsVerifyingOTP(false);
+        
+        Alert.alert(
+          "Erro",
+          "Código de verificação inválido. Use 1234 para testar.",
+          [{ text: "OK" }]
+        );
+      }
+    }, 1000); // 1 second delay to simulate API call
+  };
+
+  const handleOTPModalClose = () => {
+    logger.debug('OTP modal closed, reverting phone number changes');
+    
+    // Revert phone number changes if OTP was not verified
+    setPhoneNumber(originalPhoneNumber);
+    setPhoneNumberInput(extractPhoneNumber(originalPhoneNumber));
+    setShowOTPModal(false);
+    setPendingPhoneNumber("");
+    setOnSaveComplete(null);
+    setIsSaving(false);
+  };
+
   return {
     models: {
       user,
@@ -146,6 +263,9 @@ const useProfileScreen = () => {
       email,
       image,
       isSaving,
+      showOTPModal,
+      pendingPhoneNumber,
+      isVerifyingOTP,
     },
     operations: {
       handleNameChange,
@@ -154,6 +274,8 @@ const useProfileScreen = () => {
       handleEmailChange,
       handleSaveChanges,
       handleOpenImagePicker,
+      handleOTPVerification,
+      handleOTPModalClose,
     },
   };
 };

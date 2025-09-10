@@ -27,8 +27,6 @@ const OTPModal = ({
     if (visible) {
       // Clear OTP fields when modal opens to ensure fresh start
       operations.resetOtp();
-      // Clear the parent form state as well
-      OTPChange("");
       // Auto-focus on the first input after a small delay
       setTimeout(() => {
         if (models.inputRefs.current[0]) {
@@ -46,18 +44,26 @@ const OTPModal = ({
           <Text style={styles.description}>
             Digite o código de 4 dígitos enviado para {number}
           </Text>
+          
+          {isLoading && (
+            <View style={styles.verifyingContainer}>
+              <ActivityIndicator size="small" color="#0089FF" />
+              <Text style={styles.verifyingText}>Verificando código...</Text>
+            </View>
+          )}
 
           <View style={styles.otpInputs}>
             {models.otp.map((digit, index) => (
               <TextInput
                 key={index}
                 ref={(ref) => (models.inputRefs.current[index] = ref)}
-                style={styles.otpInput}
+                style={[styles.otpInput, isLoading && styles.otpInputDisabled]}
                 keyboardType="numeric"
                 maxLength={1}
                 value={digit}
                 onChangeText={(text) => operations.handleOtpChange(text, index)}
                 onKeyPress={(e) => operations.handleKeyPress(e, index)}
+                editable={!isLoading}
               />
             ))}
           </View>
@@ -75,15 +81,20 @@ const OTPModal = ({
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.closeButton}
+            style={[styles.closeButton, isLoading && styles.closeButtonDisabled]}
             onPress={() => {
-              operations.resetOtp();
-              onClose();
+              if (!isLoading) {
+                operations.resetOtp();
+                onClose();
+              }
             }}
+            disabled={isLoading}
             accessibilityLabel="Fechar modal OTP"
             accessibilityRole="button"
           >
-            <Text style={styles.closeButtonText}>Fechar</Text>
+            <Text style={[styles.closeButtonText, isLoading && styles.closeButtonTextDisabled]}>
+              {isLoading ? "Verificando..." : "Fechar"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -116,6 +127,22 @@ const styles = StyleSheet.create({
     marginBottom: scale(20),
     textAlign: "center",
   },
+  verifyingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: scale(15),
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(8),
+    backgroundColor: "#F7FAFC",
+    borderRadius: 8,
+  },
+  verifyingText: {
+    fontSize: scale(14),
+    color: "#4A5568",
+    marginLeft: scale(8),
+    fontWeight: "500",
+  },
   otpInputs: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -129,6 +156,11 @@ const styles = StyleSheet.create({
     fontSize: scale(18),
     textAlign: "center",
     width: scale(40),
+  },
+  otpInputDisabled: {
+    backgroundColor: "#F7FAFC",
+    borderColor: "#E2E8F0",
+    color: "#A0AEC0",
   },
   resendButton: {
     backgroundColor: "#0089FF",
@@ -148,9 +180,17 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderWidth: 1,
   },
+  closeButtonDisabled: {
+    backgroundColor: "#F7FAFC",
+    borderColor: "#E2E8F0",
+    opacity: 0.6,
+  },
   closeButtonText: {
     fontSize: scale(14),
     color: "#0089FF",
+  },
+  closeButtonTextDisabled: {
+    color: "#A0AEC0",
   },
 });
 

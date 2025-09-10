@@ -7,6 +7,7 @@ import ProfileScreen from "../screens/ProfileScreen";
 import PromotionScreen from "../screens/PromotionScreen";
 import InviteScreen from "../screens/InviteScreen";
 import HistoryScreen from "../screens/HistoryScreen";
+import SettingsScreen from "../screens/SettingsScreen";
 
 const Drawer = createDrawerNavigator();
 
@@ -21,6 +22,7 @@ const HomeMenu = () => {
       <Drawer.Screen name="Promocoes" component={PromotionScreen} />
       <Drawer.Screen name="Convidar" component={InviteScreen} />
       <Drawer.Screen name="Perfil" component={ProfileScreen} />
+      <Drawer.Screen name="SettingsScreen" component={SettingsScreen} />
     </Drawer.Navigator>
   );
 };

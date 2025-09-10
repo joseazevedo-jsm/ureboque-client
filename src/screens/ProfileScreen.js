@@ -16,6 +16,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import useProfileScreen from "../components/profile/useProfileScreen";
 import { useLogger } from "../hooks/useLogger";
 import { extractCountryCode, extractPhoneNumber } from "../utils/phoneUtils";
+import OTPModal from "../components/modals/OTP/OTPModal";
 
 // Import your images
 import phoneIcon from "../../resources/icons/profile_settings/phone.png";
@@ -57,6 +58,8 @@ const ProfileScreen = () => {
           <Icon name="arrow-back" size={scale(25)} color="#0089FF" />
         </TouchableOpacity>
         <Text style={styles.headerText}>PERFIL</Text>
+        <Text> </Text>
+
       </View>
 
       <View style={styles.contentContainer}>
@@ -165,11 +168,8 @@ const ProfileScreen = () => {
             style={styles.actionItem}
             onPress={() => {
               logger.logUserInteraction('settings_button_pressed', { from: 'ProfileScreen' });
-              Alert.alert(
-                "Definições",
-                "Funcionalidade em desenvolvimento",
-                [{ text: "OK", style: "default" }]
-              );
+              logger.logNavigation('ProfileScreen', 'SettingsScreen', { action: 'navigate' });
+              navigation.navigate('SettingsScreen');
             }}
           >
             <Image source={optionsIcon} style={styles.actionIcon} resizeMode="contain" />
@@ -178,6 +178,15 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* OTP Modal for Phone Number Verification */}
+      <OTPModal
+        visible={models?.showOTPModal}
+        OTPChange={(otp) => operations.handleOTPVerification(otp)}
+        number={models?.pendingPhoneNumber}
+        isLoading={models?.isVerifyingOTP}
+        onClose={() => operations.handleOTPModalClose()}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -191,19 +200,18 @@ const styles = StyleSheet.create({
     height: scale(80),
     flexDirection: "row",
     alignItems: "center",
+    justifyContent:"space-between",
     paddingHorizontal: scale(20),
     paddingTop: scale(30),
     backgroundColor: "#fff",
   },
   backButton: {
-    padding: scale(5),
   },
   headerText: {
     fontWeight: "bold",
     fontSize: scale(18),
     color: "#0089FF",
-    marginLeft: scale(100),
-  },
+   },
   contentContainer: {
     flex: 1,
     justifyContent:"space-around",
