@@ -6,6 +6,7 @@ import { Alert } from "react-native";
 export const usePromotionScreen = () => {
 
   const { socket, user, fetchUserById, activateDiscount } = useContext(UserContext);
+  const [activationError, setActivationError] = useState(null);
   
   // Form validation for promotion code
   const promoForm = useForm(
@@ -14,19 +15,19 @@ export const usePromotionScreen = () => {
       code: [
         {
           validator: (value) => value && value.trim().length > 0,
-          message: "Promotion code is required"
+          message: "Código promocional é obrigatório"
         },
         {
           validator: (value) => value && value.length >= 3,
-          message: "Promotion code must be at least 3 characters"
+          message: "Código promocional deve ter pelo menos 3 caracteres"
         },
         {
           validator: (value) => value && value.length <= 20,
-          message: "Promotion code must be less than 20 characters"
+          message: "Código promocional deve ter menos de 20 caracteres"
         },
         {
           validator: (value) => value && /^[A-Za-z0-9]+$/.test(value),
-          message: "Promotion code can only contain letters and numbers"
+          message: "Código promocional só pode conter letras e números"
         }
       ]
     }
@@ -34,29 +35,42 @@ export const usePromotionScreen = () => {
 
   const onCodeTextChange = (input) => {
     promoForm.setValue("code", input);
+    // Clear activation error when user starts typing
+    if (activationError) {
+      setActivationError(null);
+    }
   }
 
-  const handleActivateCode = () => {
+  const handleActivateCode = async () => {
     const isValid = promoForm.validate();
     
     if (!isValid) {
       // Show validation error
       const codeError = promoForm.errors.code;
       if (codeError) {
-        Alert.alert("Invalid Code", codeError);
-        return;
+        setActivationError(codeError);
+        throw new Error(codeError);
       }
     }
     
-    // Proceed with activation if validation passes
-    activateDiscount(promoForm.values.code);
+    try {
+      // Clear any previous error
+      setActivationError(null);
+      
+      // Proceed with activation if validation passes
+      await activateDiscount(promoForm.values.code);
+      return { success: true };
+    } catch (error) {
+      setActivationError(error.message);
+      throw error;
+    }
   }
 
   return {
     models: {
       user,
       code: promoForm.values.code,
-      codeError: promoForm.errors.code,
+      codeError: activationError || promoForm.errors.code,
       promoForm
     },
     operations: {

@@ -40,6 +40,8 @@ export const useLoginScreen = () => {
   const { setUser, login } = useContext(UserContext);
   const auth = useAuth();
   const [warning, setWarning] = useState("");
+  const [loginFailed, setLoginFailed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const navigation = useNavigation();
 
@@ -105,26 +107,58 @@ export const useLoginScreen = () => {
   };
 
   const onLogin = async (phone) => {
-    logger.info('Login attempt', { phone, hasPassword: !!password });
-    setWarning(""); // Clear any existing warnings
     try {
+      setIsLoading(true);
+      setWarning("");
+      setLoginFailed(false);
+      
+      logger.info('Login attempt', { hasPassword: !!password, phone });
+      
       const response = await api.post("/users/login", {
         password: password,
         phone: phone,
       });
+      
       const data = response.data;
-      logger.info('Login successful', { userId: data.user?.id, hasToken: !!data.token });
+      logger.info('Login successful', { userId: data.user?.id, hasToken: !!data.token, role: data.user?.role });
+      
+      // Check user role - drivers cannot log into client app
+      if (data.user?.role === 'driver') {
+        logger.warn('Driver attempted to login to client app', { userId: data.user.id, role: data.user.role });
+        setLoginFailed(true);
+        setWarning("Este tipo de conta não pode acessar a aplicação cliente. Use a aplicação do motorista.");
+        return;
+      }
+      
       if (data) {
-        setUser(data.user);
-        login(data.token, data.user.id);
+        try {
+          setUser(data.user);
+          login(data.token, data.user.id);
+          logger.info("Login completed successfully");
+        } catch (loginError) {
+          logger.error('Error during login process (user data fetch failed)', loginError);
+          setLoginFailed(true);
+          setWarning("Erro ao carregar dados do usuário. Tente novamente.");
+        }
+      } else {
+        throw new Error("Invalid response data");
       }
     } catch (error) {
+      logger.error('Login failed', error);
+      setLoginFailed(true);
+      
+      // Handle different error types
       if (error.response?.status === 401) {
-        setWarning("Credenciais inválidas. Verifique sua senha.");
-        logger.warn('Invalid login credentials', { phone, status: 401 });
+        setWarning("Credenciais incorretas. Verifique sua senha.");
+      } else if (error.response?.status === 500) {
+        setWarning("Erro no servidor. Tente novamente mais tarde.");
+      } else if (error.response?.status === 404) {
+        setWarning("Número de telefone não encontrado.");
       } else {
-        ErrorService.handleAPIError(error,false);
+        setWarning("Falha no login. Verifique suas credenciais e tente novamente.");
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -175,6 +209,25 @@ export const useLoginScreen = () => {
     }
   };
 
+  const clearLoginError = () => {
+    setLoginFailed(false);
+    setWarning("");
+  };
+
+  const goBackToPhoneEntry = () => {
+    setLoginFailed(false);
+    setWarning("");
+    setPassword("");
+    phoneForm.setValue("phoneNumber", "");
+    setCodeOTP(undefined);
+    otpForm.setValue("otpCode", "");
+    setModalOtpVisible(false);
+    navigation.navigate("Login", {
+      passwordState: false,
+      phone: "",
+    });
+  };
+
   const handleOTPModalClose = () => {
     setModalOtpVisible(false);
     // Clear OTP state when modal is closed
@@ -203,6 +256,8 @@ export const useLoginScreen = () => {
       modalRegisterVisible,
       modalOtpVisible,
       warning,
+      loginFailed,
+      isLoading,
       phoneForm,
       otpForm,
     },
@@ -216,6 +271,8 @@ export const useLoginScreen = () => {
       handleOTPChange,
       handleOTPModalClose,
       onVerifyOtp,
+      clearLoginError,
+      goBackToPhoneEntry,
     },
   };
 };

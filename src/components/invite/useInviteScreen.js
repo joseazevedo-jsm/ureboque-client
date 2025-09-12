@@ -7,55 +7,65 @@ export const useInviteScreen = () => {
   const logger = useLogger('useInviteScreen');
 
   const { user } = useContext(UserContext);
-  const [ inviteCode, setInviteCode] = useState();
-
+  const [inviteCode, setInviteCode] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    handleGetInviteCode();
-  }, []);
+    if (user?.id) {
+      handleGetInviteCode();
+    }
+  }, [user?.id]);
   
-
   const handleGetInviteCode = async () => {
+    if (!user?.id) {
+      logger.warn("Cannot fetch invite code: user ID not available");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    
     try {
       logger.debug("Getting invite code for user", { userId: user.id });
-      const response = await api.get(
-        `/promotions/user/${user.id}`
-      );
+      const response = await api.get(`/promotions/user/${user.id}`);
       setInviteCode(response.data.code);
-      logger.info("Invite code retrieved", response.data);
+      logger.info("Invite code retrieved successfully", { code: response.data.code });
     } catch (error) {
-      logger.error("Failed to get invite code", error.response?.data?.error || error.message);
+      const statusCode = error.response?.status;
+      const errorMessage = error.response?.data?.error || error.message;
       
-      // If no invite code exists, create one
-      if (error.response?.status === 500) {
-        logger.info("No invite code found, creating new one");
-        await handleCreateInviteCode();
+      logger.error("Failed to get invite code", { 
+        statusCode, 
+        errorMessage, 
+        userId: user.id 
+      });
+      
+      if (statusCode === 404) {
+        setError("Invite code not found. Please contact support.");
+      } else if (statusCode >= 500) {
+        setError("Server error. Please try again later.");
+      } else {
+        setError("Failed to load invite code. Please try again.");
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleCreateInviteCode = async () => {
-    try {
-      logger.debug("Creating invite code for user", { userId: user.id, name: user.name });
-      const response = await api.post(
-        `/promotions/generate`,
-        {
-          userId: user.id,
-          name: user.name.split(' ')[0]
-        }
-      );
-      setInviteCode(response.data.code);
-      logger.info("Invite code created successfully", response.data);
-    } catch (error) {
-      logger.error("Failed to create invite code", error.response?.data?.error || error.message);
-    }
-  }
+  const retryGetInviteCode = () => {
+    handleGetInviteCode();
+  };
+
   return {
     models: {
       user,
-      inviteCode
+      inviteCode,
+      isLoading,
+      error
     },
     operations: {
+      retryGetInviteCode
     },
   };
 };

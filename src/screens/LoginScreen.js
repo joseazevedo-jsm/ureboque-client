@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import CountryPickerWithFlag from "../components/login/CountryPickerWithFlag";
@@ -129,8 +130,23 @@ const LoginScreen = () => {
                 )}
               </View>
               {models.warning ? (
-                <Text style={styles.warningText}>{models.warning}</Text>
+                <Text style={[styles.warningText, models.loginFailed && styles.errorText]}>
+                  {models.warning}
+                </Text>
               ) : null}
+              
+              {models.loginFailed && passwordState && (
+                <TouchableOpacity
+                  style={styles.changeNumberButton}
+                  onPress={operations.goBackToPhoneEntry}
+                  accessibilityLabel="Alterar número de telefone"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.changeNumberText}>
+                    Alterar Número de Telefone
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
             <View style={styles.bottom}>
               <Text style={styles.disclaimerText}>
@@ -153,9 +169,15 @@ const LoginScreen = () => {
                   onPress={() => operations.onLogin(phone)}
                   accessibilityLabel="Fazer login com senha"
                   accessibilityRole="button"
+                  disabled={models.isLoading}
+                  style={models.isLoading && styles.buttonDisabled}
                 >
-                  <View style={styles.button}>
-                    <Text style={styles.buttonText}>AVANÇAR</Text>
+                  <View style={[styles.button, models.isLoading && styles.buttonLoading]}>
+                    {models.isLoading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.buttonText}>AVANÇAR</Text>
+                    )}
                   </View>
                 </TouchableOpacity>
               )}
@@ -256,11 +278,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(10),
     fontSize: 12,
   },
+  warningText: {
+    color: "#ff6b6b",
+    fontSize: scale(14),
+    marginTop: scale(10),
+    paddingHorizontal: scale(10),
+    textAlign: "center",
+  },
+  errorText: {
+    fontWeight: "bold",
+    color: "#e74c3c",
+  },
+  changeNumberButton: {
+    marginTop: scale(15),
+    paddingVertical: scale(12),
+    paddingHorizontal: scale(20),
+    backgroundColor: "#f8f9fa",
+    borderRadius: scale(8),
+    borderWidth: 1,
+    borderColor: "#dee2e6",
+    alignItems: "center",
+    marginHorizontal: scale(10),
+  },
+  changeNumberText: {
+    color: "#0089ff",
+    fontSize: scale(14),
+    fontWeight: "500",
+  },
   button: {
     backgroundColor: "#0089ff",
     borderRadius: scale(7),
     alignItems: "center",
     marginHorizontal: scale(10),
+  },
+  buttonLoading: {
+    backgroundColor: "#6c757d",
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: "white",

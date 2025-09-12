@@ -138,8 +138,36 @@ export const UserDataProvider = ({ children }) => {
         ...prevState,
         discount: newDiscount,
       }));
+      return { success: true };
     } catch (error) {
       logger.error('UserDataContext', 'API operation failed', error);
+      const serverError = error.response?.data?.error;
+      let errorMessage = 'Falha ao activar código promocional';
+      
+      // Translate common server errors to Portuguese
+      if (serverError) {
+        switch (serverError) {
+          case 'User who generated the code cannot use it':
+            errorMessage = 'O utilizador que gerou o código não pode utilizá-lo';
+            break;
+          case 'Promotion code not found':
+            errorMessage = 'Código promocional não encontrado';
+            break;
+          case 'Promotion code expired':
+            errorMessage = 'Código promocional expirado';
+            break;
+          case 'Promotion code already used':
+            errorMessage = 'Código promocional já utilizado';
+            break;
+          case 'Invalid promotion code':
+            errorMessage = 'Código promocional inválido';
+            break;
+          default:
+            errorMessage = serverError;
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
   };
 

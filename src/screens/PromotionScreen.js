@@ -80,9 +80,9 @@ const PromotionScreen = () => {
     ]).start();
 
     try {
-      await operations.handleActivateCode();
+      const result = await operations.handleActivateCode();
       
-      if (!models.codeError) {
+      if (result?.success) {
         // Success animation
         setSuccessVisible(true);
         Vibration.vibrate([0, 50, 50, 50]);
@@ -90,9 +90,6 @@ const PromotionScreen = () => {
         setTimeout(() => {
           setSuccessVisible(false);
         }, 3000);
-      } else {
-        // Error haptic
-        Vibration.vibrate([0, 200]);
       }
     } catch (error) {
       logger.error('Error activating code', error);

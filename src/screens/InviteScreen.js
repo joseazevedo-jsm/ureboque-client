@@ -35,7 +35,9 @@ const InviteScreen = () => {
   
   logger.debug('InviteScreen rendered', {
     hasInviteCode: !!models.inviteCode,
-    userId: models.user?.id
+    userId: models.user?.id,
+    isLoading: models.isLoading,
+    hasError: !!models.error
   });
 
   // Entrance animation
@@ -189,7 +191,17 @@ const InviteScreen = () => {
         <View style={styles.codeSection}>
           <Text style={styles.codeLabel}>Seu código de convite:</Text>
           <View style={styles.codeContainer}>
-            {models.inviteCode ? (
+            {models.error ? (
+              <View style={styles.errorContainer}>
+                <Icon name="error" size={scale(20)} color="#f44336" />
+                <Text style={styles.errorText}>{models.error}</Text>
+              </View>
+            ) : models.isLoading ? (
+              <View style={styles.skeletonContainer}>
+                <ActivityIndicator size="small" color="#0089FF" />
+                <Text style={styles.loadingText}>Carregando código...</Text>
+              </View>
+            ) : models.inviteCode ? (
               <Text style={styles.codeText}>{models.inviteCode}</Text>
             ) : (
               <View style={styles.skeletonContainer}>
@@ -221,6 +233,17 @@ const InviteScreen = () => {
               <Text style={styles.successText}>Código copiado!</Text>
             </Animated.View>
           )}
+          {models.error && (
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={operations.retryGetInviteCode}
+              accessibilityLabel="Tentar novamente"
+              accessibilityRole="button"
+            >
+              <Icon name="refresh" size={scale(18)} color="#0089FF" />
+              <Text style={styles.retryText}>Tentar novamente</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Share Button */}
@@ -228,10 +251,10 @@ const InviteScreen = () => {
           <TouchableOpacity 
             style={[
               styles.shareButton, 
-              (!models.inviteCode || isSharing) && styles.disabledButton
+              (!models.inviteCode || isSharing || models.isLoading || models.error) && styles.disabledButton
             ]}
             onPress={handleShare}
-            disabled={!models.inviteCode || isSharing}
+            disabled={!models.inviteCode || isSharing || models.isLoading || models.error}
             accessibilityLabel="Compartilhar código de convite"
             accessibilityRole="button"
           >
@@ -435,13 +458,49 @@ const styles = StyleSheet.create({
   },
   skeletonContainer: {
     flex: 1,
+    flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   skeletonText: {
     height: scale(20),
     backgroundColor: '#e1e9ee',
     borderRadius: scale(4),
     width: '70%',
+  },
+  loadingText: {
+    marginLeft: scale(10),
+    fontSize: scale(14),
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  errorText: {
+    marginLeft: scale(8),
+    fontSize: scale(14),
+    color: '#f44336',
+    flex: 1,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: scale(12),
+    paddingVertical: scale(8),
+    paddingHorizontal: scale(16),
+    backgroundColor: '#f0f8ff',
+    borderRadius: scale(8),
+    borderWidth: 1,
+    borderColor: '#0089FF',
+  },
+  retryText: {
+    marginLeft: scale(6),
+    fontSize: scale(14),
+    color: '#0089FF',
+    fontWeight: '600',
   },
   copyButtonSuccess: {
     backgroundColor: '#e8f5e8',
