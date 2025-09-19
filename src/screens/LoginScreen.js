@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     justifyContent: "center",
-    paddingVertical: scale(15),
+    paddingVertical: scale(5),
   },
   phoneDiv: {
     paddingHorizontal: scale(10),

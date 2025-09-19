@@ -16,7 +16,7 @@ import ChatItem from "../../cards/chatItem";
 
 const imgDef = "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
 
-const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnreadMessageCount }) => {
+const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnreadMessageCount, onCallDriver }) => {
   const { models, operations } = useChatModal(idService, setUnreadMessageCount);
 
   const handeBackButtonPress = () => {
@@ -62,7 +62,7 @@ const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnre
           </View>
           <TouchableOpacity
             style={{ alignSelf: "center" }}
-            onPress={"handeBackButtonPress"}
+            onPress={onCallDriver}
           >
             <Icon name="phone" size={scale(30)} color="#0089FF" />
           </TouchableOpacity>

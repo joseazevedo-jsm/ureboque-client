@@ -4,7 +4,7 @@ import { scale } from "react-native-size-matters";
 import { useSocket } from "../../context/SocketContext";
 import { useUserData } from "../../context/UserDataContext";
 import Geocoder from "react-native-geocoding";
-import { Alert, Keyboard } from "react-native";
+import { Alert, Keyboard, Linking } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/APIService";
 import ErrorService from "../../services/ErrorService";
@@ -651,6 +651,7 @@ export const useMapScreen = () => {
         status: service.driver.status,
         rating: service.driver.rating,
         numServices: service.driver.numServices,
+        phone: service.driver.phone,
         car: {
           name: `${car.brand} ${car.model} ${car.color}`,
           color: car.color,
@@ -1269,6 +1270,29 @@ export const useMapScreen = () => {
     );
   };
 
+  const handleCallDriver = () => {
+    // Hide any loading indicators first
+    resetTimer();
+
+    const phoneNumber = tripData.driver?.phone;
+
+    if (phoneNumber) {
+      let phone = phoneNumber.toString().replace(/[^\d]/g, '');
+
+      // Remove 244 country code
+      if (phone.startsWith('244')) {
+        phone = phone.substring(3);
+      }
+
+      Linking.openURL(`tel:${phone}`)
+        .catch((err) => {
+          Alert.alert("Erro", "Erro ao tentar fazer a ligação");
+        });
+    } else {
+      Alert.alert("Aviso", "Número de telefone do motorista não disponível");
+    }
+  };
+
   const handlePressCancel = () => {
     updateModal('cancel', true);
   };
@@ -1397,6 +1421,7 @@ export const useMapScreen = () => {
       handleConfirmButtonPress,
       handleConfirmPaymentPress,
       handleMessageDriver,
+      handleCallDriver,
       setUnreadMessageCount,
       handleCancelTrip,
       handleCancelSearch,

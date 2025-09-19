@@ -37,6 +37,7 @@ const DriverStatus = ({
   onDetailsTrip,
   onCancelTrip,
   onMessageDriver,
+  onCallDriver,
   bttmSheetRef,
   unreadMessageCount = 0,
 }) => {
@@ -53,6 +54,7 @@ const DriverStatus = ({
           driver={driver}
           tripDuration={tripDuration}
           onMessageDriver={onMessageDriver}
+          onCallDriver={onCallDriver}
           unreadMessageCount={unreadMessageCount}
         />
       </View>

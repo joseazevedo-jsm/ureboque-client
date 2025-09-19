@@ -398,6 +398,7 @@ const MapScreen = memo(() => {
             onCancelTrip={operations.handlePreCancelButtonPress}
             onDetailsTrip={operations.handleDetailsForm}
             onMessageDriver={operations.handleMessageDriver}
+            onCallDriver={operations.handleCallDriver}
             bttmSheetRef={models.tripStartedSheetRef}
             unreadMessageCount={models.unreadMessageCount}
           />
@@ -419,6 +420,7 @@ const MapScreen = memo(() => {
             onCancelTrip={operations.handleCancelTrip}
             onDetailsTrip={operations.handleDetailsForm}
             onMessageDriver={operations.handleMessageDriver}
+            onCallDriver={operations.handleCallDriver}
             bttmSheetRef={models.driverArrivingSheetRef}
             unreadMessageCount={models.unreadMessageCount}
           />
@@ -440,6 +442,7 @@ const MapScreen = memo(() => {
             onCancelTrip={operations.handleCancelTrip}
             onDetailsTrip={operations.handleDetailsForm}
             onMessageDriver={operations.handleMessageDriver}
+            onCallDriver={operations.handleCallDriver}
             bttmSheetRef={models.driverArrivingSheetRef}
             unreadMessageCount={models.unreadMessageCount}
           />
@@ -520,6 +523,7 @@ const MapScreen = memo(() => {
         idService={models.service?._id}
         driver={models?.driver}
         setUnreadMessageCount={operations.setUnreadMessageCount}
+        onCallDriver={operations.handleCallDriver}
       />
 
       <PreCancelationModal
