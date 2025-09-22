@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLogger } from '../hooks/useLogger';
 import sentryService from '../services/SentryService';
-
+ 
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -113,32 +113,32 @@ export const AuthProvider = ({ children }) => {
   const checkAuthState = async () => {
     const timer = logger.startTimer('auth_state_check');
     logger.debug('Checking authentication state');
-    
+
     try {
       const token = await AsyncStorage.getItem('userToken');
       const userId = await AsyncStorage.getItem('userId');
-      
+
       if (token && userId) {
         setUserToken(token);
         setIsAuthenticated(true);
-        
+
         // Restore Sentry user context from storage
         sentryService.setUser({
           id: userId,
           authenticated: true,
           restored: true
         });
-        
-        sentryService.addUserAction('auth_state_restored', { 
+
+        sentryService.addUserAction('auth_state_restored', {
           userId,
-          fromStorage: true 
+          fromStorage: true
         });
-        
+
         logger.info('Authentication state restored from storage', { hasToken: !!token });
         logger.logStateChange('isAuthenticated', false, true, 'restored_from_storage');
       } else {
         logger.debug('No authentication token found in storage');
-        
+
         sentryService.addUserAction('auth_check_no_token');
       }
     } catch (error) {
@@ -149,7 +149,7 @@ export const AuthProvider = ({ children }) => {
           step: 'token_retrieval'
         }
       }, { auth_operation: 'auth_check' });
-      
+
       logger.logError(error, { operation: 'auth_state_check' });
     } finally {
       setIsLoading(false);
@@ -157,6 +157,7 @@ export const AuthProvider = ({ children }) => {
       timer.end({ authenticated: isAuthenticated });
     }
   };
+
 
   useEffect(() => {
     checkAuthState();

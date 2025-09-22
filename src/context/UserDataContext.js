@@ -17,7 +17,7 @@ export const useUserData = () => {
 
 export const UserDataProvider = ({ children }) => {
   const logger = useLogger('UserDataContext');
-  const { userToken, isAuthenticated } = useAuth();
+  const { userToken, isAuthenticated, logout } = useAuth();
   const [user, setUser] = useState(null);
   const [prices, setPrices] = useState(null);
   const [services, setServices] = useState([]);
@@ -28,19 +28,23 @@ export const UserDataProvider = ({ children }) => {
   const fetchUserById = async (userId) => {
     const timer = logger.startTimer('fetch_user_by_id');
     logger.logApiRequest('GET', `/users/${userId}`);
-    
+
     try {
       setIsLoading(true);
       logger.logStateChange('isLoading', false, true, 'fetch_user_started');
-      
+
       const response = await api.get(`/users/${userId}`);
       const data = response.data;
-      
+
       logger.logApiResponse('GET', `/users/${userId}`, response.status, data, timer.end());
       setUser(data);
       logger.logStateChange('user', null, 'loaded', 'user_data_fetched');
-      
+
     } catch (error) {
+      if (error.response?.status === 401) {
+        await logout();
+        throw error;
+      }
       ErrorService.handleAPIError(error, true, 'UserDataContext');
       logger.logError(error, { operation: 'fetchUserById', userId });
     } finally {
@@ -64,19 +68,19 @@ export const UserDataProvider = ({ children }) => {
     const timer = logger.startTimer('save_favourite_address');
     logger.info('Saving favourite address', { placeName: place.name, userId: user?.id });
     logger.logApiRequest('PUT', `/users/${user.id}/places`, place);
-    
+
     try {
       const response = await api.put(`/users/${user.id}/places`, place);
       logger.logApiResponse('PUT', `/users/${user.id}/places`, response.status, response.data, timer.end());
-      
+
       setUser((prevState) => ({
         ...prevState,
         saved_places: response.data.saved_places,
       }));
-      
-      logger.info('Favourite address saved successfully', { 
-        placeName: place.name, 
-        totalSavedPlaces: response.data.saved_places?.length 
+
+      logger.info('Favourite address saved successfully', {
+        placeName: place.name,
+        totalSavedPlaces: response.data.saved_places?.length
       });
     } catch (error) {
       ErrorService.handleAPIError(error, true, 'UserDataContext');
@@ -87,9 +91,9 @@ export const UserDataProvider = ({ children }) => {
   const removeUserFavouriteAddress = async (placeId) => {
     try {
       const response = await api.delete(`/users/${user.id}/places/${placeId}`);
-      
+
       logger.info('Delete API response received', response.data);
-      
+
       // Check if response has the expected structure
       if (response.data && response.data.saved_places) {
         setUser((prevState) => ({
@@ -114,7 +118,7 @@ export const UserDataProvider = ({ children }) => {
     try {
       const response = await api.put(`/users/${user.id}/places/${placeId}`, place);
       logger.info('Update API response received', response.data);
-      
+
       if (response.data && response.data.saved_places) {
         setUser((prevState) => ({
           ...prevState,
@@ -143,7 +147,7 @@ export const UserDataProvider = ({ children }) => {
       logger.error('UserDataContext', 'API operation failed', error);
       const serverError = error.response?.data?.error;
       let errorMessage = 'Falha ao activar código promocional';
-      
+
       // Translate common server errors to Portuguese
       if (serverError) {
         switch (serverError) {
@@ -166,7 +170,7 @@ export const UserDataProvider = ({ children }) => {
             errorMessage = serverError;
         }
       }
-      
+
       throw new Error(errorMessage);
     }
   };
@@ -189,13 +193,13 @@ export const UserDataProvider = ({ children }) => {
     const timer = logger.startTimer('update_user');
     logger.info('Updating user data', { userId, fields: Object.keys(userData) });
     logger.logApiRequest('PUT', `/users/${userId}`, userData);
-    
+
     try {
       setIsLoading(true);
       const response = await api.put(`/users/${userId}`, userData);
-      
+
       logger.logApiResponse('PUT', `/users/${userId}`, response.status, response.data, timer.end());
-      
+
       setUser((prevState) => ({
         ...prevState,
         name: response.data.user.name,
@@ -203,11 +207,12 @@ export const UserDataProvider = ({ children }) => {
         phone: response.data.user.phone,
         photo: response.data.user.photo
       }));
-      
+
       logger.info('User updated successfully', { userId, updatedFields: Object.keys(userData) });
     } catch (error) {
-      ErrorService.handleAPIError(error, true, 'UserDataContext');
+      ErrorService.handleAPIError(error, false, 'UserDataContext');
       logger.logError(error, { operation: 'updateUser', userId, userData });
+      throw error; // Re-throw the error so calling code knows update failed
     } finally {
       setIsLoading(false);
     }
@@ -216,27 +221,27 @@ export const UserDataProvider = ({ children }) => {
   const fetchUserServices = async (userId, refreshing = false) => {
     const timer = logger.startTimer('fetch_user_services');
     logger.logApiRequest('GET', `/service/allMonthlyClient/${userId}`);
-    
+
     try {
       if (!refreshing) {
         setServicesLoading(true);
       }
-      
+
       const response = await api.get(`service/allMonthlyClient/${userId}`);
-      
+
       logger.logApiResponse('GET', `/service/allMonthlyClient/${userId}`, response.status, response.data, timer.end());
       if (response.data) {
         const servicesData = response.data;
-     
+
         setServices(servicesData);
-        
+
         logger.info('User services loaded successfully', {
           servicesCount: servicesData.length,
           userId
         });
- 
+
         const lastService = servicesData[0];
- 
+
         if (lastService.service.status && lastService.service.driver && !lastService.service.review.rating) setServiceStatus(lastService);
 
         logger.info('App state determined', { currentState: lastService.service });
@@ -244,7 +249,7 @@ export const UserDataProvider = ({ children }) => {
         logger.warn('No services data in response', { response: response.data });
         setServices([]);
       }
-      
+
     } catch (error) {
       ErrorService.handleAPIError(error, false, 'UserDataContext');
       logger.logError(error, { operation: 'fetchUserServices', userId });

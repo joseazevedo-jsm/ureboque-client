@@ -12,111 +12,56 @@ const useSettingsScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChangePassword = () => {
-    logger.debug('Change password requested');
-    
-    Alert.prompt(
+    logger.debug('Password reset via email requested');
+
+    Alert.alert(
       "Alterar Senha",
-      "Digite a sua senha atual:",
+      `Será enviado um email para ${user?.email || 'o seu endereço de email'} com instruções para alterar a sua senha.`,
       [
         {
           text: "Cancelar",
           style: "cancel"
         },
         {
-          text: "Continuar",
-          onPress: (currentPassword) => {
-            if (!currentPassword || currentPassword.trim() === "") {
-              Alert.alert("Erro", "Por favor, digite a sua senha atual");
-              return;
-            }
-            
-            // Prompt for new password
-            Alert.prompt(
-              "Nova Senha",
-              "Digite a sua nova senha:",
-              [
-                {
-                  text: "Cancelar",
-                  style: "cancel"
-                },
-                {
-                  text: "Continuar",
-                  onPress: (newPassword) => {
-                    if (!newPassword || newPassword.trim() === "") {
-                      Alert.alert("Erro", "Por favor, digite a nova senha");
-                      return;
-                    }
-                    
-                    if (newPassword.length < 6) {
-                      Alert.alert("Erro", "A senha deve ter pelo menos 6 caracteres");
-                      return;
-                    }
-                    
-                    // Confirm new password
-                    Alert.prompt(
-                      "Confirmar Nova Senha",
-                      "Confirme a sua nova senha:",
-                      [
-                        {
-                          text: "Cancelar",
-                          style: "cancel"
-                        },
-                        {
-                          text: "Alterar",
-                          onPress: (confirmPassword) => {
-                            if (newPassword !== confirmPassword) {
-                              Alert.alert("Erro", "As senhas não coincidem");
-                              return;
-                            }
-                            
-                            changePassword(currentPassword, newPassword);
-                          }
-                        }
-                      ],
-                      "secure-text"
-                    );
-                  }
-                }
-              ],
-              "secure-text"
-            );
-          }
+          text: "Enviar Email",
+          onPress: () => requestPasswordReset()
         }
-      ],
-      "secure-text"
+      ]
     );
   };
 
-  const changePassword = async (currentPassword, newPassword) => {
+  const requestPasswordReset = async () => {
+    if (!user?.email) {
+      Alert.alert("Erro", "Email do utilizador não encontrado");
+      return;
+    }
+
     setIsLoading(true);
-    
+
     try {
-      logger.debug('Attempting to change password');
-      
-      const response = await api.post('/auth/change-password', {
-        currentPassword,
-        newPassword,
-        userId: user._id
+      logger.debug('Requesting password reset email', { email: user.email });
+
+      const resp = await api.post('users/request-password-reset', {
+        email: user.email
       });
 
-      if (response.data.success) {
-        logger.info('Password changed successfully');
-        Alert.alert(
-          "Sucesso",
-          "A sua senha foi alterada com sucesso!",
-          [{ text: "OK", style: "default" }]
-        );
-      } else {
-        throw new Error(response.data.message || 'Erro ao alterar senha');
-      }
+      logger.info(resp.data.message);
+      Alert.alert(
+        "Email Enviado",
+        "Verifique a sua caixa de email para instruções sobre como alterar a sua senha.",
+        [{ text: "OK", style: "default" }]
+      );
+
     } catch (error) {
-      logger.error('Password change failed', { 
+      logger.error('Password reset request failed', {
         error: error.message,
-        userId: user._id 
+        email: user.email,
+        status: error.response?.status,
+        responseData: error.response?.data
       });
-      
-      const errorMessage = error.response?.data?.message || error.message || 'Erro ao alterar senha';
-      
+
+      let errorMessage = 'Erro ao enviar email de recuperação';
+    
       Alert.alert(
         "Erro",
         errorMessage,
@@ -126,6 +71,8 @@ const useSettingsScreen = () => {
       setIsLoading(false);
     }
   };
+
+   
 
   const handleLogout = () => {
     logger.debug('Logout requested');
@@ -229,7 +176,7 @@ const useSettingsScreen = () => {
       });
       
       const errorMessage = error.response?.data?.message || error.message || 'Erro ao eliminar conta';
-      
+      w
       Alert.alert(
         "Erro",
         errorMessage,

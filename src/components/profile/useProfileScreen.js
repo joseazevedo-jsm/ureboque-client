@@ -123,7 +123,7 @@ const useProfileScreen = () => {
       // Show error message
       Alert.alert(
         "Erro",
-        "Erro ao atualizar perfil. Tente novamente.",
+        "Erro ao atualizar perfil. Por favor verifique os dados.",
         [{ text: "OK" }]
       );
     } finally {

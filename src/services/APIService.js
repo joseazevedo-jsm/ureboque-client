@@ -81,7 +81,7 @@ api.interceptors.response.use(
     const endTime = Date.now();
     const startTime = response.config.metadata?.startTime || endTime;
     const duration = endTime - startTime;
-    
+
     Logger.logApiResponse(
       'APIService',
       response.config.method?.toUpperCase() || 'UNKNOWN',
@@ -90,7 +90,7 @@ api.interceptors.response.use(
       response.data,
       duration
     );
-    
+
     // Update Sentry context with successful response
     sentryService.setContext('api_response', {
       method: response.config.method?.toUpperCase(),
@@ -100,7 +100,7 @@ api.interceptors.response.use(
       success: true,
       timestamp: new Date().toISOString()
     });
-    
+
     // Add performance breadcrumb for slow requests
     if (duration > 2000) {
       sentryService.addUserAction('slow_api_request', {
@@ -110,14 +110,14 @@ api.interceptors.response.use(
         status: response.status
       });
     }
-    
+
     return response;
   },
-  (error) => {
+  async (error) => {
     const endTime = Date.now();
     const startTime = error.config?.metadata?.startTime || endTime;
     const duration = endTime - startTime;
-    
+
     Logger.logApiResponse(
       'APIService',
       error.config?.method?.toUpperCase() || 'UNKNOWN',
@@ -126,7 +126,8 @@ api.interceptors.response.use(
       error.response?.data,
       duration
     );
-    
+
+
     // Update Sentry context with error response
     sentryService.setContext('api_response', {
       method: error.config?.method?.toUpperCase(),
@@ -137,9 +138,12 @@ api.interceptors.response.use(
       errorType: error.response ? 'server_error' : error.request ? 'network_error' : 'client_error',
       timestamp: new Date().toISOString()
     });
-    
-    // ErrorService will handle Sentry error reporting
-    ErrorService.handleAPIError(error, false, 'APIService');
+
+    // ErrorService will handle Sentry error reporting (except for 401s which are handled above)
+    if (error.response?.status !== 401) {
+      ErrorService.handleAPIError(error, false, 'APIService');
+    }
+
     return Promise.reject(error);
   }
 );

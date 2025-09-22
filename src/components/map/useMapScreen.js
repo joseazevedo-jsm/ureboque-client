@@ -1271,8 +1271,6 @@ export const useMapScreen = () => {
   };
 
   const handleCallDriver = () => {
-    // Hide any loading indicators first
-    resetTimer();
 
     const phoneNumber = tripData.driver?.phone;
 
