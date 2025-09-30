@@ -7,19 +7,33 @@ import LocationSearch from './components/LocationSearch';
 
 const SavedAddressesModal = ({ visible, onClose, onMapDragRequest }) => {
   const savedAddresses = useSavedAddresses();
+  const [isInMapDragMode, setIsInMapDragMode] = React.useState(false);
 
   // When parent closes, ensure internal state is reset
   React.useEffect(() => {
-    if (!visible) {
+    if (!visible && !isInMapDragMode) {
+      // Only reset state if we're not in map drag mode
       savedAddresses.close();
     } else if (visible && savedAddresses.state.mode === 'closed') {
       savedAddresses.openList();
     }
-  }, [visible]);
+  }, [visible, isInMapDragMode]);
 
   const handleClose = () => {
     savedAddresses.close();
+    setIsInMapDragMode(false);
     onClose();
+  };
+
+  const handleMapDragRequest = (callback) => {
+    // Set flag before initiating map drag
+    setIsInMapDragMode(true);
+
+    // Wrap the callback to clear the flag when done
+    onMapDragRequest((selectedLocation) => {
+      setIsInMapDragMode(false);
+      callback(selectedLocation);
+    });
   };
 
   const renderContent = () => {
@@ -27,16 +41,16 @@ const SavedAddressesModal = ({ visible, onClose, onMapDragRequest }) => {
       case 'list':
         // Phase 2: Render AddressesList component
         return <AddressesList {...savedAddresses} onClose={handleClose} />;
-      
+
       case 'add':
       case 'edit':
         // Phase 3: Render AddressForm component
         return <AddressForm {...savedAddresses} onClose={handleClose} />;
-      
+
       case 'search':
         // Phase 4: Render LocationSearch component
-        return <LocationSearch {...savedAddresses} onClose={handleClose} onMapDragRequest={onMapDragRequest} />;
-      
+        return <LocationSearch {...savedAddresses} onClose={handleClose} onMapDragRequest={handleMapDragRequest} />;
+
       default:
         return null;
     }
