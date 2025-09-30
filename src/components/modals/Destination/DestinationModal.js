@@ -24,7 +24,7 @@ const DestinationModal = ({
   destination,
   inputCurr,
 }) => {
-  const { models, operations } = useDestinationModal();
+  const { models, operations } = useDestinationModal(inputCurr);
 
   const handleBackButtonPress = () => {
     closeModal();

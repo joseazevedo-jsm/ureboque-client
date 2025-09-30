@@ -87,6 +87,52 @@ export const useMapScreen = () => {
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [isCurrLocation, setIsCurrLocation] = useState(null);
 
+  // NEW: Unified Location Selection State
+  const [locationSelection, setLocationSelection] = useState({
+    origin: {
+      address: null,
+      coords: null,
+      isCurrentLocation: false
+    },
+    destination: {
+      address: null,
+      coords: null,
+      isCurrentLocation: false
+    },
+    activeInput: null, // 'origin' | 'destination' | null
+    pendingDragLocation: {
+      address: null,
+      coords: null
+    }
+  });
+
+  // Helper: Apply location selection for origin or destination
+  const applyLocationSelection = useCallback((inputType, locationData) => {
+    logger.debug("Applying location selection", { inputType, locationData });
+
+    setLocationSelection(prev => ({
+      ...prev,
+      [inputType]: {
+        address: locationData.address,
+        coords: locationData.coords,
+        isCurrentLocation: locationData.isCurrentLocation || false
+      },
+      pendingDragLocation: { address: null, coords: null }
+    }));
+
+    // Update legacy states for backward compatibility during transition
+    if (inputType === 'origin') {
+      setOriginCity(locationData.address);
+      setOriginCoords(locationData.coords);
+      if (!locationData.isCurrentLocation) {
+        setIsCurrLocation();
+      }
+    } else if (inputType === 'destination') {
+      setDestinationCity(locationData.address);
+      setDestinationCoords(locationData.coords);
+    }
+  }, []);
+
   // Car and Trip Details - Consolidated state
   const [tripData, setTripData] = useState({
     // Car details
@@ -755,57 +801,128 @@ export const useMapScreen = () => {
   };
 
   const handleOnFavouriteButtonPress = useCallback((item) => () => {
-    setOriginCity(item.place.description);
-    setOriginCoords({
+    // Set favorite place as destination
+    const destinationAddress = item.place.description;
+    const destinationCoordinates = {
       latitude: item.place.coordinates.latitude,
       longitude: item.place.coordinates.longitude,
-    });
-    updateModal('destination', true);
-    updateTripData({ inputLocationObject: true });
-    setIsCurrLocation();
-  }, []);
+    };
 
-  const handleConfirmDraggablePress = () => {
+    setDestinationCity(destinationAddress);
+    setDestinationCoords(destinationCoordinates);
+
+    // Update new location selection state
+    setLocationSelection(prev => ({
+      ...prev,
+      destination: {
+        address: destinationAddress,
+        coords: destinationCoordinates,
+        isCurrentLocation: false
+      }
+    }));
+
+    // Determine origin coordinates - default to current location if nothing is set
+    let originCoordinates = null;
+
+    if (isCurrLocation || (originCoords && originCoords.latitude)) {
+      // Use current location or already set origin
+      originCoordinates = originCoords || {
+        latitude: userLocation?.latitude,
+        longitude: userLocation?.longitude,
+      };
+    } else if (locationSelection.origin.coords) {
+      // Use new unified state origin
+      originCoordinates = locationSelection.origin.coords;
+    } else if (userLocation?.latitude && userLocation?.longitude) {
+      // Default to user's current location
+      originCoordinates = {
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+      };
+
+      // Set as origin with current location flag
+      setOriginCoords(originCoordinates);
+      setIsCurrLocation(originCoordinates);
+    }
+
+    if (originCoordinates?.latitude && destinationCoordinates?.latitude) {
+      // Both origin and destination set - proceed to car type selection
+      updateMapState({
+        markers: [originCoordinates, destinationCoordinates]
+      });
+      bottomSheetModalRef.current.dismiss();
+      carTypeSelectionSheetRef.current.present();
+    } else {
+      // No valid origin - open destination modal to set origin
+      updateModal('destination', true);
+      updateTripData({ inputLocationObject: 0 }); // Set to origin input
+    }
+  }, [isCurrLocation, originCity, originCoords, locationSelection, userLocation]);
+
+  const handleConfirmDragMarkerLocation = () => {
+    logger.debug("Confirming drag marker location");
+
     // Check if this is for saved addresses
     if (savedAddressMapDragCallback) {
-      // Call the saved addresses callback with selected location
       const selectedLocation = {
-        coordinates: markerCoordinates || { latitude: 0, longitude: 0 },
+        coordinates: locationSelection.pendingDragLocation.coords || { latitude: 0, longitude: 0 },
         address: mapState.markerCity,
         name: mapState.markerCity?.split(',')[0] || 'Local selecionado'
       };
       savedAddressMapDragCallback(selectedLocation);
       setSavedAddressMapDragCallback(null);
       updateMapState({ markerVisible: false });
-      setMarkerCoordinates(null); // Clear marker coordinates
+      setLocationSelection(prev => ({
+        ...prev,
+        pendingDragLocation: { address: null, coords: null }
+      }));
+      setMarkerCoordinates(null);
       bottomSheetModalDragMarker.current.dismiss();
-      updateModal('savedPlaces', true); // Reopen saved addresses modal
+      updateModal('savedPlaces', true);
       return;
     }
 
-    // Original destination selection logic
-    updateModal('destination', true);
-    if (tripData.inputLocationObject === 0) {
-      logger.debug("Origin coordinates set", { inputLocationObject: tripData.inputLocationObject, coordinates: originCoords });
-      setOriginCity(mapState.markerCity);
-      if (destinationCity != null) {
-        updateMapState({ markers: [originCoords, destinationCoords] });
-        updateModal('destination', false);
-        bottomSheetModalRef.current.dismiss();
-        carTypeSelectionSheetRef.current.present();
-      }
-    } else if (tripData.inputLocationObject === 1) {
-      logger.debug("Destination coordinates set", { inputLocationObject: tripData.inputLocationObject, coordinates: destinationCoords });
-      setDestinationCity(mapState.markerCity);
-      if (originCity != null) {
-        updateMapState({ markers: [originCoords, destinationCoords] });
-        updateModal('destination', false);
-        bottomSheetModalRef.current.dismiss();
-        carTypeSelectionSheetRef.current.present();
-      }
+    // Apply the pending drag location
+    const inputType = locationSelection.activeInput;
+    if (inputType && mapState.markerCity) {
+      applyLocationSelection(inputType, {
+        address: mapState.markerCity,
+        coords: locationSelection.pendingDragLocation.coords,
+        isCurrentLocation: false
+      });
     }
-    updateMapState({ markerVisible: false });
-    bottomSheetModalDragMarker.current.dismiss();
+
+    // Check if both locations are set to proceed
+    const updatedOrigin = inputType === 'origin'
+      ? mapState.markerCity
+      : (locationSelection.origin.address || originCity);
+    const updatedDestination = inputType === 'destination'
+      ? mapState.markerCity
+      : (locationSelection.destination.address || destinationCity);
+
+    if (updatedOrigin && updatedDestination) {
+      // Both locations set - proceed to car type selection
+      const originCoordinates = inputType === 'origin'
+        ? locationSelection.pendingDragLocation.coords
+        : (locationSelection.origin.coords || originCoords);
+      const destinationCoordinates = inputType === 'destination'
+        ? locationSelection.pendingDragLocation.coords
+        : (locationSelection.destination.coords || destinationCoords);
+
+      updateMapState({
+        markers: [originCoordinates, destinationCoordinates]
+      });
+      updateModal('destination', false);
+      bottomSheetModalRef.current.dismiss();
+      bottomSheetModalDragMarker.current.dismiss();
+      updateMapState({ markerVisible: false });
+      carTypeSelectionSheetRef.current.present();
+    } else {
+      // Only one location set - return to destination modal
+      updateModal('destination', true);
+      bottomSheetModalDragMarker.current.dismiss();
+      updateMapState({ markerVisible: false });
+    }
   };
 
   const handleTypeCarPress = useCallback((type, price) => () => {
@@ -947,35 +1064,76 @@ export const useMapScreen = () => {
     }
   };
 
-  const handleMarkerDragPress = useCallback(() => () => {
-    logger.debug("Debug checkpoint - AQUI");
+  const handleInitiateDragMarkerSelection = useCallback(() => () => {
+    logger.debug("Initiating drag marker selection", { activeInput: tripData.inputLocationObject });
+
+    setLocationSelection(prev => ({
+      ...prev,
+      activeInput: tripData.inputLocationObject === 0 ? 'origin' : 'destination'
+    }));
+
     updateModal('destination', false);
     updateMapState({ markerVisible: true });
     bottomSheetModalRef.current.dismiss();
     bottomSheetModalDragMarker.current.present();
-  }, []);
+  }, [tripData.inputLocationObject]);
+
+  const handleReturnToSearchFromDragMarker = useCallback(() => {
+    logger.debug("Returning to search from drag marker");
+
+    // Check if this is from saved addresses modal
+    if (savedAddressMapDragCallback) {
+      // Return to saved addresses modal without applying location
+      bottomSheetModalDragMarker.current.dismiss();
+      updateMapState({ markerVisible: false });
+      updateModal('savedPlaces', true);
+      return;
+    }
+
+    // Apply current pending location before returning (for normal flow)
+    const inputType = locationSelection.activeInput;
+    if (inputType && mapState.markerCity) {
+      applyLocationSelection(inputType, {
+        address: mapState.markerCity,
+        coords: locationSelection.pendingDragLocation.coords,
+        isCurrentLocation: false
+      });
+    }
+
+    bottomSheetModalDragMarker.current.dismiss();
+    updateMapState({ markerVisible: false });
+    updateModal('destination', true);
+  }, [savedAddressMapDragCallback, locationSelection, mapState.markerCity, applyLocationSelection]);
 
   const handleSavedAddressMapDragRequest = (callback) => {
     // Store the callback and initiate map drag
     setSavedAddressMapDragCallback(() => callback);
-    
-    // Close saved addresses modal
+
+    // Close saved addresses modal and destination modal
     updateModal('savedPlaces', false);
-    
+    updateModal('destination', false);
+
     // Start map drag process
     updateMapState({ markerVisible: true });
     carTypeSelectionSheetRef.current.dismiss();
     bottomSheetModalDragMarker.current.present();
   };
 
-  const handleMarkerDragEnd = ({ latitude, longitude }) => {
+  const handleDragMarkerPositionChange = ({ latitude, longitude }) => {
     getAddressFromCoordinates(latitude, longitude);
-    logger.debug("Marker drag ended", { latitude, longitude });
-    
-    // Store current marker coordinates for use in handleConfirmDraggablePress
-    setMarkerCoordinates({ latitude, longitude });
+    logger.debug("Drag marker position changed", { latitude, longitude });
 
-    // Removed newSavedPlaceAddress logic - handled by new saved addresses system
+    // Store as pending location (not confirmed yet)
+    setLocationSelection(prev => ({
+      ...prev,
+      pendingDragLocation: {
+        address: mapState.markerCity, // Will be updated by getAddressFromCoordinates
+        coords: { latitude, longitude }
+      }
+    }));
+
+    // Legacy coordinate updates for backward compatibility during transition
+    setMarkerCoordinates({ latitude, longitude });
     if (tripData.inputLocationObject === 0) {
       setOriginCoords({ latitude, longitude });
     } else if (tripData.inputLocationObject === 1) {
@@ -1159,10 +1317,32 @@ export const useMapScreen = () => {
   const handleBackButtonPress = () => {
     if (isRouteVisible) {
       updateMapState({ markers: [] });
+
+      // Clear legacy location states
       setOriginCity(null);
       setDestinationCity(null);
       setOriginCoords();
       setDestinationCoords();
+
+      // Clear new unified location state
+      setLocationSelection({
+        origin: {
+          address: null,
+          coords: null,
+          isCurrentLocation: false
+        },
+        destination: {
+          address: null,
+          coords: null,
+          isCurrentLocation: false
+        },
+        activeInput: null,
+        pendingDragLocation: {
+          address: null,
+          coords: null
+        }
+      });
+
       updateMapState({ directions: null });
       centerToUserLocation();
 
@@ -1174,7 +1354,7 @@ export const useMapScreen = () => {
       tripStartedSheetRef.current?.dismiss();
       driverArrivingSheetRef.current?.dismiss();
       tripEndingSheetRef.current?.dismiss();
-      
+
       // Present the initial bottom sheet
       setTimeout(() => {
         bottomSheetModalRef.current?.present();
@@ -1371,6 +1551,7 @@ export const useMapScreen = () => {
       mapDirections: mapState.directions,
       carsAround: mapState.carsAround,
       driverLocation: mapState.driverLocation,
+      locationSelection,
       originCity,
       destinationCity,
       bottomSheetModalRef,
@@ -1405,10 +1586,11 @@ export const useMapScreen = () => {
       handlePressItemPress,
       handlePressSelectTypeRoad,
       handleMapDirectionsReady,
-      handleMarkerDragPress,
+      handleInitiateDragMarkerSelection,
+      handleReturnToSearchFromDragMarker,
       handleSavedAddressMapDragRequest,
-      handleMarkerDragEnd,
-      handleConfirmDraggablePress,
+      handleDragMarkerPositionChange,
+      handleConfirmDragMarkerLocation,
       handleLocationTextInputFocus,
       handleBackButtonPress,
       handleTypeCarPress,

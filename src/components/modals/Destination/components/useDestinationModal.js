@@ -4,12 +4,14 @@ import { useDebounce } from "use-debounce";
 import { useRef } from "react";
 import { useEffect } from "react";
 import { UserContext } from "../../../../context/UserContext";
-export const useDestinationModal = () => {
+export const useDestinationModal = (externalIsCurrLocation) => {
   const { user } = useContext(UserContext);
 
   const [data, setData] = useState([]);
 
-  const [isCurrLocation, setIsCurrLocation] = useState(true)
+  // Use external isCurrLocation from parent (passed via inputCurr prop)
+  // When null/undefined/false, "Localização atual" should be shown in list
+  const isCurrLocation = externalIsCurrLocation;
   const [inputIndex, setInputIndex] = useState();
 
   useEffect(() => {
@@ -63,7 +65,8 @@ export const useDestinationModal = () => {
   }; // check this later
 
   const handleOnIsCurrLocation = (val) => {
-    setIsCurrLocation(val)
+    // No-op: isCurrLocation is now controlled by parent via externalIsCurrLocation
+    // The parent's state will be updated by handlePressItemPress in useMapScreen
   }
 
   const handleOnSelectInputIndex = (index) => {

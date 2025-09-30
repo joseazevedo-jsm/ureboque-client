@@ -218,7 +218,7 @@ const MapScreen = memo(() => {
         showsUserLocation
         onUserLocationChange={operations.handleUserLocationChange}
         showsMyLocationButton={false}
-        onRegionChangeComplete={operations.handleMarkerDragEnd}
+        onRegionChangeComplete={operations.handleDragMarkerPositionChange}
         toolbarEnabled={false}
         customMapStyle={customStyleMap}
         style={styles.map}
@@ -478,22 +478,39 @@ const MapScreen = memo(() => {
                 ? "DE ONDE VAI PARTIR?"
                 : "PARA ONDE ESTÁ INDO?"}
             </Text>
+
+            {/* Display selected address */}
             <View style={styles.searchContainer}>
               <Icon name="search" size={scale(20)} color="#ccc" />
-              <TouchableOpacity style={styles.searchTextContainer}>
+              <View style={styles.searchTextContainer}>
                 <Text style={styles.searchText}>
                   {models.markerCity}
                 </Text>
+              </View>
+            </View>
+
+            {/* Action buttons */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={operations.handleReturnToSearchFromDragMarker}
+              >
+                <Icon name="search" size={scale(18)} color="#0089ff" />
+                <Text style={styles.secondaryButtonText}>
+                  Buscar novamente
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={operations.handleConfirmDragMarkerLocation}
+              >
+                <Icon name="check" size={scale(18)} color="#fff" />
+                <Text style={styles.confirmButtonText}>
+                  Confirmar
+                </Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={operations.handleConfirmDraggablePress}
-            >
-              <Text style={styles.confirmButtonText}>
-                Confirmar
-              </Text>
-            </TouchableOpacity>
           </View>
         </BottomSheetModal>
 
@@ -503,11 +520,11 @@ const MapScreen = memo(() => {
         visible={models.modalVisible}
         closeModal={operations.closeDestinationModal}
         onPlaceItemPress={operations.handlePressItemPress}
-        onMarkerDragPress={operations.handleMarkerDragPress()}
+        onMarkerDragPress={operations.handleInitiateDragMarkerSelection()}
         onLocationTextInputFocus={operations.handleLocationTextInputFocus}
-        origin={models.originCity}
-        destination={models.destinationCity}
-        inputCurr={models.isCurrLocation}
+        origin={models.locationSelection?.origin?.address || models.originCity}
+        destination={models.locationSelection?.destination?.address || models.destinationCity}
+        inputCurr={models.locationSelection?.origin?.isCurrentLocation || models.isCurrLocation}
       />
 
       {/* NEW: Simplified saved addresses system - no complex state management */}
@@ -720,16 +737,43 @@ const styles = StyleSheet.create({
     fontSize: scale(16),
     color: "#808080",
   },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: scale(10),
+    marginTop: scale(10),
+  },
+  secondaryButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(5),
+    backgroundColor: '#fff',
+    borderWidth: scale(2),
+    borderColor: '#0089ff',
+    borderRadius: scale(7),
+    height: scale(40),
+  },
+  secondaryButtonText: {
+    color: '#0089ff',
+    fontSize: scale(14),
+    fontWeight: '600',
+  },
   confirmButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(5),
     backgroundColor: "#0089ff",
     borderRadius: scale(7),
     height: scale(40),
-    alignItems: "center",
-    justifyContent: "center",
   },
   confirmButtonText: {
     color: "#fff",
-    fontSize: scale(18),
+    fontSize: scale(14),
+    fontWeight: '600',
   },
 });
 export default MapScreen;
