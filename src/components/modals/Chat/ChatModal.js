@@ -23,8 +23,36 @@ const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnre
     closeModal();
   };
 
-  const renderItem = ({ item }) => {
-    return <ChatItem text={item.message.message} isSender={item.message.sender===models.user.id} />;
+  // Extract timestamp from MongoDB ObjectId as fallback
+  const extractTimestampFromObjectId = (objectId) => {
+    if (!objectId || typeof objectId !== 'string' || objectId.length !== 24) {
+      return null;
+    }
+    try {
+      // MongoDB ObjectId first 8 characters represent timestamp in seconds since epoch
+      const timestamp = parseInt(objectId.substring(0, 8), 16) * 1000;
+      return new Date(timestamp).toISOString();
+    } catch (error) {
+      console.warn('Failed to extract timestamp from ObjectId:', objectId);
+      return null;
+    }
+  };
+
+  const renderItem = ({ item, index }) => {
+    // Try to get timestamp from various possible locations
+    const timestamp =
+      item.message?.createdAt ||
+      item.createdAt ||
+      item.message?.timestamp ||
+      extractTimestampFromObjectId(item._id); // Fallback to MongoDB ObjectId timestamp
+
+    return (
+      <ChatItem
+        text={item.message.message}
+        isSender={item.message.sender === models.user.id}
+        timestamp={timestamp}
+      />
+    );
   };
 
   return (

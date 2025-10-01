@@ -10,8 +10,14 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
   const [newMessage, setNewMessage] = useState("");
 
   useEffect(() => {
+    // Clear messages when service ID changes (new service)
+    logger.info('Chat service changed, clearing old messages', { idService });
+    setMessages([]);
+
     // Fetch previous messages from the backend when the chat screen is opened
-    fetchMessages(idService);
+    if (idService) {
+      fetchMessages(idService);
+    }
 
     // Listen for incoming messages via WebSocket and update the chat screen
     if (socket) {
@@ -30,13 +36,19 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
   // Function to fetch previous messages from the backend
   const fetchMessages = async (idService) => {
     try {
+      logger.info('Fetching messages for service', { idService });
       const response = await api.get(`/chats/${idService}`);
-      logger.info('Previous messages fetched', { messageCount: response.data.messages?.length });
+      logger.info('Previous messages fetched', {
+        idService,
+        messageCount: response.data.messages?.length,
+        firstMessageId: response.data.messages?.[0]?._id
+      });
       const data = await response.data;
-      if(data)
+      if(data) {
         setMessages(data.messages);
+      }
     } catch (error) {
-      logger.error('Error fetching chat messages', error);
+      logger.error('Error fetching chat messages', { idService, error });
     }
   };
 
@@ -57,7 +69,7 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
 
     // After sending the message, add it to the 'messages' state to update the chat screen instantly.
     setMessages((prevData) => [...prevData,
-      { message: { sender: user.id, message: newMessage } },
+      { message: { sender: user.id, message: newMessage, createdAt: new Date().toISOString() } },
     ]);
 
     setNewMessage("");

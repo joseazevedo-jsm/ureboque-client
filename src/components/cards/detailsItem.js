@@ -21,6 +21,8 @@ const DetailsItem = memo(({ destination, driver, clientCar, paymentMethod, onBac
           <Icon name="arrow-back" size={scale(22)} color="#0089FF" />
         </TouchableOpacity>
         <Text style={styles.titleStyle}>DETALHES DA VIAGEM</Text>
+        <Text>        </Text>
+
       </View>
       
       {/* Content in compact format */}
@@ -87,6 +89,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent:'space-between',
     paddingHorizontal: scale(20),
     paddingVertical: scale(12),
     borderBottomWidth: 1,

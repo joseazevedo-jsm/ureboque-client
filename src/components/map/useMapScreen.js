@@ -358,7 +358,15 @@ export const useMapScreen = () => {
           {
             text: "OK",
             onPress: () => {
-              resetToInitialState();
+              // Dismiss all sheets before showing payment options
+              dismissAllBottomSheets();
+              updateTripData({ service: null, status: null });
+              resetTimer();
+
+              // Present payment options after a brief delay
+              setTimeout(() => {
+                paymentOptionsSheetRef.current?.present();
+              }, 300);
             },
           },
         ]
@@ -484,8 +492,12 @@ export const useMapScreen = () => {
       if (data && data.status === "in-progress") {
         // Don't interfere if user is currently viewing details
         if (!tripData.detailsInfo?.isViewingDetails) {
-          driverArrivingSheetRef.current.dismiss();
-          tripEndingSheetRef.current.present();
+          // Dismiss all sheets before showing trip ending sheet
+          dismissAllBottomSheets();
+
+          setTimeout(() => {
+            tripEndingSheetRef.current.present();
+          }, 300);
         }
         updateTripData({ status: 'in-progress' }); // Update trip state
       }
@@ -497,7 +509,8 @@ export const useMapScreen = () => {
   const handleServiceEnded = useCallback((data) => {
     try {
       if (data && data.status === "completed") {
-        tripEndingSheetRef.current.dismiss();
+        // Dismiss all sheets before showing confirmation modal
+        dismissAllBottomSheets();
         updateModal('confirmation', true);
 
         logger.info("Trip completed", { userId: user?.id });
@@ -636,7 +649,7 @@ export const useMapScreen = () => {
           // Handle timer reaching 0
           if (newTimer === 0) {
             logger.warn("Timer has reached 0!");
-            
+
             if (!tripData.driver) {
               const complaints = {
                 title: "TimeOver",
@@ -653,7 +666,10 @@ export const useMapScreen = () => {
                   {
                     text: "OK",
                     onPress: () => {
-                      resetToInitialState();
+                      // Return to payment options instead of resetting to initial state
+                      rideSearchSheetRef.current?.dismiss();
+                      updateTripData({ service: null, status: null });
+                      paymentOptionsSheetRef.current?.present();
                     },
                   },
                 ]
@@ -800,7 +816,17 @@ export const useMapScreen = () => {
     }
   };
 
-  const handleOnFavouriteButtonPress = useCallback((item) => () => {
+  const handleOnFavouriteButtonPress = useCallback((item) => async () => {
+    logger.debug('Favorite place pressed', {
+      place: item.place.description,
+      currentState: {
+        originCity,
+        isCurrLocation: !!isCurrLocation,
+        originCoords: !!originCoords,
+        locationSelectionOrigin: locationSelection.origin
+      }
+    });
+
     // Set favorite place as destination
     const destinationAddress = item.place.description;
     const destinationCoordinates = {
@@ -823,30 +849,66 @@ export const useMapScreen = () => {
 
     // Determine origin coordinates - default to current location if nothing is set
     let originCoordinates = null;
+    let originAddress = null;
 
     if (isCurrLocation || (originCoords && originCoords.latitude)) {
       // Use current location or already set origin
+      logger.debug('Using legacy origin state');
       originCoordinates = originCoords || {
         latitude: userLocation?.latitude,
         longitude: userLocation?.longitude,
       };
+      originAddress = originCity;
     } else if (locationSelection.origin.coords) {
       // Use new unified state origin
+      logger.debug('Using locationSelection origin state', {
+        address: locationSelection.origin.address,
+        coords: locationSelection.origin.coords
+      });
       originCoordinates = locationSelection.origin.coords;
+      originAddress = locationSelection.origin.address;
     } else if (userLocation?.latitude && userLocation?.longitude) {
       // Default to user's current location
+      logger.debug('Defaulting to current user location');
       originCoordinates = {
         latitude: userLocation.latitude,
         longitude: userLocation.longitude,
       };
 
-      // Set as origin with current location flag
+      // Geocode address and wait for result
+      try {
+        originAddress = await getAddressFromCoordinates(userLocation.latitude, userLocation.longitude);
+        logger.debug('Geocoded origin address', { originAddress });
+      } catch (error) {
+        logger.error("Failed to geocode origin address", error);
+        originAddress = 'Localização Atual'; // Fallback
+      }
+
+      setOriginCity(originAddress);
       setOriginCoords(originCoordinates);
       setIsCurrLocation(originCoordinates);
+      setLocationSelection(prev => ({
+        ...prev,
+        origin: {
+          address: originAddress,
+          coords: originCoordinates,
+          isCurrentLocation: true
+        }
+      }));
     }
+
+    logger.debug('Final origin for saved place', {
+      originAddress,
+      originCoordinates,
+      willProceedToCarSelection: !!(originCoordinates?.latitude && destinationCoordinates?.latitude)
+    });
 
     if (originCoordinates?.latitude && destinationCoordinates?.latitude) {
       // Both origin and destination set - proceed to car type selection
+
+      // Fetch prices for car types
+      fetchPrices();
+
       updateMapState({
         markers: [originCoordinates, destinationCoordinates]
       });
@@ -857,7 +919,7 @@ export const useMapScreen = () => {
       updateModal('destination', true);
       updateTripData({ inputLocationObject: 0 }); // Set to origin input
     }
-  }, [isCurrLocation, originCity, originCoords, locationSelection, userLocation]);
+  }, [isCurrLocation, originCoords, originCity, locationSelection, userLocation, fetchPrices, getAddressFromCoordinates]);
 
   const handleConfirmDragMarkerLocation = () => {
     logger.debug("Confirming drag marker location");
@@ -1182,13 +1244,10 @@ export const useMapScreen = () => {
     logger.debug("Details info", { detailsInfo: tripData.detailsInfo });
     // Store that we're in details view but don't store the actual ref
     updateTripData({ detailsInfo: { isViewingDetails: true } });
-    
+
     // Dismiss all other sheets to prevent conflicts
-    bottomSheet.current.dismiss();
-    driverArrivingSheetRef.current?.dismiss();
-    tripStartedSheetRef.current?.dismiss();
-    tripEndingSheetRef.current?.dismiss();
-    
+    dismissAllBottomSheets();
+
     // Present details sheet
     bottomSheetModalRefDetails.current.present();
   };
@@ -1198,37 +1257,36 @@ export const useMapScreen = () => {
   };
 
   const onConfirmCancelSearch = (complaints) => {
+    logger.info('Canceling search', { serviceId: tripData.service?._id });
+
     if (socket?.connected) {
       socket.emit("searchCancel", { idService: tripData.service._id, complaints });
     } else {
       logger.warn("Socket not connected for searchCancel");
     }
-    tripStartedSheetRef.current?.dismiss();
-    rideSearchSheetRef.current.dismiss();
-    updateTripData({ service: null });
-    updateMapState({ directions: null });
-    updateMapState({ markers: [] });
-    updateMapState({ driverLocation: null });
-    setDestinationCity(null);
-    setOriginCity(null);
+
+    resetToInitialState();
+
+    // Reset unified location selection state
+    logger.debug('Resetting locationSelection in onConfirmCancelSearch');
+     
+
     bottomSheetModalRef.current.present();
   }
 
   const onConfirmCancelTrip = (complaints) => {
+    logger.info('Canceling trip', { serviceId: tripData.service?._id });
+
     if (tripData.service) {
       if (socket?.connected) {
         socket.emit("serviceCancel", { idService: tripData.service._id, complaints });
       } else {
         logger.warn("Socket not connected for serviceCancel");
       }
-      tripStartedSheetRef.current?.dismiss();
-      rideSearchSheetRef.current.dismiss();
-      updateTripData({ service: null });
-      updateMapState({ directions: null });
-      updateMapState({ markers: [] });
-      updateMapState({ driverLocation: null });
-      setDestinationCity(null);
-      setOriginCity(null);
+      resetToInitialState();
+      // Reset unified location selection state
+      logger.debug('Resetting locationSelection in onConfirmCancelTrip');
+      
       bottomSheetModalRef.current.present();
     }
   };
@@ -1274,10 +1332,14 @@ export const useMapScreen = () => {
 
   const handleDriverAccepted = async (data) => {
     try {
-      rideSearchSheetRef.current.dismiss();
-      tripStartedSheetRef.current.present();
+      // Dismiss all sheets before showing trip started sheet
+      dismissAllBottomSheets();
       updateTripData({ status: 'assigned' }); // Update trip state
       resetTimer();
+
+      setTimeout(() => {
+        tripStartedSheetRef.current.present();
+      }, 300);
     } catch (error) {
       logger.error("Error saving app state", error);
     }
@@ -1321,8 +1383,9 @@ export const useMapScreen = () => {
       // Clear legacy location states
       setOriginCity(null);
       setDestinationCity(null);
-      setOriginCoords();
-      setDestinationCoords();
+      setOriginCoords(null);
+      setDestinationCoords(null);
+      setIsCurrLocation(null);
 
       // Clear new unified location state
       setLocationSelection({
@@ -1347,13 +1410,7 @@ export const useMapScreen = () => {
       centerToUserLocation();
 
       // Dismiss all bottom sheets
-      carTypeSelectionSheetRef.current?.dismiss();
-      userCarInfoSheetRef.current?.dismiss();
-      paymentOptionsSheetRef.current?.dismiss();
-      rideSearchSheetRef.current?.dismiss();
-      tripStartedSheetRef.current?.dismiss();
-      driverArrivingSheetRef.current?.dismiss();
-      tripEndingSheetRef.current?.dismiss();
+      dismissAllBottomSheets();
 
       // Present the initial bottom sheet
       setTimeout(() => {
@@ -1373,21 +1430,42 @@ export const useMapScreen = () => {
     }
   };
 
+  const handleRecenterMap = useCallback(() => {
+    if (mapState.directions?.coordinates && mapState.directions.coordinates.length > 0) {
+      // If there's a route, fit to route coordinates
+      mapRef.current?.fitToCoordinates(mapState.directions.coordinates, {
+        edgePadding: {
+          bottom: scale(250),
+          top: scale(50),
+          left: scale(50),
+          right: scale(50),
+        },
+        animated: true,
+      });
+    } else if (userLocation) {
+      // If no route, center to user location
+      mapRef.current?.animateToRegion({
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        latitudeDelta: LATITUDE_DELTA,
+        longitudeDelta: LONGITUDE_DELTA,
+      }, 500);
+    }
+  }, [mapState.directions, userLocation]);
+
   const handleBackDetailsButtonPress = () => {
     if (tripData.detailsInfo) {
       updateTripData({ detailsInfo: null });
       bottomSheetModalRefDetails.current.dismiss();
-      
+
       // Ensure only the correct sheet is presented and dismiss any conflicting sheets
       setTimeout(() => {
         // Dismiss any potentially conflicting sheets first
-        driverArrivingSheetRef.current?.dismiss();
-        tripStartedSheetRef.current?.dismiss();
-        tripEndingSheetRef.current?.dismiss();
-        
+        dismissAllBottomSheets();
+
         // Get the correct sheet based on current trip status
         const correctBottomSheet = getCorrectBottomSheet();
-        
+
         // Then present the correct sheet
         correctBottomSheet.current.present();
         logger.info('Back to correct bottom sheet', { 
@@ -1478,6 +1556,19 @@ export const useMapScreen = () => {
  
   // --- Reset to Initial State ---
 
+  const dismissAllBottomSheets = () => {
+    bottomSheetModalRef?.current?.dismiss();
+    carTypeSelectionSheetRef?.current?.dismiss();
+    userCarInfoSheetRef?.current?.dismiss();
+    paymentOptionsSheetRef?.current?.dismiss();
+    rideSearchSheetRef?.current?.dismiss();
+    tripStartedSheetRef?.current?.dismiss();
+    driverArrivingSheetRef?.current?.dismiss();
+    tripEndingSheetRef?.current?.dismiss();
+    bottomSheetModalRefDetails?.current?.dismiss();
+    bottomSheetModalDragMarker?.current?.dismiss();
+  };
+
   const resetToInitialState = () => {
     // setModalVisible(false);
     updateModal('savedPlaces', false);
@@ -1498,10 +1589,30 @@ export const useMapScreen = () => {
     setOriginCoords();
     setDestinationCoords();
     setIsCurrLocation();
+
+    // Reset unified location selection state
+    setLocationSelection({
+      origin: {
+        address: null,
+        coords: null,
+        isCurrentLocation: false
+      },
+      destination: {
+        address: null,
+        coords: null,
+        isCurrentLocation: false
+      },
+      activeInput: null,
+      pendingDragLocation: {
+        address: null,
+        coords: null
+      }
+    });
+
     updateMapState({ driverLocation: null });
     updateMapState({ carsAround: [] });
     resetTimer();
- 
+
     // setTimeout(() => {
     //   // Only present the bottom sheet if the modal isn't already visible
     //   if (!modalVisible) {
@@ -1593,6 +1704,7 @@ export const useMapScreen = () => {
       handleConfirmDragMarkerLocation,
       handleLocationTextInputFocus,
       handleBackButtonPress,
+      handleRecenterMap,
       handleTypeCarPress,
       handleBrandInputValueChange,
       handleModelInputValueChange,
@@ -1616,6 +1728,7 @@ export const useMapScreen = () => {
       handlePressQuestion,
       handlePressCancel,
       resetToInitialState,
+      dismissAllBottomSheets,
       getAddressFromCoordinates
     },
   };

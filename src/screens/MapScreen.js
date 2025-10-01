@@ -226,7 +226,7 @@ const MapScreen = memo(() => {
         {models?.userLocation && (
           <Circle
             center={models?.userLocation}
-            radius={5000}
+            radius={50}
             strokeWidth={1}
             strokeColor="rgba(0, 0, 255, 0.5)"
             fillColor="rgba(0, 0, 255, 0.2)"
@@ -286,6 +286,15 @@ const MapScreen = memo(() => {
         </View>
       )}
 
+      {models.isRouteVisible && (
+        <TouchableOpacity
+          style={styles.recenterButton}
+          onPress={operations.handleRecenterMap}
+        >
+          <Icon name="my-location" size={scale(24)} color="#0089FF" />
+        </TouchableOpacity>
+      )}
+
       <BottomSheetModalProvider>
 
         <BottomSheetModal
@@ -341,7 +350,7 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.userCarInfoSheetRef}
           index={0}
-          snapPoints={[scale(300), scale(550)]}
+          snapPoints={[scale(270), scale(550)]}
           enableDynamicSizing={false}
         >
           <UserCarInfo
@@ -385,7 +394,7 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.tripStartedSheetRef}
           index={0}
-          snapPoints={[scale(312), scale(435)]}
+          snapPoints={[scale(310), scale(435)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
         >
@@ -429,7 +438,7 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.tripEndingSheetRef}
           index={0}
-          snapPoints={[scale(320), scale(380)]}
+          snapPoints={[scale(310), scale(380)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
         >
@@ -481,8 +490,7 @@ const MapScreen = memo(() => {
 
             {/* Display selected address */}
             <View style={styles.searchContainer}>
-              <Icon name="search" size={scale(20)} color="#ccc" />
-              <View style={styles.searchTextContainer}>
+               <View style={styles.searchTextContainer}>
                 <Text style={styles.searchText}>
                   {models.markerCity}
                 </Text>
@@ -497,7 +505,7 @@ const MapScreen = memo(() => {
               >
                 <Icon name="search" size={scale(18)} color="#0089ff" />
                 <Text style={styles.secondaryButtonText}>
-                  Buscar novamente
+                  Voltar
                 </Text>
               </TouchableOpacity>
 
@@ -596,6 +604,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: scale(2), height: scale(2) },
     shadowOpacity: 0.5,
     shadowRadius: 4,
+  },
+  recenterButton: {
+    position: 'absolute',
+    bottom: scale(330),
+    right: scale(20),
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(15),
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: scale(2), height: scale(2) },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 5,
   },
   svgContainer: {
     width: scale(318),
