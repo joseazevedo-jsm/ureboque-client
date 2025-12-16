@@ -11,7 +11,7 @@ import ErrorService from "../../services/ErrorService";
 import { useLogger } from "../../hooks/useLogger";
 import { useNotification } from "../../context/NotificationContext";
 
- 
+
 Geocoder.init(process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY);
 
 const LATITUDE_DELTA = 0.0022;
@@ -20,7 +20,7 @@ const DEFAULT_TIMER_DURATION = 180; // 3 minutes in seconds
 
 export const useMapScreen = () => {
   const logger = useLogger('useMapScreen');
-  
+
   // --- Refs ---
   const mapRef = useRef(null);
   const bottomSheetModalRef = useRef(null);
@@ -58,7 +58,7 @@ export const useMapScreen = () => {
   const tripEndingSheetRef = useRef(null);
   const bottomSheetModalRefDetails = useRef(null);
   const bottomSheetModalDragMarker = useRef(null);
- 
+
   // Map and Markers - Consolidated state
   const [mapState, setMapState] = useState({
     markers: [],
@@ -137,16 +137,16 @@ export const useMapScreen = () => {
   const [tripData, setTripData] = useState({
     // Car details
     carType: "Turismo",
-    price: "25,300", 
+    price: "25,300",
     brand: "Toyota",
     model: "Corolla",
     license: "LD-SOM",
     color: "Preto",
-    
+
     // Trip details
     duration: null,
     inputLocationObject: null,
-    
+
     // Service and Driver
     service: null,
     driver: null,
@@ -174,7 +174,7 @@ export const useMapScreen = () => {
   // --- Context ---
   const { socket } = useSocket();
   const {
-    user, 
+    user,
     serviceStatus,
     setServiceStatus,
     prices,
@@ -206,7 +206,7 @@ export const useMapScreen = () => {
   // Throttling utility for location updates
   const useThrottledCallback = (callback, delay) => {
     const lastRun = useRef(Date.now());
-    
+
     return useCallback((...args) => {
       const now = Date.now();
       if (now - lastRun.current >= delay) {
@@ -221,7 +221,7 @@ export const useMapScreen = () => {
 
   const getAddressFromCoordinates = useCallback(async (lat, lng) => {
     const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
-    
+
     if (geocodeCache.has(key)) {
       const cachedAddress = geocodeCache.get(key);
       updateMapState({ markerCity: cachedAddress });
@@ -245,7 +245,7 @@ export const useMapScreen = () => {
 
   const getDistanceInKm = useCallback((pickup, drop) => {
     const key = `${pickup.latitude.toFixed(6)},${pickup.longitude.toFixed(6)}-${drop.latitude.toFixed(6)},${drop.longitude.toFixed(6)}`;
-    
+
     if (distanceCache.current.has(key)) {
       return distanceCache.current.get(key);
     }
@@ -253,11 +253,11 @@ export const useMapScreen = () => {
     // Original calculation logic
     const { lat1, lon1 } = { lat1: pickup.latitude, lon1: pickup.longitude };
     const { lat2, lon2 } = { lat2: drop.latitude, lon2: drop.longitude };
-    
+
     const earthRadius = 6371; // Radius of the Earth in kilometers
     const dLat = toRadians(lat2 - lat1);
     const dLon = toRadians(lon2 - lon1);
-    
+
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(toRadians(lat1)) *
@@ -266,7 +266,7 @@ export const useMapScreen = () => {
       Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = earthRadius * c;
-    
+
     distanceCache.current.set(key, distance);
     return distance;
   }, []);
@@ -285,7 +285,7 @@ export const useMapScreen = () => {
       return `${remainingMinutes} mins`;
     }
   };
- 
+
   // Note: simulateMovement removed to prevent memory leaks
 
   const centerToUserLocation = useCallback(() => {
@@ -356,14 +356,21 @@ export const useMapScreen = () => {
         "Tente novamente mais tarde",
         [
           {
-            text: "OK",
+            text: "Cancelar",
+            style: "cancel",
             onPress: () => {
-              // Dismiss all sheets before showing payment options
+              dismissAllBottomSheets();
+              updateTripData({ service: null, status: null });
+              resetToInitialState();
+            },
+          },
+          {
+            text: "Tentar de novo",
+            onPress: () => {
               dismissAllBottomSheets();
               updateTripData({ service: null, status: null });
               resetTimer();
 
-              // Present payment options after a brief delay
               setTimeout(() => {
                 paymentOptionsSheetRef.current?.present();
               }, 300);
@@ -419,20 +426,20 @@ export const useMapScreen = () => {
   const handleMessage = useCallback((messages) => {
     try {
       logger.info("Socket event: message", { messageCount: messages?.length });
-      
+
       if (!messages || messages.length === 0) return;
-      
+
       const currentMessageCount = messages.length;
       const previousCount = lastMessageCountRef.current;
-      
+
       // Only process if there are actually new messages
       if (currentMessageCount > previousCount) {
         // Get only the new messages
         const newMessages = messages.slice(previousCount);
-        
+
         // Use NotificationContext to handle incoming messages
         handleIncomingMessages(newMessages, user, modalState.chat);
-        
+
         // Update the reference to current count
         lastMessageCountRef.current = currentMessageCount;
       }
@@ -450,7 +457,7 @@ export const useMapScreen = () => {
         switch (service.status) {
           case 1: {
             updateMapState({ driverLocation: location });
-          
+
             updateMapState({ markers: [location, service.pickupLocation] });
 
             if (serviceStatus) {
@@ -537,7 +544,7 @@ export const useMapScreen = () => {
     }
   }, []);
 
-  
+
   // --- Effect Hooks ---
 
   // Effect - Center map on user location initially if no current service 
@@ -588,7 +595,7 @@ export const useMapScreen = () => {
       });
     }
   }, [mapState.directions?.coordinates]);
- 
+
   // Effect: Handle Socket Events - Attach/Detach listeners  
   useEffect(() => {
     if (!socket) return;
@@ -621,7 +628,7 @@ export const useMapScreen = () => {
 
   // Effect - Show initial bottom sheet
   useEffect(() => {
-      bottomSheetModalRef.current.present();
+    bottomSheetModalRef.current.present();
   }, []);
 
   // Effect - Consolidated timer management (polling + countdown)
@@ -640,44 +647,61 @@ export const useMapScreen = () => {
       updateMapState({ carsAround: [] }); // Clear cars when service is active
     }
 
-    // Countdown timer - only when active and during driver search (no driver assigned yet)
-    if (isActive && tripData.service && !tripData.driver) {
+    // Countdown timer - only when active and during driver search or waiting for acceptance
+    if (isActive && tripData.service) {
       countdownTimer = setInterval(() => {
         setTimer((prevTimer) => {
+          if (prevTimer <= 0) return 0; // Prevent negative numbers
+
           const newTimer = prevTimer - 1;
-          
+
           // Handle timer reaching 0
           if (newTimer === 0) {
+            setIsActive(false); // Stop the timer
             logger.warn("Timer has reached 0!");
 
-            if (!tripData.driver) {
-              const complaints = {
-                title: "TimeOver",
-                description: "Waiting time finish",
-                idUser: user.id,
-              };
+            // Handle timeout regardless of driver connection status
+            const complaints = {
+              title: "TimeOver",
+              description: "Waiting time finish",
+              idUser: user.id,
+            };
 
-              onConfirmCancelTrip({ complaints });
-
-              Alert.alert(
-                "Não há um motorista disponível",
-                "Tente novamente mais tarde",
-                [
-                  {
-                    text: "OK",
-                    onPress: () => {
-                      // Return to payment options instead of resetting to initial state
-                      rideSearchSheetRef.current?.dismiss();
-                      updateTripData({ service: null, status: null });
-                      paymentOptionsSheetRef.current?.present();
-                    },
-                  },
-                ]
-              );
+            // Only emit cancellation, do NOT reset state immediately
+            // This ensures the current screen stays visible until the user answers the Alert
+            if (tripData.service && socket?.connected) {
+              socket.emit("searchCancel", { idService: tripData.service._id, complaints });
+            } else {
+              logger.warn("Socket not connected or no service for timer cancellation");
             }
+
+            Alert.alert(
+              "Não há um motorista disponível",
+              "Tente novamente mais tarde",
+              [
+                {
+                  text: "Cancelar",
+                  style: "cancel",
+                  onPress: () => {
+                    resetToInitialState();
+                  },
+                },
+                {
+                  text: "Tentar de novo",
+                  onPress: () => {
+                    rideSearchSheetRef.current?.dismiss();
+                    updateTripData({ service: null, status: null });
+                    resetTimer();
+                    setTimeout(() => {
+                      paymentOptionsSheetRef.current?.present();
+                    }, 300);
+                  },
+                },
+              ]
+            );
             return 0;
           }
-          
+
           return newTimer;
         });
       }, 1000);
@@ -696,15 +720,15 @@ export const useMapScreen = () => {
     if (
       !serviceStatus ||
       serviceStatus?.service?.status === "nodriver" ||
-      serviceStatus?.service?.status === "cancelled"  ||
-      serviceStatus?.service?.status === "flagged" 
+      serviceStatus?.service?.status === "cancelled" ||
+      serviceStatus?.service?.status === "flagged"
     )
       return;
     const { service, car } = serviceStatus;
     const status = service.status;
     logger.info('useMapScreen', 'Processing service status', { status });
     const room = `service-request-${serviceStatus.service._id}`;
-    updateTripData({ 
+    updateTripData({
       driver: {
         id: service.driver._id,
         driverId: service.driver._id,
@@ -768,7 +792,7 @@ export const useMapScreen = () => {
 
   const getNearbyDrivers = async () => {
     if (mapState.isLoadingDrivers || tripData.service) return; // Don't search if already loading or service exists
-    
+
     updateMapState({ isLoadingDrivers: true });
     try {
       const params = {
@@ -997,7 +1021,7 @@ export const useMapScreen = () => {
     });
 
     updateTripData({ carType: type, price });
- 
+
     if (carTypeSelectionSheetRef.current) {
       logger.debug("Dismissing carTypeSelectionSheetRef");
       carTypeSelectionSheetRef.current.dismiss();
@@ -1011,7 +1035,7 @@ export const useMapScreen = () => {
         if (userCarInfoSheetRef.current) {
           logger.debug("Attempting to present userCarInfoSheetRef");
           userCarInfoSheetRef.current.present();
-         } else {
+        } else {
           logger.warn("userCarInfoSheetRef is not available");
         }
       });
@@ -1021,8 +1045,11 @@ export const useMapScreen = () => {
   const handleConfirmButtonPress = () => {
     Keyboard.dismiss();
     userCarInfoSheetRef.current.dismiss();
-    paymentOptionsSheetRef.current.present();
-   };
+    // Add delay to ensure keyboard and sheet are fully dismissed before showing next sheet
+    setTimeout(() => {
+      paymentOptionsSheetRef.current.present();
+    }, 300);
+  };
 
   const handleConfirmPaymentPress = (payment_type) => {
     return async () => {
@@ -1036,7 +1063,9 @@ export const useMapScreen = () => {
       logger.debug("Selected car type", { typeCar: tripData.carType });
 
       paymentOptionsSheetRef.current.dismiss();
-      rideSearchSheetRef.current.present();
+      setTimeout(() => {
+        rideSearchSheetRef.current.present();
+      }, 300);
       updateMapState({ carsAround: [] });
       startTimer();
 
@@ -1265,13 +1294,11 @@ export const useMapScreen = () => {
       logger.warn("Socket not connected for searchCancel");
     }
 
+    // resetToInitialState already presents the initial sheet, no need to do it again
     resetToInitialState();
 
     // Reset unified location selection state
     logger.debug('Resetting locationSelection in onConfirmCancelSearch');
-     
-
-    bottomSheetModalRef.current.present();
   }
 
   const onConfirmCancelTrip = (complaints) => {
@@ -1283,11 +1310,10 @@ export const useMapScreen = () => {
       } else {
         logger.warn("Socket not connected for serviceCancel");
       }
+      // resetToInitialState already presents the initial sheet, no need to do it again
       resetToInitialState();
       // Reset unified location selection state
       logger.debug('Resetting locationSelection in onConfirmCancelTrip');
-      
-      bottomSheetModalRef.current.present();
     }
   };
 
@@ -1468,10 +1494,10 @@ export const useMapScreen = () => {
 
         // Then present the correct sheet
         correctBottomSheet.current.present();
-        logger.info('Back to correct bottom sheet', { 
-          status: tripData.status, 
-          sheet: correctBottomSheet === tripEndingSheetRef ? 'tripEnding' : 
-                 correctBottomSheet === tripStartedSheetRef ? 'tripStarted' : 'driverArriving'
+        logger.info('Back to correct bottom sheet', {
+          status: tripData.status,
+          sheet: correctBottomSheet === tripEndingSheetRef ? 'tripEnding' :
+            correctBottomSheet === tripStartedSheetRef ? 'tripStarted' : 'driverArriving'
         });
 
       }, 50);
@@ -1503,7 +1529,7 @@ export const useMapScreen = () => {
           logger.error('Failed to fetch current message count', error);
         }
       };
-      
+
       fetchCurrentMessageCount();
     }
   }, [modalState.chat, tripData.service?._id, logger]);
@@ -1553,7 +1579,7 @@ export const useMapScreen = () => {
     updateModal('cancel', true);
   };
 
- 
+
   // --- Reset to Initial State ---
 
   const dismissAllBottomSheets = () => {
@@ -1570,14 +1596,14 @@ export const useMapScreen = () => {
   };
 
   const resetToInitialState = () => {
+    // Dismiss all sheets first to prevent flashing
+    dismissAllBottomSheets();
+
     // setModalVisible(false);
     updateModal('savedPlaces', false);
     updateModal('cancel', false);
     updateModal('preCancel', false);
     updateModal('chat', false);
-
-
-    bottomSheetModalRef?.current.present();
 
     updateMapState({ markers: [] });
     updateMapState({ directions: null });
@@ -1613,14 +1639,12 @@ export const useMapScreen = () => {
     updateMapState({ carsAround: [] });
     resetTimer();
 
-    // setTimeout(() => {
-    //   // Only present the bottom sheet if the modal isn't already visible
-    //   if (!modalVisible) {
-    //     bottomSheetModalRef?.current.present();
-    //   }
-    // }, 50);
+    // Wait for dismiss animations to complete before presenting initial sheet
+    setTimeout(() => {
+      bottomSheetModalRef?.current.present();
+    }, 300);
   };
- 
+
 
   return {
     models: {

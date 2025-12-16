@@ -5,9 +5,9 @@ import {
   Text,
   TouchableOpacity,
   FlatList,
-  TextInput,
-   Platform,
+  Platform,
 } from "react-native";
+import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { scale } from "react-native-size-matters";
 
 const UserCarInfo = ({
@@ -23,7 +23,7 @@ const UserCarInfo = ({
     license: '',
     color: ''
   });
-  
+
   const [formData, setFormData] = React.useState({
     brand: 'Toyota',
     model: 'Corolla',
@@ -65,9 +65,9 @@ const UserCarInfo = ({
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setErrors(prev => ({ ...prev, [field]: '' }));
-    
+
     // Call the original handlers
-    switch(field) {
+    switch (field) {
       case 'brand':
         handleBrandInputValueChange(value);
         break;
@@ -98,7 +98,7 @@ const UserCarInfo = ({
       <View style={styles.containerInputs}>
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <TextInput
+            <BottomSheetTextInput
               onChangeText={(value) => handleInputChange('brand', value)}
               style={[styles.input, errors.brand && styles.inputError]}
               placeholder="Marca"
@@ -109,7 +109,7 @@ const UserCarInfo = ({
             {errors.brand && <Text style={styles.errorText}>{errors.brand}</Text>}
           </View>
           <View style={{ flex: 1 }}>
-            <TextInput
+            <BottomSheetTextInput
               onChangeText={(value) => handleInputChange('model', value)}
               style={[styles.input, errors.model && styles.inputError]}
               placeholder="Modelo"
@@ -120,10 +120,10 @@ const UserCarInfo = ({
             {errors.model && <Text style={styles.errorText}>{errors.model}</Text>}
           </View>
         </View>
-        
+
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <TextInput
+            <BottomSheetTextInput
               onChangeText={(value) => handleInputChange('license', value)}
               style={[styles.input, errors.license && styles.inputError]}
               placeholder="Matricula"
@@ -135,7 +135,7 @@ const UserCarInfo = ({
             {errors.license && <Text style={styles.errorText}>{errors.license}</Text>}
           </View>
           <View style={{ flex: 1 }}>
-            <TextInput
+            <BottomSheetTextInput
               onChangeText={(value) => handleInputChange('color', value)}
               style={[styles.input, errors.color && styles.inputError]}
               placeholder="Cor"

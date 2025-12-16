@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import MapView, { Circle, PROVIDER_GOOGLE } from "react-native-maps";
- import { useMapScreen } from "../components/map/useMapScreen";
+import { useMapScreen } from "../components/map/useMapScreen";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
 import {
@@ -17,7 +17,7 @@ import {
   BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
 import { Platform } from "react-native";
- import CardSpots from "../components/cards/cardSpots";
+import CardSpots from "../components/cards/cardSpots";
 import DestinationModal from "../components/modals/Destination/DestinationModal";
 import { Marker } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
@@ -63,8 +63,8 @@ const getCarIconByColor = (color) => {
 const MapScreen = memo(() => {
   const logger = useLogger('MapScreen');
   const { models, operations } = useMapScreen();
-  
-  logger.debug('MapScreen rendered', { 
+
+  logger.debug('MapScreen rendered', {
     activeBottomSheet: models.activeBottomSheet,
     hasDestination: !!models.destination,
     hasSelectedCar: !!models.selectedCar,
@@ -82,11 +82,11 @@ const MapScreen = memo(() => {
     return models.mapMarkers.map((item, index) => {
 
       if (models.driver && index === 0 && models.driverLocation) {
-        
+
         const carColor = models.driver?.car?.color;
         const carIcon = getCarIconByColor(carColor);
         const heading = models?.driverLocation?.heading || "0";
- 
+
         return (
           <Marker
             coordinate={{
@@ -134,12 +134,12 @@ const MapScreen = memo(() => {
       );
     });
   }, [
-    models.mapMarkers, 
-    models.driver, 
-    models.driverLocation, 
-    models.tripState, 
-    models.originCity, 
-    models.destinationCity, 
+    models.mapMarkers,
+    models.driver,
+    models.driverLocation,
+    models.tripState,
+    models.originCity,
+    models.destinationCity,
     models.tripDuration,
     operations.formatDuration
   ]);
@@ -188,7 +188,7 @@ const MapScreen = memo(() => {
   // Memoized cars around markers for performance
   const memoizedCarsAround = useMemo(() => {
     if (models?.service) return null;
-    
+
     return models.carsAround.map((item, index) => (
       <Marker coordinate={item} key={`car-around-${index}-${item.latitude}-${item.longitude}`}>
         <Image
@@ -253,7 +253,7 @@ const MapScreen = memo(() => {
         {memoizedCarsAround}
       </MapView>
 
- 
+
       {models.isRouteVisible && !models.service ? (
         <TouchableOpacity style={styles.details} onPress={operations.handleBackButtonPress}>
           <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
@@ -276,13 +276,21 @@ const MapScreen = memo(() => {
       {models.markerVisible && (
         <View
           style={{
-            left: "50%",
             position: "absolute",
-            top: "50%",
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: "50%",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            zIndex: 100,
           }}
+          pointerEvents="none"
         >
-          <Icon name="my-location" size={scale(30)} color="#0089FF" />
-
+          <CustomMarker
+            title={models.markerCity || "Carregando..."}
+            color={models.inputLocationObject === 0 ? "#0089FF" : "#FF005E"}
+          />
         </View>
       )}
 
@@ -303,6 +311,9 @@ const MapScreen = memo(() => {
           snapPoints={[scale(220)]}
           enableDynamicSizing={false}
           enablePanDownToClose={false}
+          stackBehavior="replace"
+          keyboardBehavior="interactive"
+          android_keyboardInputMode="adjustResize"
         >
           <View style={styles.svgContainer}>
             <Icon name="my-location" size={scale(18)} color="#0089FF" />
@@ -328,6 +339,9 @@ const MapScreen = memo(() => {
           snapPoints={[scale(270)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
+          stackBehavior="replace"
+          keyboardBehavior="interactive"
+          android_keyboardInputMode="adjustResize"
         >
           <Text
             style={{
@@ -352,6 +366,10 @@ const MapScreen = memo(() => {
           index={0}
           snapPoints={[scale(270), scale(550)]}
           enableDynamicSizing={false}
+          enablePanDownToClose={false}
+          stackBehavior="replace"
+          keyboardBehavior="interactive"
+          android_keyboardInputMode="adjustResize"
         >
           <UserCarInfo
             handleBrandInputValueChange={operations.handleBrandInputValueChange}
@@ -370,6 +388,9 @@ const MapScreen = memo(() => {
           snapPoints={[scale(270)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
+          stackBehavior="replace"
+          keyboardBehavior="interactive"
+          android_keyboardInputMode="adjustResize"
         >
           <PaymentOptions handleConfirmPaymentPress={operations.handleConfirmPaymentPress} models={models} />
         </BottomSheetModal>
@@ -379,6 +400,9 @@ const MapScreen = memo(() => {
           snapPoints={[scale(270), scale(320)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
+          stackBehavior="replace"
+          keyboardBehavior="interactive"
+          android_keyboardInputMode="adjustResize"
         >
           <DriverSearch
             destination={models.destinationCity}
@@ -397,6 +421,9 @@ const MapScreen = memo(() => {
           snapPoints={[scale(310), scale(435)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
+          stackBehavior="replace"
+          keyboardBehavior="interactive"
+          android_keyboardInputMode="adjustResize"
         >
           <DriverStatus
             status={0}
@@ -419,6 +446,9 @@ const MapScreen = memo(() => {
           snapPoints={[scale(310), scale(425)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
+          stackBehavior="replace"
+          keyboardBehavior="interactive"
+          android_keyboardInputMode="adjustResize"
         >
           <DriverStatus
             status={1}
@@ -441,6 +471,9 @@ const MapScreen = memo(() => {
           snapPoints={[scale(310), scale(380)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
+          stackBehavior="replace"
+          keyboardBehavior="interactive"
+          android_keyboardInputMode="adjustResize"
         >
           <DriverStatus
             status={2}
@@ -462,6 +495,9 @@ const MapScreen = memo(() => {
           index={0}
           snapPoints={[scale(475)]}
           enableDynamicSizing={false}
+          stackBehavior="replace"
+          keyboardBehavior="interactive"
+          android_keyboardInputMode="adjustResize"
         >
           {models.driver && models.service && (
             <DetailsItem
@@ -480,6 +516,9 @@ const MapScreen = memo(() => {
           snapPoints={snapPoints}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
+          stackBehavior="replace"
+          keyboardBehavior="interactive"
+          android_keyboardInputMode="adjustResize"
         >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
@@ -490,7 +529,7 @@ const MapScreen = memo(() => {
 
             {/* Display selected address */}
             <View style={styles.searchContainer}>
-               <View style={styles.searchTextContainer}>
+              <View style={styles.searchTextContainer}>
                 <Text style={styles.searchText}>
                   {models.markerCity}
                 </Text>
@@ -575,8 +614,8 @@ const MapScreen = memo(() => {
         payment_total={models.ridePrice}
         payment_type={models.service?.payment?.method}
         service={{
-          service:models.service,
-          driver:models.driver
+          service: models.service,
+          driver: models.driver
         }}
       />
     </View>
