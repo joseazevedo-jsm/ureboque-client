@@ -25,14 +25,14 @@ import leaveIcon from "../../resources/icons/profile_settings/leave.png";
 import optionsIcon from "../../resources/icons/profile_settings/options.png";
 
 const ProfileScreen = () => {
-  const logger = useLogger('ProfileScreen', { 
+  const logger = useLogger('ProfileScreen', {
     enableLifecycleLogging: true,
-    logProps: true 
+    logProps: true
   });
-  
+
   const { models, operations } = useProfileScreen();
   const navigation = useNavigation();
-  
+
   logger.debug('ProfileScreen rendered', {
     hasUser: !!models?.user,
     userName: models?.user?.name,
@@ -40,7 +40,7 @@ const ProfileScreen = () => {
   });
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 10}
@@ -86,7 +86,7 @@ const ProfileScreen = () => {
         {/* Personal Information Section */}
         <View style={styles.formSection}>
           <Text style={styles.sectionTitle}>Informações Pessoais</Text>
-          
+
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Nome</Text>
             <TextInput
@@ -152,9 +152,9 @@ const ProfileScreen = () => {
           </View>
 
           <TouchableOpacity
-            style={[styles.saveButton, models?.isSaving && styles.saveButtonDisabled]}
+            style={[styles.saveButton, (models?.isSaving || !models?.hasChanges) && styles.saveButtonDisabled]}
             onPress={() => operations.handleSaveChanges(navigation)}
-            disabled={models?.isSaving}
+            disabled={models?.isSaving || !models?.hasChanges}
           >
             <Text style={styles.saveButtonText}>
               {models?.isSaving ? 'Salvando...' : 'Salvar alterações'}
@@ -164,7 +164,7 @@ const ProfileScreen = () => {
 
         {/* Settings Section */}
         <View style={styles.actionSection}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionItem}
             onPress={() => {
               logger.logUserInteraction('settings_button_pressed', { from: 'ProfileScreen' });
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     height: scale(80),
     flexDirection: "row",
     alignItems: "center",
-    justifyContent:"space-between",
+    justifyContent: "space-between",
     paddingHorizontal: scale(20),
     paddingTop: scale(30),
     backgroundColor: "#fff",
@@ -211,10 +211,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: scale(18),
     color: "#0089FF",
-   },
+  },
   contentContainer: {
     flex: 1,
-    justifyContent:"space-around",
+    justifyContent: "space-around",
     paddingHorizontal: scale(20),
   },
   profileSection: {
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   },
   actionArrow: {
     color: '#A0AEC0',
-  }, 
+  },
 });
 
 export default ProfileScreen;

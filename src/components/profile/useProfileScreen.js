@@ -18,7 +18,7 @@ const useProfileScreen = () => {
   const [email, setEmail] = useState(user?.email || "");
   const [image, setImage] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // OTP-related state
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [pendingPhoneNumber, setPendingPhoneNumber] = useState("");
@@ -71,7 +71,7 @@ const useProfileScreen = () => {
     };
 
     await updateUser(user.id, userData);
-    
+
     // Show success message and navigate back
     Alert.alert(
       "Sucesso",
@@ -91,16 +91,16 @@ const useProfileScreen = () => {
 
   const handleSaveChanges = async (navigation) => {
     setIsSaving(true);
-    
+
     try {
       // Check if phone number has changed
       const hasPhoneChanged = phoneNumber !== originalPhoneNumber;
-      logger.debug('Save attempt', { 
-        phoneNumber, 
-        originalPhoneNumber, 
-        hasPhoneChanged 
+      logger.debug('Save attempt', {
+        phoneNumber,
+        originalPhoneNumber,
+        hasPhoneChanged
       });
-      
+
       if (hasPhoneChanged) {
         // Store pending phone number and callback for after OTP verification
         setPendingPhoneNumber(phoneNumber);
@@ -113,13 +113,13 @@ const useProfileScreen = () => {
         setIsSaving(false);
         return; // Exit here, actual save will happen after OTP verification
       }
-      
+
       // Continue with normal save process if phone number hasn't changed
       await performSave(phoneNumber, navigation);
-      
+
     } catch (error) {
       logger.error('Error updating user profile', error);
-      
+
       // Show error message
       Alert.alert(
         "Erro",
@@ -179,7 +179,7 @@ const useProfileScreen = () => {
 
   const requestOTPForPhoneChange = async (phoneNumber) => {
     logger.debug('Mock OTP request for phone number change', { phoneNumber });
-    
+
     // Mock OTP request - just show the modal without API call
     logger.info('Using mock OTP (1234) for phone change');
     setShowOTPModal(true);
@@ -196,32 +196,32 @@ const useProfileScreen = () => {
 
     // Mock verification - only check against 1234
     const defaultOTP = process.env.EXPO_PUBLIC_OTP_DEFAULT || "1234";
-    
+
     // Simulate loading time
     setTimeout(async () => {
       if (otp === defaultOTP) {
         logger.info('Mock OTP verification successful for phone change');
-        
+
         try {
           // Complete the save with verified phone number  
           await performSave(pendingPhoneNumber, null);
-          
+
           // Update original phone number to new verified number
           setOriginalPhoneNumber(pendingPhoneNumber);
           setShowOTPModal(false);
           setIsVerifyingOTP(false);
-          
+
           // Call the navigation callback if it exists
           if (onSaveComplete) {
             onSaveComplete();
             setOnSaveComplete(null);
           }
-          
+
         } catch (error) {
           logger.error('Error updating user profile after OTP verification', error);
           setIsVerifyingOTP(false);
           setShowOTPModal(false);
-          
+
           Alert.alert(
             "Erro",
             "Erro ao atualizar perfil. Tente novamente.",
@@ -231,7 +231,7 @@ const useProfileScreen = () => {
       } else {
         logger.warn('Mock OTP verification failed - incorrect code');
         setIsVerifyingOTP(false);
-        
+
         Alert.alert(
           "Erro",
           "Código de verificação inválido. Use 1234 para testar.",
@@ -243,7 +243,7 @@ const useProfileScreen = () => {
 
   const handleOTPModalClose = () => {
     logger.debug('OTP modal closed, reverting phone number changes');
-    
+
     // Revert phone number changes if OTP was not verified
     setPhoneNumber(originalPhoneNumber);
     setPhoneNumberInput(extractPhoneNumber(originalPhoneNumber));
@@ -252,6 +252,13 @@ const useProfileScreen = () => {
     setOnSaveComplete(null);
     setIsSaving(false);
   };
+
+  const hasChanges =
+    (name !== undefined && name !== (user?.name?.split(" ", 2)[0] || "")) ||
+    (surname !== undefined && surname !== (user?.name?.split(" ", 2)[1] || "")) ||
+    (phoneNumber !== (user?.phone || "")) ||
+    (email !== (user?.email || "")) ||
+    (image !== null);
 
   return {
     models: {
@@ -266,6 +273,7 @@ const useProfileScreen = () => {
       showOTPModal,
       pendingPhoneNumber,
       isVerifyingOTP,
+      hasChanges,
     },
     operations: {
       handleNameChange,
