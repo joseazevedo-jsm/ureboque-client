@@ -17,7 +17,7 @@ export const useUserData = () => {
 
 export const UserDataProvider = ({ children }) => {
   const logger = useLogger('UserDataContext');
-  const { userToken, isAuthenticated, logout } = useAuth();
+  const { userToken, isAuthenticated } = useAuth();
   const [user, setUser] = useState(null);
   const [prices, setPrices] = useState(null);
   const [services, setServices] = useState([]);
@@ -41,11 +41,6 @@ export const UserDataProvider = ({ children }) => {
       logger.logStateChange('user', null, 'loaded', 'user_data_fetched');
 
     } catch (error) {
-      if (error.response?.status === 401) {
-        await logout();
-        throw error;
-      }
-      ErrorService.handleAPIError(error, true, 'UserDataContext');
       logger.logError(error, { operation: 'fetchUserById', userId });
     } finally {
       setIsLoading(false);

@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Circle, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Circle, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import { useMapScreen } from "../components/map/useMapScreen";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
@@ -80,35 +80,6 @@ const MapScreen = memo(() => {
   // Memoized map markers for performance
   const memoizedMapMarkers = useMemo(() => {
     return models.mapMarkers.map((item, index) => {
-
-      if (models.driver && index === 0 && models.driverLocation) {
-
-        const carColor = models.driver?.car?.color;
-        const carIcon = getCarIconByColor(carColor);
-        const heading = models?.driverLocation?.heading || "0";
-
-        return (
-          <Marker
-            coordinate={{
-              latitude: models.driverLocation.latitude,
-              longitude: models.driverLocation.longitude,
-            }}
-            key={`driver-${models.driverLocation.latitude}-${models.driverLocation.longitude}-${heading}`}
-            anchor={{ x: 0.5, y: 0.5 }}
-          >
-            <Image
-              source={carIcon}
-              style={{
-                width: 50,
-                height: 50,
-                transform: [{ rotate: `${heading}deg` }],
-              }}
-              resizeMode="contain"
-            />
-          </Marker>
-        );
-      }
-
       return (
         <Marker coordinate={item} key={`marker-${index}-${item.latitude}-${item.longitude}`}>
           <CustomMarker
@@ -135,14 +106,37 @@ const MapScreen = memo(() => {
     });
   }, [
     models.mapMarkers,
-    models.driver,
-    models.driverLocation,
     models.tripState,
     models.originCity,
     models.destinationCity,
     models.tripDuration,
     operations.formatDuration
   ]);
+
+  // Separate component for the driver to isolate high-frequency updates
+  const MemoizedDriverMarker = useMemo(() => {
+    if (!models.driver || !models.driverLocation) return null;
+
+    return (
+      <Marker
+        coordinate={{
+          latitude: models.driverLocation.latitude,
+          longitude: models.driverLocation.longitude,
+        }}
+        anchor={{ x: 0.5, y: 0.5 }}
+      >
+        <Image
+          source={getCarIconByColor(models.driver?.car?.color)}
+          style={{
+            width: scale(50),
+            height: scale(50),
+            transform: [{ rotate: `${models?.driverLocation?.heading || "0"}deg` }],
+          }}
+          resizeMode="contain"
+        />
+      </Marker>
+    );
+  }, [models.driver, models.driverLocation?.latitude, models.driverLocation?.longitude, models.driverLocation?.heading]);
 
   // Memoized spots item renderer
   const renderSpotsItem = useCallback(({ item }) => {
@@ -234,20 +228,30 @@ const MapScreen = memo(() => {
         )}
 
         {memoizedMapMarkers}
+
+        {MemoizedDriverMarker}
+
         {models.isRouteVisible && (
-          <MapViewDirections
-            origin={
-              models.driverLocation
-                ? models.driverLocation
-                : models.mapMarkers[0]
-            }
-            destination={models.mapMarkers[1]}
-            apikey={process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}
-            strokeColor="#0089FF"
-            strokeWidth={scale(7)}
-            onReady={operations.handleMapDirectionsReady}
-            resetOnChange={false}
-          />
+          <>
+            <MapViewDirections
+              origin={models.mapMarkers[0]}
+              destination={models.mapMarkers[1]}
+              apikey={process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}
+              strokeWidth={0} // Invisible: we only use it for calculation logic
+              onReady={operations.handleMapDirectionsReady}
+              resetOnChange={false}
+            />
+            {models.currentRoute && models.currentRoute.length > 0 && (
+              <Polyline
+                coordinates={models.currentRoute}
+                strokeColor="#0089FF"
+                strokeWidth={scale(7)}
+                lineJoin="round"
+                lineCap="round"
+                tappable={false}
+              />
+            )}
+          </>
         )}
 
         {memoizedCarsAround}

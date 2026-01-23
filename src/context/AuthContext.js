@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLogger } from '../hooks/useLogger';
 import sentryService from '../services/SentryService';
+import AuthEventService from '../services/AuthEventService';
  
 const AuthContext = createContext();
 
@@ -161,6 +162,18 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAuthState();
+  }, []);
+
+  const logoutRef = useRef(logout);
+  logoutRef.current = logout;
+
+  useEffect(() => {
+    const unsubscribe = AuthEventService.subscribe(() => {
+      logger.info('Invalid token event received, logging out');
+      logoutRef.current();
+    });
+
+    return unsubscribe;
   }, []);
 
   const value = {

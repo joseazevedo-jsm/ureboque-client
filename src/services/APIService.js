@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import ErrorService from './ErrorService';
 import Logger from '../utils/Logger';
 import sentryService from './SentryService';
+import AuthEventService from './AuthEventService';
 
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_UREBOQUE_API,
@@ -139,8 +140,14 @@ api.interceptors.response.use(
       timestamp: new Date().toISOString()
     });
 
-    // ErrorService will handle Sentry error reporting (except for 401s which are handled above)
-    if (error.response?.status !== 401) {
+    const status = error.response?.status;
+    const errorMessage = error.response?.data?.error;
+    const isInvalidToken = status === 401 || (status === 403 && errorMessage === 'Invalid token');
+
+    if (isInvalidToken) {
+      Logger.info('APIService', 'Invalid token detected, triggering logout', { status, errorMessage });
+      AuthEventService.emitInvalidToken();
+    } else {
       ErrorService.handleAPIError(error, false, 'APIService');
     }
 

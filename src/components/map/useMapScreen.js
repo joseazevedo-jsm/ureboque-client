@@ -63,6 +63,8 @@ export const useMapScreen = () => {
   const [mapState, setMapState] = useState({
     markers: [],
     directions: null,
+    routeCoordinates: [], // Full route for local trimming
+    currentRoute: [],      // Sliced route for visual display
     carsAround: [],
     driverLocation: null,
     isLoadingDrivers: false,
@@ -286,6 +288,36 @@ export const useMapScreen = () => {
     }
   };
 
+  /**
+   * Trims a polyline locally by finding the point on the route closest to the driver.
+   * This provides the "premium" shortening line effect at zero cost.
+   */
+  const getSlicedRoute = useCallback((currentLocation, coordinates) => {
+    if (!currentLocation || !coordinates || coordinates.length < 2) return coordinates;
+
+    let closestIndex = 0;
+    let minDistance = Infinity;
+
+    // We only check the first few points to save CPU, as drivers usually move forward
+    // but check enough to handle lag.
+    const searchRange = Math.min(coordinates.length, 50);
+
+    for (let i = 0; i < searchRange; i++) {
+      const dist = getDistanceInKm(currentLocation, coordinates[i]);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIndex = i;
+      }
+    }
+
+    // If driver is far from the current route start, they might be off-route
+    // or we just need to jump to the closest point.
+    // Return route starting from the driver's EXACT location, followed by the remaining path
+    // This removes the "gap" between the car and the blue line.
+    const pathAhead = coordinates.slice(closestIndex);
+    return [currentLocation, ...pathAhead];
+  }, [getDistanceInKm]);
+
   // Note: simulateMovement removed to prevent memory leaks
 
   const centerToUserLocation = useCallback(() => {
@@ -450,49 +482,66 @@ export const useMapScreen = () => {
 
   const handleDriverLocation = useCallback((data) => {
     try {
-      logger.info("Socket event: driverLocation", data);
       if (data && data.service && data.location) {
         const { service, location } = data;
 
-        switch (service.status) {
-          case 1: {
-            updateMapState({ driverLocation: location });
+        // Batch all updates into a single object to minimize re-renders
+        const updates = { driverLocation: location };
 
-            updateMapState({ markers: [location, service.pickupLocation] });
+        // 1. Movement Threshold: Only re-calculate if the driver has moved at least 10 meters
+        // This prevents excessive OOM on Android by ignoring GPS jitter
+        const lastLoc = mapState.driverLocation;
+        const movedDistance = lastLoc ? getDistanceInKm(lastLoc, location) * 1000 : Infinity;
+
+        if (movedDistance > 10) { // 10 meters threshold
+          logger.debug("Driver moved > 10m, updating route slicing");
+
+          if (mapState.routeCoordinates?.length > 0) {
+            const sliced = getSlicedRoute(location, mapState.routeCoordinates);
+            updates.currentRoute = sliced;
+          }
+        }
+
+        switch (service.status) {
+          case 1: { // Going to pickup
+            // Only update markers (API TRIGGER) if they aren't set yet for this phase
+            if (mapState.markers.length < 2 || mapState.markers[1].latitude !== service.pickupLocation.latitude) {
+              logger.info("Setting markers for pickup phase");
+              updates.markers = [location, service.pickupLocation];
+            }
 
             if (serviceStatus) {
               logger.debug("Service status reset");
               setServiceStatus(null);
             }
 
-            // Driver location will be updated through real-time socket events
-            const distance = getDistanceInKm(
-              service.pickupLocation,
-              location
-            );
+            const distance = getDistanceInKm(service.pickupLocation, location);
             if (distance < 0.3) {
-              updateMapState({ directions: null });
+              updates.directions = null;
               tripStartedSheetRef.current.dismiss();
-              // Don't interfere if user is currently viewing details
               if (!tripData.detailsInfo?.isViewingDetails) {
                 driverArrivingSheetRef.current.present();
               }
             }
             break;
           }
-          case 2: {
-            updateMapState({ driverLocation: location });
-            updateMapState({ markers: [location, service.dropoffLocation] });
+          case 2: { // Going to dropoff
+            // Only update markers (API TRIGGER) if they aren't set yet for this phase
+            if (mapState.markers.length < 2 || mapState.markers[1].latitude !== service.dropoffLocation.latitude) {
+              logger.info("Setting markers for dropoff phase");
+              updates.markers = [location, service.dropoffLocation];
+            }
             break;
           }
-          default:
-            break;
         }
+
+        // Single batch update
+        updateMapState(updates);
       }
     } catch (error) {
       logger.error("Error handling driverLocation event", error);
     }
-  }, [serviceStatus, tripData.detailsInfo]);
+  }, [serviceStatus, tripData.detailsInfo, mapState.markers, mapState.routeCoordinates, mapState.driverLocation, getSlicedRoute, getDistanceInKm]);
 
   const handleServiceStarted = useCallback((data) => {
     try {
@@ -1346,7 +1395,21 @@ export const useMapScreen = () => {
   };
 
   const handleMapDirectionsReady = (routeInfo) => {
-    updateMapState({ directions: routeInfo });
+    logger.info("🗺️ Directions API called", {
+      timestamp: new Date().toISOString(),
+      serviceId: tripData.service?._id,
+      duration: routeInfo?.duration,
+    });
+
+    // Store full coordinates for local slicing logic
+    if (routeInfo?.coordinates) {
+      updateMapState({
+        directions: routeInfo,
+        routeCoordinates: routeInfo.coordinates,
+        currentRoute: routeInfo.coordinates
+      });
+    }
+
     updateTripData({ duration: routeInfo?.duration });
   };
 
@@ -1451,8 +1514,12 @@ export const useMapScreen = () => {
       setDestinationCity(null);
       setOriginCoords();
       setDestinationCoords();
-      updateMapState({ markers: [] });
-      updateMapState({ directions: null });
+      updateMapState({
+        markers: [],
+        directions: null,
+        routeCoordinates: [],
+        currentRoute: []
+      });
     }
   };
 
@@ -1605,8 +1672,12 @@ export const useMapScreen = () => {
     updateModal('preCancel', false);
     updateModal('chat', false);
 
-    updateMapState({ markers: [] });
-    updateMapState({ directions: null });
+    updateMapState({
+      markers: [],
+      directions: null,
+      routeCoordinates: [],
+      currentRoute: []
+    });
     updateTripData({ carType: "Turismo", price: "25,300", service: null, status: null, driver: null, driverConnected: false, duration: null, detailsInfo: null, inputLocationObject: null });
     updateModal('confirmation', false);
     updateMapState({ markerVisible: false });
@@ -1684,6 +1755,7 @@ export const useMapScreen = () => {
       markerVisible: mapState.markerVisible,
       markerCity: mapState.markerCity,
       mapDirections: mapState.directions,
+      currentRoute: mapState.currentRoute,
       carsAround: mapState.carsAround,
       driverLocation: mapState.driverLocation,
       locationSelection,
