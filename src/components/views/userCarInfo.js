@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { scale } from "react-native-size-matters";
+import { colors, shadows, spacing, borderRadius } from "../../theme";
 
 const UserCarInfo = ({
   handleBrandInputValueChange,
@@ -102,7 +103,7 @@ const UserCarInfo = ({
               onChangeText={(value) => handleInputChange('brand', value)}
               style={[styles.input, errors.brand && styles.inputError]}
               placeholder="Marca"
-              placeholderTextColor={"#000"}
+              placeholderTextColor={colors.textPrimary}
               blurOnSubmit={false}
               returnKeyType="next"
             />
@@ -113,7 +114,7 @@ const UserCarInfo = ({
               onChangeText={(value) => handleInputChange('model', value)}
               style={[styles.input, errors.model && styles.inputError]}
               placeholder="Modelo"
-              placeholderTextColor={"#000"}
+              placeholderTextColor={colors.textPrimary}
               blurOnSubmit={false}
               returnKeyType="next"
             />
@@ -127,7 +128,7 @@ const UserCarInfo = ({
               onChangeText={(value) => handleInputChange('license', value)}
               style={[styles.input, errors.license && styles.inputError]}
               placeholder="Matricula"
-              placeholderTextColor={"#000"}
+              placeholderTextColor={colors.textPrimary}
               autoCapitalize="characters"
               blurOnSubmit={false}
               returnKeyType="next"
@@ -139,7 +140,7 @@ const UserCarInfo = ({
               onChangeText={(value) => handleInputChange('color', value)}
               style={[styles.input, errors.color && styles.inputError]}
               placeholder="Cor"
-              placeholderTextColor={"#000"}
+              placeholderTextColor={colors.textPrimary}
               blurOnSubmit={false}
               returnKeyType="done"
             />
@@ -160,51 +161,63 @@ const UserCarInfo = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: scale(20),
+    paddingHorizontal: spacing.xl,
     flex: 1,
+    backgroundColor: 'transparent',
   },
   button: {
-    borderRadius: scale(7),
-    backgroundColor: "#0089ff",
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.primary,
     alignItems: "center",
     marginHorizontal: scale(10),
-    paddingVertical: scale(10),
+    paddingVertical: scale(14),
+    ...shadows.primaryGlow,
   },
   input: {
-    height: scale(50),
-    borderRadius: scale(7),
-    borderWidth: scale(4),
-    borderColor: "#0089ff",
-    paddingHorizontal: scale(10),
-    marginHorizontal: scale(5),
+    height: scale(54),
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "rgba(255,255,255,0.4)",
+    paddingHorizontal: spacing.lg,
+    marginHorizontal: spacing.xs,
+    fontSize: scale(15),
+    color: colors.textPrimary,
   },
   row: {
     flexDirection: "row",
-    marginBottom: scale(20),
-    paddingHorizontal: scale(5),
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.xs,
   },
   containerInputs: {
     marginBottom: scale(10),
   },
   title: {
-    fontSize: scale(18),
+    fontSize: scale(16),
     alignSelf: "center",
-    color: "#0089FF",
-    fontWeight: "900",
-    paddingVertical: scale(10),
+    color: colors.primary,
+    fontWeight: "800",
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.lg,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   inputError: {
-    borderColor: '#FF0000',
+    borderColor: colors.error,
+    borderWidth: 1,
   },
   errorText: {
-    color: '#FF0000',
-    fontSize: scale(12),
-    marginTop: scale(2),
+    color: colors.error,
+    fontSize: scale(11),
+    marginTop: spacing.xs,
     marginLeft: scale(10),
+    fontWeight: '600',
   },
   buttonText: {
-    color: "#fff",
-    fontSize: scale(18)
+    color: colors.surface,
+    fontSize: scale(16),
+    fontWeight: "700",
+    letterSpacing: 0.5,
   }
 });
 

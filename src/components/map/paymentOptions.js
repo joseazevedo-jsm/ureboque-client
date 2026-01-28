@@ -1,43 +1,43 @@
 import React from "react";
-import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import { View, Text, StyleSheet, Image } from "react-native";
 import { scale } from "react-native-size-matters";
 import CarTypes from "../cards/carTypes";
-import { Image } from "react-native";
+import { ScalePressable } from "../common/ScalePressable";
+import { colors, spacing, borderRadius, shadows, typography } from "../../theme";
 
-const PaymentOptions = ({handleConfirmPaymentPress, models }) => {
+const PaymentOptions = ({ handleConfirmPaymentPress, models }) => {
   const renderPaymentOption = (iconName, label, paymentType) => (
-    <TouchableOpacity onPress={handleConfirmPaymentPress(paymentType)}>
-      <View style={styles.paymentOption}>
-        {iconName === "money" ? (
-          <Image
-            source={require("../../../resources/icons/payment/CASH.png") }
-            style={{ width: scale(50), height: scale(50) }}
-            resizeMode="contain"
-          />
-        ) : (
-          <Image
-            source={require("../../../resources/icons/payment/MULTICARD.png")}
-            style={{ width: scale(50), height: scale(50) }}
-            resizeMode="contain"
-          />
-        )}
-        <Text style={styles.paymentOptionText}>{label}</Text>
-      </View>
-    </TouchableOpacity>
+    <View key={paymentType}>
+      <ScalePressable onPress={handleConfirmPaymentPress(paymentType)}>
+        <View style={styles.paymentOption}>
+          {iconName === "money" ? (
+            <Image
+              source={require("../../../resources/icons/payment/CASH.png")}
+              style={styles.paymentImageConfig}
+              resizeMode="contain"
+            />
+          ) : (
+            <Image
+              source={require("../../../resources/icons/payment/MULTICARD.png")}
+              style={styles.paymentImageConfig}
+              resizeMode="contain"
+            />
+          )}
+          <Text style={styles.paymentOptionText}>{label}</Text>
+        </View>
+      </ScalePressable>
+    </View>
   );
 
   return (
     <View>
-      <View>
-        <CarTypes
-          typeCar={models.typeCar}
-          descr={`${models.brand} ${models.model}`}
-          descr2={`${models.color}, ${models.license}`}
-          route={models.mapDirections}
-          price={models.ridePrice}
-        />
-      </View>
+      <CarTypes
+        typeCar={models.typeCar}
+        descr={`${models.brand} ${models.model}`}
+        descr2={`${models.color}, ${models.license}`}
+        route={models.mapDirections}
+        price={models.ridePrice}
+      />
 
       <Text style={styles.paymentTitle}>COMO É QUE VAI PAGAR?</Text>
       <View>
@@ -50,22 +50,33 @@ const PaymentOptions = ({handleConfirmPaymentPress, models }) => {
 
 const styles = StyleSheet.create({
   paymentTitle: {
-    fontSize: scale(18),
-    color: "#0089FF",
-    fontWeight: "900",
-    marginBottom: scale(5),
-    marginLeft: scale(20),
+    ...typography.sectionTitle,
+    marginBottom: spacing.lg,
+    marginLeft: spacing.xl,
+    marginTop: spacing.lg,
   },
   paymentOption: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: scale(20),
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.md,
+  },
+  paymentImageConfig: {
+    width: scale(40),
+    height: scale(25),
   },
   paymentOptionText: {
-    color: "#000",
-    fontSize: scale(18),
-    fontWeight: "700",
-    marginLeft: scale(20),
+    color: colors.textPrimary,
+    fontSize: scale(16),
+    fontWeight: "600",
+    marginLeft: spacing.lg,
   },
 });
 

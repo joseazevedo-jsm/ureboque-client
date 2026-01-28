@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
+import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import PlaceSavedItem from '../../cards/placeSavedItem'; // Keep existing component
+import PlaceSavedItem from '../../cards/placeSavedItem';
+import { ScalePressable } from '../../common/ScalePressable';
+import { colors, shadows, borderRadius, spacing } from '../../../theme';
 
 const AddressesList = ({ 
   addresses, 
@@ -61,36 +64,42 @@ const AddressesList = ({
     }
   };
 
-  const renderItem = ({ item }) => (
-    <PlaceSavedItem
-      key={item._id}
-      place={item.place}
-      edit={editMode}
-      onPressEditItem={() => handleItemPress(item)}
-      add={item.isAdd || false}
-    />
+  const renderItem = ({ item, index }) => (
+    <Animated.View entering={FadeInRight.delay(150 + (index * 40)).springify()}>
+      <ScalePressable onPress={() => handleItemPress(item)}>
+        <PlaceSavedItem
+          key={item._id}
+          place={item.place}
+          edit={editMode}
+          onPressEditItem={() => handleItemPress(item)}
+          add={item.isAdd || false}
+        />
+      </ScalePressable>
+    </Animated.View>
   );
 
   return (
     <View style={styles.container}>
       {/* Header - Same design as current */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <ScalePressable style={styles.closeButton} onPress={onClose}>
           <Icon name="close" size={scale(25)} />
-        </TouchableOpacity>
-        <TouchableOpacity
+        </ScalePressable>
+        <ScalePressable
           style={styles.editButton}
           onPress={() => setEditMode(!editMode)}
         >
           <Text style={styles.editText}>Editar</Text>
-        </TouchableOpacity>
+        </ScalePressable>
       </View>
 
       {/* Title - Same design */}
-      <Text style={styles.title}>LUGAGES SALVOS</Text>
-      <Text style={styles.subtitle}>
-        O motorista irá levá-lo exatamente onde você está indo!
-      </Text>
+      <Animated.View entering={FadeInDown.delay(100).springify()}>
+        <Text style={styles.title}>LUGAGES SALVOS</Text>
+        <Text style={styles.subtitle}>
+          O motorista irá levá-lo exatamente onde você está indo!
+        </Text>
+      </Animated.View>
 
       {/* List */}
       <View style={styles.listContainer}>
@@ -102,9 +111,11 @@ const AddressesList = ({
         />
 
         {/* Add Place Button - Same design */}
-        <TouchableOpacity style={styles.addButton} onPress={startAdd}>
-          <Text style={styles.addButtonText}>ADICIONAR LUGAR</Text>
-        </TouchableOpacity>
+        <Animated.View entering={FadeInDown.delay(300).springify()}>
+          <ScalePressable style={styles.addButton} onPress={startAdd}>
+            <Text style={styles.addButtonText}>ADICIONAR LUGAR</Text>
+          </ScalePressable>
+        </Animated.View>
       </View>
 
       {/* Loading/Error States */}
@@ -117,63 +128,75 @@ const AddressesList = ({
   );
 };
 
-// Keep all existing styles from SavedPlacesModal.js
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   header: {
-    flexDirection: "row", 
-    justifyContent: "space-between"
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   closeButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(7),
-    backgroundColor: "#fff",
-    top: scale(15),
-    marginLeft: scale(10),
+    width: scale(44),
+    height: scale(44),
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surface,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...shadows.md,
   },
   editButton: {
-    top: scale(15), 
-    marginRight: scale(10)
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.sm,
   },
   editText: {
-    fontWeight: "500"
+    fontWeight: "600",
+    color: colors.primary,
+    fontSize: scale(14),
   },
   title: {
-    fontSize: scale(20),
-    marginLeft: scale(10),
-    marginTop: scale(25),
-    color: "#0089FF",
+    fontSize: scale(18),
+    marginLeft: spacing.lg,
+    marginTop: spacing.xxl,
+    color: colors.textPrimary,
     fontWeight: "700",
+    letterSpacing: 0.5,
   },
   subtitle: {
-    marginLeft: scale(10),
-    fontSize: scale(11),
+    marginLeft: spacing.lg,
+    marginTop: spacing.xs,
+    fontSize: scale(13),
+    color: colors.textSecondary,
   },
   listContainer: {
-    marginLeft: scale(10),
-    marginTop: scale(40),
-    height: "75%",
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xxl,
+    flex: 1,
   },
   separator: {
-    height: scale(15)
+    height: spacing.md,
   },
   addButton: {
-    borderColor: "#0089FF",
-    borderWidth: scale(3),
-    borderRadius: scale(7),
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: borderRadius.xl,
     width: scale(300),
     alignItems: "center",
     alignSelf: "center",
-    padding: scale(18),
+    paddingVertical: spacing.lg,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xxl,
+    backgroundColor: colors.surface,
+    ...shadows.md,
   },
   addButtonText: {
-    color: "#0089FF", 
-    fontWeight: "700"
+    color: colors.primary,
+    fontWeight: "700",
+    fontSize: scale(14),
+    letterSpacing: 0.5,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -181,9 +204,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   }
 });
 

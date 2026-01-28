@@ -13,6 +13,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
 import { Image } from "react-native";
 import ChatItem from "../../cards/chatItem";
+import { colors, shadows, borderRadius, spacing } from "../../../theme";
 
 const imgDef = "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
 
@@ -60,28 +61,18 @@ const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnre
       <View style={styles.container}>
         <View style={styles.topBar}>
           <TouchableOpacity
-            style={{ alignSelf: "center" }}
+            style={styles.backButton}
             onPress={handeBackButtonPress}
           >
-            <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
+            <Icon name="arrow-back" size={scale(26)} color={colors.primary} />
           </TouchableOpacity>
-          <View style={{ flexDirection: "row" }}>
-            <View
-              style={{
-                borderRadius: scale(45),
-                borderColor: "#0089FF",
-                borderWidth: scale(2),
-              }}
-            >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={styles.driverPhotoContainer}>
               <Image
                 source={{
                   uri: driver?.photo || imgDef,
                 }}
-                style={{
-                  height: scale(45),
-                  width: scale(45),
-                  borderRadius: scale(45),
-                }}
+                style={styles.driverPhoto}
               />
             </View>
             <View style={{ justifyContent: "center" }}>
@@ -89,10 +80,10 @@ const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnre
             </View>
           </View>
           <TouchableOpacity
-            style={{ alignSelf: "center" }}
+            style={styles.callButton}
             onPress={onCallDriver}
           >
-            <Icon name="phone" size={scale(30)} color="#0089FF" />
+            <Icon name="phone" size={scale(26)} color={colors.primary} />
           </TouchableOpacity>
         </View>
         <FlatList
@@ -107,13 +98,14 @@ const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnre
             value={models.newMessage}
             onChangeText={operations.setNewMessage}
             placeholder="Digite uma mensagem..."
+            placeholderTextColor={colors.textMuted}
             multiline
           />
           <TouchableOpacity
             style={styles.sendButton}
             onPress={operations.sendMessage}
           >
-            <Icon name="send" size={35} color="#007BFF" />
+            <Icon name="send" size={scale(22)} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -124,48 +116,81 @@ const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnre
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F0F0F0",
+    backgroundColor: colors.background,
   },
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingTop: scale(35),
-    backgroundColor: "#fff",
-    paddingBottom: scale(15),
-    paddingHorizontal: scale(10),
+    paddingTop: scale(50),
+    backgroundColor: colors.surface,
+    paddingBottom: scale(16),
+    paddingHorizontal: scale(16),
     alignContent: "center",
-    elevation: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    ...shadows.md,
   },
   topBarTitle: {
-    // fontFamily: "Poppins-Medium",
-    fontSize: scale(18),
+    fontSize: scale(17),
+    fontWeight: "600",
+    color: colors.textPrimary,
     alignSelf: "center",
-    paddingHorizontal: scale(10),
+    paddingHorizontal: scale(12),
+  },
+  driverPhoto: {
+    height: scale(45),
+    width: scale(45),
+    borderRadius: scale(45),
+  },
+  driverPhotoContainer: {
+    borderRadius: scale(45),
+    borderColor: colors.primary,
+    borderWidth: scale(2),
+    ...shadows.sm,
   },
   inputContainer: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: scale(15),
-    elevation: 20,
+    paddingVertical: scale(12),
+    paddingHorizontal: scale(12),
+    paddingBottom: scale(28),
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    ...shadows.lg,
   },
   input: {
     flex: 1,
     fontSize: scale(15),
-    paddingHorizontal: scale(10),
-    paddingVertical: scale(10),
-    backgroundColor: "#FFFFFF",
-    borderRadius: scale(7),
-    borderWidth: scale(1),
-    borderColor: "#B7B7B7",
-    marginHorizontal: scale(10),
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(12),
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.xxl,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginRight: scale(10),
+    color: colors.textPrimary,
+    maxHeight: scale(100),
   },
   sendButton: {
-    padding: scale(8),
-    borderRadius: scale(20),
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(22),
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadows.primaryGlow,
   },
   messageText: {
     paddingVertical: scale(4),
+  },
+  backButton: {
+    alignSelf: "center",
+    padding: scale(4),
+  },
+  callButton: {
+    alignSelf: "center",
+    padding: scale(4),
   },
 });
 

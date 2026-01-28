@@ -8,6 +8,10 @@ import {
   View,
 } from "react-native";
 import MapView, { Circle, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
+import { LinearGradient } from "expo-linear-gradient";
+import { ScalePressable } from "../components/common/ScalePressable";
+import { BlurView } from "expo-blur";
+import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { useMapScreen } from "../components/map/useMapScreen";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
@@ -59,6 +63,21 @@ const getCarIconByColor = (color) => {
     return defaultIcon;
   }
 };
+
+// --- Reusable Glass Components ---
+const GlassBackground = ({ style }) => (
+  <BlurView
+    intensity={90}
+    tint="systemThickMaterialLight"
+    style={[style, { borderRadius: scale(32), overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.5)' }]}
+  />
+);
+
+const GlassHandle = () => (
+  <View style={styles.glassHandleContainer}>
+    <View style={styles.glassHandleIndicator} />
+  </View>
+);
 
 const MapScreen = memo(() => {
   const logger = useLogger('MapScreen');
@@ -263,8 +282,17 @@ const MapScreen = memo(() => {
           <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity style={styles.details} onPress={() => openDrawer()}>
-          <Icon name="menu" size={scale(30)} color="#0089FF" />
+        <TouchableOpacity
+          style={styles.menuGlassButton}
+          onPress={() => openDrawer()}
+          activeOpacity={0.8}
+        >
+          <BlurView
+            intensity={90}
+            tint="systemMaterialLight"
+            style={StyleSheet.absoluteFill}
+          />
+          <Icon name="menu" size={scale(24)} color="#1E293B" />
         </TouchableOpacity>
       )}
 
@@ -312,29 +340,77 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.bottomSheetModalRef}
           index={0}
-          snapPoints={[scale(220)]}
+          snapPoints={[scale(280)]}
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
           keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
+          backgroundStyle={{ backgroundColor: 'rgba(255,255,255,0.0)' }}
+          backgroundComponent={GlassBackground}
+          handleComponent={GlassHandle}
         >
-          <View style={styles.svgContainer}>
-            <Icon name="my-location" size={scale(18)} color="#0089FF" />
-            <TouchableOpacity
-              style={{ marginLeft: scale(10) }}
-              onPress={operations.handleMapSearchBarPress}
-            >
-              <Text style={{ fontSize: scale(15) }}>De onde vai partir?</Text>
-            </TouchableOpacity>
+          <View style={styles.sheetContainerGlass}>
+            {/* Handle is now external */}
+
+            <Animated.View entering={FadeInDown.delay(100).springify()}>
+              <ScalePressable
+                onPress={operations.handleMapSearchBarPress}
+                style={styles.floatingPillContainer}
+              >
+                <LinearGradient
+                  colors={['#FFFFFF', '#F1F5F9']}
+                  style={styles.floatingPill}
+                >
+                  <View style={styles.pillIconBubble}>
+                    <Icon name="search" size={scale(20)} color="#0089FF" />
+                  </View>
+                  <Text style={styles.pillPlaceholder}>Para onde vamos?</Text>
+                  <View style={styles.pillAction}>
+                    <Icon name="arrow-forward" size={scale(16)} color="#94A3B8" />
+                  </View>
+                </LinearGradient>
+              </ScalePressable>
+            </Animated.View>
+
+            <View style={styles.placesContainer}>
+              <Text style={styles.glassSectionTitle}>Seus Lugares</Text>
+              <FlatList
+                data={models.favPlaces}
+                renderItem={({ item, index }) => (
+                  <Animated.View entering={FadeInRight.delay(200 + (index * 50)).springify()}>
+                    <TouchableOpacity
+                      onPress={item.place.name === "Adicionar Favorito"
+                        ? operations.handleAddFavouriteButtonPress
+                        : operations.handleOnFavouriteButtonPress(item)
+                      }
+                    >
+                      <View style={styles.squircleCard}>
+                        <LinearGradient
+                          colors={item.place.name === "Adicionar Favorito" ? ['#E0F2FE', '#BAE6FD'] : ['#F8FAFC', '#E2E8F0']}
+                          style={styles.squircleGradient}
+                        >
+                          <Icon
+                            name={item.place.name === "Adicionar Favorito" ? "add" : "place"}
+                            size={scale(24)}
+                            color={item.place.name === "Adicionar Favorito" ? "#0089FF" : "#475569"}
+                          />
+                        </LinearGradient>
+                        <Text style={styles.squircleText} numberOfLines={1}>
+                          {item.place.name === "Adicionar Favorito" ? "Adicionar" : item.place.name}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  </Animated.View>
+                )}
+                keyExtractor={(item) => item._id.toString()}
+                horizontal={true}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: scale(20), paddingVertical: scale(10) }}
+                ItemSeparatorComponent={() => <View style={{ width: scale(16) }} />}
+              />
+            </View>
           </View>
-          <FlatList
-            data={models.favPlaces}
-            renderItem={renderSpotsItem}
-            keyExtractor={(item) => item._id.toString()}
-            horizontal={true}
-            contentContainerStyle={{ marginHorizontal: scale(15) }}
-          />
         </BottomSheetModal>
 
         <BottomSheetModal
@@ -346,6 +422,9 @@ const MapScreen = memo(() => {
           stackBehavior="replace"
           keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
+          backgroundStyle={{ backgroundColor: 'transparent' }}
+          backgroundComponent={GlassBackground}
+          handleComponent={GlassHandle}
         >
           <Text
             style={{
@@ -368,12 +447,15 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.userCarInfoSheetRef}
           index={0}
-          snapPoints={[scale(270), scale(550)]}
+          snapPoints={[scale(320), scale(550)]}
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
           keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
+          backgroundStyle={{ backgroundColor: 'transparent' }}
+          backgroundComponent={GlassBackground}
+          handleComponent={GlassHandle}
         >
           <UserCarInfo
             handleBrandInputValueChange={operations.handleBrandInputValueChange}
@@ -389,12 +471,15 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.paymentOptionsSheetRef}
           index={0}
-          snapPoints={[scale(270)]}
+          snapPoints={[scale(320)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
           keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
+          backgroundStyle={{ backgroundColor: 'transparent' }}
+          backgroundComponent={GlassBackground}
+          handleComponent={GlassHandle}
         >
           <PaymentOptions handleConfirmPaymentPress={operations.handleConfirmPaymentPress} models={models} />
         </BottomSheetModal>
@@ -407,6 +492,9 @@ const MapScreen = memo(() => {
           stackBehavior="replace"
           keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
+          backgroundStyle={{ backgroundColor: 'transparent' }}
+          backgroundComponent={GlassBackground}
+          handleComponent={GlassHandle}
         >
           <DriverSearch
             destination={models.destinationCity}
@@ -428,6 +516,9 @@ const MapScreen = memo(() => {
           stackBehavior="replace"
           keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
+          backgroundStyle={{ backgroundColor: 'transparent' }}
+          backgroundComponent={GlassBackground}
+          handleComponent={GlassHandle}
         >
           <DriverStatus
             status={0}
@@ -453,6 +544,9 @@ const MapScreen = memo(() => {
           stackBehavior="replace"
           keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
+          backgroundStyle={{ backgroundColor: 'transparent' }}
+          backgroundComponent={GlassBackground}
+          handleComponent={GlassHandle}
         >
           <DriverStatus
             status={1}
@@ -478,6 +572,9 @@ const MapScreen = memo(() => {
           stackBehavior="replace"
           keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
+          backgroundStyle={{ backgroundColor: 'transparent' }}
+          backgroundComponent={GlassBackground}
+          handleComponent={GlassHandle}
         >
           <DriverStatus
             status={2}
@@ -497,11 +594,14 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.bottomSheetModalRefDetails}
           index={0}
-          snapPoints={[scale(475)]}
+          snapPoints={[scale(380), scale(520)]}
           enableDynamicSizing={false}
           stackBehavior="replace"
           keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
+          backgroundStyle={{ backgroundColor: 'transparent' }}
+          backgroundComponent={GlassBackground}
+          handleComponent={GlassHandle}
         >
           {models.driver && models.service && (
             <DetailsItem
@@ -523,6 +623,9 @@ const MapScreen = memo(() => {
           stackBehavior="replace"
           keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
+          backgroundStyle={{ backgroundColor: 'transparent' }}
+          backgroundComponent={GlassBackground}
+          handleComponent={GlassHandle}
         >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
@@ -546,7 +649,7 @@ const MapScreen = memo(() => {
                 style={styles.secondaryButton}
                 onPress={operations.handleReturnToSearchFromDragMarker}
               >
-                <Icon name="search" size={scale(18)} color="#0089ff" />
+                <Icon name="search" size={scale(18)} color="#64748B" />
                 <Text style={styles.secondaryButtonText}>
                   Voltar
                 </Text>
@@ -633,20 +736,24 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  details: {
-    width: scale(40),
-    height: scale(40),
+  menuGlassButton: {
+    width: scale(48),
+    height: scale(48),
     position: "absolute",
-    borderRadius: scale(7),
-    backgroundColor: "#fff",
-    top: scale(35),
+    borderRadius: scale(24),
+    top: scale(44), // Adjusted for safe area
+    left: scale(20),
     alignItems: "center",
     justifyContent: "center",
-    left: scale(20),
+    overflow: 'hidden',
     shadowColor: "#000",
-    shadowOffset: { width: scale(2), height: scale(2) },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    backgroundColor: 'rgba(255,255,255,0.4)', // Fallback
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
   },
   recenterButton: {
     position: 'absolute',
@@ -782,49 +889,166 @@ const styles = StyleSheet.create({
     marginHorizontal: scale(20),
   },
   modalTitle: {
-    fontSize: scale(18),
-    color: "#0089FF",
-    fontWeight: "900",
+    fontSize: scale(16),
+    color: "#1E293B",
+    fontWeight: "800",
     marginTop: scale(15),
-    marginBottom: scale(25),
+    marginBottom: scale(20),
+    letterSpacing: 0.5,
   },
   searchContainer: {
-    borderRadius: scale(7),
-    borderWidth: scale(3),
-    borderColor: "#0089FF",
-    fontSize: scale(18),
-    padding: scale(8),
-    marginBottom: scale(25),
+    borderRadius: scale(16),
+    backgroundColor: "#F8FAFC",
+    padding: scale(16),
+    marginBottom: scale(20),
     flexDirection: "row",
+    alignItems: "center",
   },
-  searchTextContainer: {
+  searchGradientBorder: {
+    borderRadius: scale(16),
+    padding: scale(2), // serves as border width
+    elevation: 4,
+    shadowColor: "#0089FF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  sheetContainerGlass: {
+    flex: 1,
+    paddingTop: scale(12),
+  },
+  capsuleHandleContainer: {
+    alignItems: 'center',
+    marginBottom: scale(20),
+    marginTop: scale(8),
+  },
+  capsuleHandle: {
+    width: scale(40),
+    height: scale(5),
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: scale(10),
+  },
+  floatingPillContainer: {
+    marginHorizontal: scale(24), // Wider margins for "floating" look
+    marginBottom: scale(28),
+    shadowColor: "#0089FF",
+    shadowOffset: { width: 0, height: 4 }, // Softer shadow
+    shadowOpacity: 0.12,
+    marginBottom: scale(20),
+    shadowColor: "#0089FF",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  floatingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: scale(20),
+    paddingVertical: scale(16),
+    paddingHorizontal: scale(20),
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  pillIconBubble: {
+    width: scale(36),
+    height: scale(36),
+    borderRadius: scale(18),
+    backgroundColor: '#F0F9FF', // Light Blue
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: scale(16),
+  },
+  pillPlaceholder: {
+    flex: 1,
+    fontSize: scale(16),
+    fontWeight: '600',
+    color: '#334155', // Slate 700
+    letterSpacing: 0.3,
+  },
+  pillAction: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: scale(12),
+    padding: scale(8),
+  },
+  placesContainer: {
+    marginTop: scale(10),
+  },
+  glassSectionTitle: {
+    fontSize: scale(14),
+    fontWeight: '700',
+    color: '#64748B', // Slate 500
+    marginBottom: scale(16),
+    marginLeft: scale(4),
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  squircleCard: {
+    alignItems: 'center',
+    width: scale(72),
+  },
+  squircleGradient: {
+    width: scale(64),
+    height: scale(64),
+    borderRadius: scale(24), // Super-ellipseish
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: scale(8),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  squircleText: {
+    fontSize: scale(12),
+    fontWeight: '600',
+    color: '#475569',
+    textAlign: 'center',
+  },
+  svgContainer: {
+    // ...
+
     paddingHorizontal: scale(10),
   },
+  glassHandleContainer: {
+    alignItems: 'center',
+    paddingVertical: scale(12),
+  },
+  glassHandleIndicator: {
+    width: scale(40),
+    height: scale(5),
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: scale(10),
+  },
   searchText: {
-    fontSize: scale(16),
-    color: "#808080",
+    fontSize: scale(15),
+    fontWeight: '600',
+    color: "#1E293B",
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: scale(10),
-    marginTop: scale(10),
+    gap: scale(12),
+    marginTop: scale(5),
+    marginBottom: scale(10),
   },
   secondaryButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: scale(5),
-    backgroundColor: '#fff',
-    borderWidth: scale(2),
-    borderColor: '#0089ff',
-    borderRadius: scale(7),
-    height: scale(40),
+    gap: scale(8),
+    backgroundColor: '#F1F5F9',
+    borderRadius: scale(14),
+    height: scale(48),
   },
   secondaryButtonText: {
-    color: '#0089ff',
-    fontSize: scale(14),
+    color: '#64748B',
+    fontSize: scale(15),
     fontWeight: '600',
   },
   confirmButton: {
@@ -832,14 +1056,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: scale(5),
-    backgroundColor: "#0089ff",
-    borderRadius: scale(7),
-    height: scale(40),
+    gap: scale(8),
+    backgroundColor: "#0089FF",
+    borderRadius: scale(14),
+    height: scale(48),
+    shadowColor: "#0089FF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   confirmButtonText: {
     color: "#fff",
-    fontSize: scale(14),
+    fontSize: scale(15),
     fontWeight: '600',
   },
 });

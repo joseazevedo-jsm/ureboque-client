@@ -202,8 +202,8 @@ const PasswordCreationScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    paddingVertical:scale(20)
+    backgroundColor: '#F8FAFC',
+    paddingVertical: scale(20),
   },
   header: {
     flexDirection: 'row',
@@ -216,6 +216,13 @@ const styles = StyleSheet.create({
     height: scale(40),
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: scale(20),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   progressSection: {
     flex: 1,
@@ -223,13 +230,13 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: scale(14),
-    color: '#707070',
+    color: '#64748B',
     marginBottom: scale(8),
   },
   progressBar: {
     width: scale(100),
     height: scale(4),
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#E2E8F0',
     borderRadius: scale(2),
   },
   progressFill: {
@@ -249,12 +256,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: scale(24),
     fontWeight: 'bold',
-    color: '#333333',
+    color: '#1E293B',
     marginBottom: scale(8),
   },
   subtitle: {
     fontSize: scale(16),
-    color: '#707070',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: scale(22),
   },
@@ -265,24 +272,29 @@ const styles = StyleSheet.create({
     marginBottom: scale(20),
   },
   inputLabel: {
-    fontSize: scale(16),
-    fontWeight: '500',
-    color: '#333333',
+    fontSize: scale(13),
+    fontWeight: '600',
+    color: '#1E293B',
     marginBottom: scale(8),
   },
   passwordInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#0089FF',
-    borderRadius: scale(8),
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    borderRadius: scale(14),
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   passwordInput: {
     flex: 1,
-    fontSize: scale(16),
-    color: '#333333',
-    paddingVertical: scale(12),
+    fontSize: scale(15),
+    color: '#1E293B',
+    paddingVertical: scale(14),
     paddingHorizontal: scale(16),
   },
   eyeButton: {
@@ -293,13 +305,13 @@ const styles = StyleSheet.create({
   },
   strengthLabel: {
     fontSize: scale(14),
-    color: '#707070',
+    color: '#64748B',
     marginBottom: scale(8),
   },
   strengthBar: {
     width: '100%',
     height: scale(6),
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#E2E8F0',
     borderRadius: scale(3),
   },
   strengthFill: {
@@ -310,9 +322,9 @@ const styles = StyleSheet.create({
     marginBottom: scale(30),
   },
   requirementsTitle: {
-    fontSize: scale(16),
+    fontSize: scale(14),
     fontWeight: '600',
-    color: '#333333',
+    color: '#1E293B',
     marginBottom: scale(15),
   },
   requirementsList: {
@@ -327,7 +339,7 @@ const styles = StyleSheet.create({
   },
   requirementInvalid: {
     fontSize: scale(14),
-    color: '#707070',
+    color: '#94A3B8',
   },
   footer: {
     paddingHorizontal: scale(20),
@@ -335,34 +347,33 @@ const styles = StyleSheet.create({
     paddingTop: scale(15),
   },
   continueButton: {
-    borderRadius: scale(8),
+    borderRadius: scale(16),
     paddingVertical: scale(16),
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   continueButtonActive: {
     backgroundColor: '#0089FF',
+    shadowColor: '#0089FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   continueButtonInactive: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#CBD5E0',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   continueButtonText: {
     fontSize: scale(16),
-    fontWeight: 'bold',
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
   continueButtonTextActive: {
     color: '#FFFFFF',
   },
   continueButtonTextInactive: {
-    color: '#B0B0B0',
+    color: '#94A3B8',
   },
 });
 

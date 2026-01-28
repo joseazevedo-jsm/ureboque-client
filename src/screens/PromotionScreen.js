@@ -25,7 +25,7 @@ const PromotionScreen = () => {
   const logger = useLogger('PromotionScreen', { enableLifecycleLogging: true });
   const { models, operations } = usePromotionScreen();
   const navigation = useNavigation();
-  
+
   // Animation states
   const [isActivating, setIsActivating] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
@@ -34,7 +34,7 @@ const PromotionScreen = () => {
   const slideAnim = useRef(new Animated.Value(50)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
   const inputScale = useRef(new Animated.Value(1)).current;
-  
+
   logger.debug('PromotionScreen rendered', {
     hasActivePromo: !!(models.user?.discount?.active),
     promoCode: models.user?.discount?.code,
@@ -61,10 +61,10 @@ const PromotionScreen = () => {
 
   const handleActivateCode = async () => {
     if (models.code.trim() === '') return;
-    
+
     setIsActivating(true);
     Vibration.vibrate([0, 100]);
-    
+
     // Button press animation
     Animated.sequence([
       Animated.timing(buttonScale, {
@@ -81,12 +81,12 @@ const PromotionScreen = () => {
 
     try {
       const result = await operations.handleActivateCode();
-      
+
       if (result?.success) {
         // Success animation
         setSuccessVisible(true);
         Vibration.vibrate([0, 50, 50, 50]);
-        
+
         setTimeout(() => {
           setSuccessVisible(false);
         }, 3000);
@@ -122,7 +122,7 @@ const PromotionScreen = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -131,21 +131,21 @@ const PromotionScreen = () => {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            accessibilityLabel="Voltar"
+            onPress={() => navigation.openDrawer()}
+            accessibilityLabel="Abrir menu"
             accessibilityRole="button"
           >
-            <Icon name="arrow-back" size={scale(24)} color="#0089FF" />
+            <Icon name="menu" size={scale(24)} color="#0089FF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>PROMOÇÕES</Text>
           <View style={styles.headerSpacer} />
         </View>
 
         {/* Hero Section */}
-        <Animated.View 
+        <Animated.View
           style={[
-            styles.heroSection, 
-            { 
+            styles.heroSection,
+            {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }]
             }
@@ -175,10 +175,10 @@ const PromotionScreen = () => {
         )}
 
         {/* Input Section */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.inputSection,
-            { 
+            {
               opacity: fadeAnim,
               transform: [{ scale: inputScale }]
             }
@@ -190,10 +190,10 @@ const PromotionScreen = () => {
             inputFocused && styles.inputContainerFocused,
             models.codeError && styles.inputContainerError
           ]}>
-            <Icon 
-              name="confirmation-number" 
-              size={scale(20)} 
-              color={inputFocused ? "#0089FF" : "#6B6969"} 
+            <Icon
+              name="confirmation-number"
+              size={scale(20)}
+              color={inputFocused ? "#0089FF" : "#6B6969"}
               style={styles.inputIcon}
             />
             <TextInput
@@ -209,7 +209,7 @@ const PromotionScreen = () => {
               accessibilityLabel="Campo de código promocional"
             />
           </View>
-          
+
           {models.codeError && (
             <Animated.View style={styles.errorContainer}>
               <Icon name="error" size={scale(16)} color="#f44336" />
@@ -296,7 +296,7 @@ const PromotionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#F8FAFC", // Slate 50
   },
   scrollView: {
     flex: 1,
@@ -305,151 +305,154 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: scale(20),
-    paddingTop: scale(50),
+    paddingHorizontal: scale(24),
+    paddingTop: scale(60),
     paddingBottom: scale(20),
-    backgroundColor: "#fff",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    backgroundColor: "transparent",
   },
   backButton: {
     padding: scale(8),
     borderRadius: scale(20),
-    backgroundColor: "#f0f8ff",
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerTitle: {
     fontSize: scale(18),
-    fontWeight: "bold",
-    color: "#0089FF",
+    fontWeight: "800",
+    color: "#1E293B",
     textAlign: "center",
+    letterSpacing: 0.5,
   },
   headerSpacer: {
     width: scale(40),
   },
   heroSection: {
-    backgroundColor: "#fff",
-    paddingHorizontal: scale(20),
-    paddingVertical: scale(40),
+    paddingHorizontal: scale(24),
+    paddingVertical: scale(30),
     alignItems: "center",
-    marginBottom: scale(20),
+    marginBottom: scale(10),
   },
   iconContainer: {
-    width: scale(120),
-    height: scale(120),
-    borderRadius: scale(60),
-    backgroundColor: "#f0f8ff",
+    width: scale(100),
+    height: scale(100),
+    borderRadius: scale(50),
+    backgroundColor: "#E0F2FE", // Light Blue
     justifyContent: "center",
     alignItems: "center",
     marginBottom: scale(20),
+    shadowColor: "#0089FF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
   },
   heroTitle: {
-    fontSize: scale(24),
-    fontWeight: "bold",
-    color: "#0089FF",
-    marginBottom: scale(10),
+    fontSize: scale(22),
+    fontWeight: "800",
+    color: "#1E293B",
+    marginBottom: scale(8),
     textAlign: "center",
   },
   heroSubtitle: {
-    fontSize: scale(16),
-    color: "#666",
+    fontSize: scale(15),
+    color: "#64748B",
     textAlign: "center",
     lineHeight: scale(22),
+    paddingHorizontal: scale(20),
   },
   activePromoSection: {
     backgroundColor: "#fff",
-    marginHorizontal: scale(20),
-    borderRadius: scale(12),
+    marginHorizontal: scale(24),
+    borderRadius: scale(16),
     padding: scale(20),
-    marginBottom: scale(20),
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    marginBottom: scale(24),
+    shadowColor: "#4CAF50",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 12,
+    elevation: 4,
     borderLeftWidth: scale(4),
     borderLeftColor: "#4CAF50",
   },
   activePromoHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: scale(15),
+    marginBottom: scale(12),
   },
   activePromoTitle: {
-    fontSize: scale(18),
-    fontWeight: "bold",
+    fontSize: scale(16),
+    fontWeight: "700",
     color: "#4CAF50",
     marginLeft: scale(10),
   },
   inputSection: {
-    backgroundColor: "#fff",
-    marginHorizontal: scale(20),
-    borderRadius: scale(12),
-    padding: scale(20),
-    marginBottom: scale(20),
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginHorizontal: scale(24),
+    marginBottom: scale(24),
   },
   inputLabel: {
-    fontSize: scale(16),
+    fontSize: scale(13),
     fontWeight: "600",
-    color: "#333",
-    marginBottom: scale(15),
+    color: "#1E293B",
+    marginBottom: scale(10),
+    marginLeft: scale(4),
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#e0e0e0",
-    borderRadius: scale(12),
-    paddingHorizontal: scale(15),
-    paddingVertical: scale(12),
-    backgroundColor: "#fafafa",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    borderRadius: scale(14),
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(4), // Balance for text input height
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   inputContainerFocused: {
     borderColor: "#0089FF",
-    backgroundColor: "#f0f8ff",
-    elevation: 2,
+    backgroundColor: "#fff",
     shadowColor: "#0089FF",
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   inputContainerError: {
-    borderColor: "#f44336",
-    backgroundColor: "#fff5f5",
+    borderColor: "#EF4444",
+    backgroundColor: "#FEF2F2",
   },
   inputIcon: {
-    marginRight: scale(10),
+    marginRight: scale(12),
   },
   textInput: {
     flex: 1,
     fontSize: scale(16),
-    color: "#333",
-    paddingVertical: 0,
+    color: "#1E293B",
+    fontWeight: '600',
+    paddingVertical: scale(12),
   },
   errorContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: scale(10),
-    paddingHorizontal: scale(5),
+    paddingHorizontal: scale(4),
   },
   errorText: {
-    fontSize: scale(14),
-    color: "#f44336",
+    fontSize: scale(13),
+    color: "#EF4444",
     marginLeft: scale(8),
     flex: 1,
+    fontWeight: '500',
   },
   successContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: scale(10),
-    paddingHorizontal: scale(5),
+    paddingHorizontal: scale(4),
   },
   successText: {
     fontSize: scale(14),
@@ -460,23 +463,23 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: "row",
     backgroundColor: "#0089FF",
-    borderRadius: scale(12),
-    paddingVertical: scale(18),
+    borderRadius: scale(16),
+    paddingVertical: scale(16),
     paddingHorizontal: scale(30),
-    marginHorizontal: scale(20),
+    marginHorizontal: scale(24),
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: scale(20),
-    elevation: 4,
+    marginBottom: scale(30),
     shadowColor: "#0089FF",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: 10,
+    elevation: 6,
   },
   disabledButton: {
-    backgroundColor: "#ccc",
-    elevation: 0,
+    backgroundColor: "#CBD5E0",
     shadowOpacity: 0,
+    elevation: 0,
   },
   buttonIcon: {
     marginRight: scale(10),
@@ -484,52 +487,47 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: scale(16),
-    fontWeight: "bold",
+    fontWeight: "700",
     letterSpacing: 0.5,
   },
   infoSection: {
-    paddingHorizontal: scale(20),
-    marginBottom: scale(20),
+    paddingHorizontal: scale(24),
+    marginBottom: scale(40),
   },
   infoCard: {
     backgroundColor: "#fff",
-    borderRadius: scale(12),
-    padding: scale(20),
-    elevation: 2,
+    borderRadius: scale(16),
+    padding: scale(24),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
-    borderLeftWidth: scale(4),
-    borderLeftColor: "#0089FF",
+    shadowRadius: 8,
+    elevation: 2,
   },
   infoIconContainer: {
-    alignSelf: "flex-start",
-    marginBottom: scale(15),
+    marginBottom: scale(16),
   },
   infoContent: {
     flex: 1,
   },
   infoTitle: {
-    fontSize: scale(18),
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: scale(15),
-    textAlign: "center",
+    fontSize: scale(16),
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: scale(16),
   },
   stepsList: {
-    gap: scale(12),
+    gap: scale(16),
   },
   stepItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: scale(8),
   },
   stepNumber: {
     width: scale(24),
     height: scale(24),
     borderRadius: scale(12),
-    backgroundColor: "#0089FF",
+    backgroundColor: "#F1F5F9",
     justifyContent: "center",
     alignItems: "center",
     marginRight: scale(12),
@@ -537,15 +535,14 @@ const styles = StyleSheet.create({
   },
   stepNumberText: {
     fontSize: scale(12),
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#0089FF",
   },
   stepText: {
-    fontSize: scale(15),
-    color: "#555",
-    lineHeight: scale(22),
+    fontSize: scale(14),
+    color: "#64748B",
+    lineHeight: scale(20),
     flex: 1,
-    marginTop: scale(2),
   },
   footerSpace: {
     height: scale(40),

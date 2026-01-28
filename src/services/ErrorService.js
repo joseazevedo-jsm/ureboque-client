@@ -2,6 +2,12 @@ import Logger from '../utils/Logger';
 import sentryService from './SentryService';
 
 class ErrorService {
+  static _showAlert = null;
+
+  static setAlertHandler(handler) {
+    ErrorService._showAlert = handler;
+  }
+
   static handleAPIError(error, showToUser = true, component = 'Unknown') {
     const errorMessage = this.getErrorMessage(error);
     const errorType = this.getErrorType(error);
@@ -120,24 +126,20 @@ class ErrorService {
   }
 
   static showUserError(message) {
-    // Import Alert from react-native at the top of file for this to work
-    const { Alert } = require('react-native');
-    
     Logger.warn('ErrorService', 'Showing user error dialog', { message });
-    
-    // Show user-visible error alert
-    Alert.alert(
-      'Erro',
-      message,
-      [
-        {
-          text: 'OK',
-          style: 'default'
-        }
-      ],
-      { cancelable: true }
-    );
-    
+
+    if (ErrorService._showAlert) {
+      ErrorService._showAlert({
+        type: 'error',
+        title: 'Erro',
+        message,
+        buttons: [{ text: 'OK' }],
+      });
+    } else {
+      const { Alert } = require('react-native');
+      Alert.alert('Erro', message, [{ text: 'OK', style: 'default' }], { cancelable: true });
+    }
+
     Logger.logUserInteraction('ErrorService', 'error_dialog_shown', { message });
   }
 

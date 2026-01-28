@@ -21,8 +21,7 @@
 //     </View>
 //   ) : null}
 
-import { Text, TouchableOpacity } from "react-native";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import RouteItem from "../cards/routeItem";
 import Icon from "react-native-vector-icons/MaterialIcons";
@@ -60,13 +59,13 @@ const DriverStatus = ({
       </View>
 
       <View
-        style={{ paddingVertical: scale(20), paddingHorizontal: scale(10) }}
+        style={{ paddingVertical: scale(12), paddingHorizontal: scale(10) }}
       >
         <RouteItem origin={origin} destination={destination} />
       </View>
 
       <View style={styles.spacer} />
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={() => onDetailsTrip(bttmSheetRef)}
         accessibilityLabel="Ver detalhes da viagem"
         accessibilityRole="button"
@@ -83,7 +82,7 @@ const DriverStatus = ({
 
       <View style={styles.spacer} />
       {status === 0 && (
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={onCancelTrip}
           accessibilityLabel="Cancelar viagem atual"
           accessibilityRole="button"
@@ -103,56 +102,32 @@ const DriverStatus = ({
 };
 
 const styles = StyleSheet.create({
-  mainText: {
-    fontSize: scale(18),
-  },
-
-  options: {
-    paddingVertical: scale(14),
-    flexDirection: "row",
-    marginLeft: scale(10),
-  },
-
   circle: {
-    width: scale(20),
-    height: scale(20),
-    borderRadius: scale(75),
-    borderWidth: scale(2),
-    backgroundColor: "#fff",
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
+    backgroundColor: "rgba(255,255,255,0.8)",
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-
   spacer: {
-    height: scale(10),
-    backgroundColor: "#ccc",
-  },
-
-  options2: {
-    borderColor: "#B7B7B7",
-    borderTopWidth: scale(7),
-    paddingVertical: scale(14),
-  },
-  optionsButton: {
-    flexDirection: "row",
-    paddingHorizontal: scale(10),
-    paddingVertical: scale(15),
+    height: 1,
+    backgroundColor: "rgba(0,0,0,0.05)",
+    marginVertical: scale(8),
   },
   optionsButtonText: {
-    fontSize: scale(14),
-    marginLeft: scale(10),
+    fontSize: scale(15),
+    marginLeft: scale(16),
+    fontWeight: "600",
   },
-  cancel: {
-    width: scale(20),
-    height: scale(20),
-    borderRadius: scale(75),
-    borderWidth: scale(2),
-    borderColor: "red",
-    backgroundColor: "#fff",
-    justifyContent: "center",
+  options: {
+    paddingVertical: scale(12),
+    flexDirection: "row",
     alignItems: "center",
-    alignSelf: "center",
+    paddingHorizontal: scale(20),
   },
 });
 

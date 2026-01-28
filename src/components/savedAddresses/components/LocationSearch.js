@@ -4,17 +4,20 @@ import {
   Text,
   TextInput,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
   Alert
 } from 'react-native';
+import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import PlaceItem from '../../cards/placeItem'; // Keep existing component
+import * as Haptics from 'expo-haptics';
+import PlaceItem from '../../cards/placeItem';
+import { ScalePressable } from '../../common/ScalePressable';
 import { useTextSearchQuery } from '../../../models/places/useTextSearchQuery';
 import { useDebounce } from 'use-debounce';
 import { useUserLocationStateContext } from '../../../context/UserLocationStateContext';
 import Geocoder from 'react-native-geocoding';
+import { colors, shadows, borderRadius, spacing } from '../../../theme';
 
 const LocationSearch = ({ 
   state,
@@ -39,6 +42,7 @@ const LocationSearch = ({
   const searchResults = responseData?.results || [];
 
   const handleLocationSelect = (location) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     // Transform Google Places API response to expected format and return to form
     selectSearchResult({
       address: location.formatted_address,
@@ -118,58 +122,65 @@ const LocationSearch = ({
     }
   };
 
-  const renderSearchResult = ({ item }) => (
-    <PlaceItem
-      key={item.place_id}
-      name={item.name}
-      iconUrl={item.icon}
-      address={item.formatted_address}
-      onPress={() => handleLocationSelect(item)}
-    />
+  const renderSearchResult = ({ item, index }) => (
+    <Animated.View entering={FadeInRight.delay(100 + (index * 30)).springify()}>
+      <ScalePressable onPress={() => handleLocationSelect(item)}>
+        <PlaceItem
+          key={item.place_id}
+          name={item.name}
+          iconUrl={item.icon}
+          address={item.formatted_address}
+        />
+      </ScalePressable>
+    </Animated.View>
   );
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={() => selectSearchResult({ address: '', coordinates: null, name: '' })}>
+        <ScalePressable style={styles.closeButton} onPress={() => selectSearchResult({ address: '', coordinates: null, name: '' })}>
           <Icon name="arrow-back" size={scale(25)} />
-        </TouchableOpacity>
+        </ScalePressable>
       </View>
 
-      {/* Search Input - Same design as current */}
-      <View style={styles.searchContainer}>
+      {/* Search Input */}
+      <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Icon name="search" size={scale(25)} color="#ccc" />
+          <Icon name="search" size={scale(22)} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholderTextColor="#808080"
+            placeholderTextColor={colors.textMuted}
             placeholder="Escolha o seu destino"
             onChangeText={handleSearch}
             value={searchQuery}
           />
         </View>
 
-        {/* Current Location Button - Same design */}
-        <TouchableOpacity onPress={handleCurrentLocation}>
-          <View style={styles.locationButton}>
-            <View style={styles.iconContainer}>
-              <Icon name="navigation" size={scale(30)} color="#0089FF" />
+        {/* Current Location Button */}
+        <Animated.View entering={FadeInDown.delay(150).springify()}>
+          <ScalePressable onPress={handleCurrentLocation}>
+            <View style={styles.locationButton}>
+              <View style={styles.iconContainer}>
+                <Icon name="navigation" size={scale(26)} color={colors.primary} />
+              </View>
+              <Text style={styles.locationText}>Localização atual</Text>
             </View>
-            <Text style={styles.locationText}>Localização atual</Text>
-          </View>
-        </TouchableOpacity>
+          </ScalePressable>
+        </Animated.View>
 
-        {/* Map Drag Button - Same design */}
-        <TouchableOpacity onPress={handleMapDrag}>
-          <View style={styles.locationButton}>
-            <View style={styles.iconContainer}>
-              <Icon name="map" size={scale(30)} color="#0089FF" />
+        {/* Map Drag Button */}
+        <Animated.View entering={FadeInDown.delay(200).springify()}>
+          <ScalePressable onPress={handleMapDrag}>
+            <View style={styles.locationButton}>
+              <View style={styles.iconContainer}>
+                <Icon name="map" size={scale(26)} color={colors.primary} />
+              </View>
+              <Text style={styles.locationText}>Definir localização no mapa</Text>
             </View>
-            <Text style={styles.locationText}>Definir localização no mapa</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+          </ScalePressable>
+        </Animated.View>
+      </Animated.View>
 
       {/* Search Results */}
       <View style={styles.resultsContainer}>
@@ -185,75 +196,80 @@ const LocationSearch = ({
   );
 };
 
-// Keep existing styles from AddressModal bottomSheet
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ccc",
+    backgroundColor: colors.background,
   },
   header: {
-    padding: scale(15)
+    padding: spacing.lg,
   },
   closeButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(7),
-    backgroundColor: "#fff",
+    width: scale(44),
+    height: scale(44),
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surface,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...shadows.md,
   },
   searchContainer: {
-    backgroundColor: "#fff",
-    borderRadius: scale(5),
-    marginBottom: scale(3),
-    padding: scale(10),
-    marginHorizontal: scale(10)
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.sm,
+    padding: spacing.lg,
+    marginHorizontal: spacing.lg,
+    ...shadows.md,
   },
   searchInputContainer: {
-    borderRadius: scale(7),
-    borderWidth: scale(3),
-    borderColor: "#0089FF",
-    fontSize: scale(18),
-    padding: scale(8),
-    marginBottom: scale(20),
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginBottom: spacing.xl,
     flexDirection: "row",
-    alignItems: 'center'
+    alignItems: 'center',
+    backgroundColor: colors.background,
   },
   searchInput: {
     fontSize: scale(15),
-    paddingHorizontal: scale(10),
-    flex: 1
+    paddingHorizontal: spacing.md,
+    flex: 1,
+    color: colors.textPrimary,
   },
   locationButton: {
     flexDirection: "row",
-    marginBottom: scale(15),
+    marginBottom: spacing.md,
     alignItems: "center",
+    paddingVertical: spacing.xs,
   },
   iconContainer: {
-    height: scale(45),
-    width: scale(45),
-    borderRadius: scale(7),
-    borderWidth: scale(2),
-    borderColor: "#0089FF",
+    height: scale(48),
+    width: scale(48),
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: scale(7),
+    marginRight: spacing.md,
   },
   locationText: {
-    color: "#000",
+    color: colors.textPrimary,
     fontSize: scale(15),
-    paddingHorizontal: scale(10),
-    textAlignVertical: "center",
+    paddingHorizontal: spacing.sm,
+    fontWeight: "500",
   },
   resultsContainer: {
-    backgroundColor: "#fff",
-    borderRadius: scale(5),
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
     flex: 1,
-    marginHorizontal: scale(10),
-    padding: scale(10)
+    marginHorizontal: spacing.lg,
+    padding: spacing.lg,
+    ...shadows.md,
   },
   separator: {
-    height: scale(15)
+    height: spacing.md,
   }
 });
 

@@ -2,10 +2,11 @@ import React from "react";
 import { View, TouchableOpacity, StyleSheet, Text, Image } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
+import { colors, shadows, spacing, borderRadius } from "../../theme";
 
 const imgDef =
   "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
-  
+
 const DriverItem = ({
   driver,
   tripDuration,
@@ -35,7 +36,7 @@ const DriverItem = ({
         <View style={{ flexDirection: "row" }}>
           <Text
             style={{
-              color: "#000",
+              color: colors.textPrimary,
               fontSize: scale(12),
               fontWeight: "bold",
             }}
@@ -44,15 +45,15 @@ const DriverItem = ({
           </Text>
           <View
             style={{
-              marginLeft: scale(5),
-              backgroundColor: "#ccc",
-              borderRadius: scale(5),
+              marginLeft: spacing.xs,
+              backgroundColor: colors.borderLight,
+              borderRadius: borderRadius.sm,
             }}
           >
             <Text
               style={{
                 fontSize: scale(10),
-                color: "#000",
+                color: colors.textPrimary,
                 fontWeight: "bold",
                 padding: scale(3),
               }}
@@ -67,12 +68,12 @@ const DriverItem = ({
           style={{
             flexDirection: "row",
             justifyContent: "center",
-            paddingTop: scale(35),
+            paddingTop: spacing.xl,
           }}
         >
           <TouchableOpacity onPress={onCallDriver}>
             <View style={styles.circle}>
-              <Icon name="add-call" size={scale(15)} color="#fff" />
+              <Icon name="add-call" size={scale(15)} color={colors.surface} />
             </View>
           </TouchableOpacity>
           <View style={{ alignItems: "center" }}>
@@ -89,8 +90,8 @@ const DriverItem = ({
             <Text
               style={{
                 fontSize: scale(14),
-                marginTop: scale(5),
-                color: "#ccc",
+                marginTop: spacing.xs,
+                color: colors.textMuted,
               }}
             >
               {driver.name}
@@ -98,7 +99,7 @@ const DriverItem = ({
           </View>
           <TouchableOpacity onPress={onMessageDriver}>
             <View style={styles.circle}>
-              <Icon name="message" size={scale(15)} color="#fff" />
+              <Icon name="message" size={scale(15)} color={colors.surface} />
               {unreadMessageCount > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{unreadMessageCount}</Text>
@@ -114,40 +115,39 @@ const DriverItem = ({
 
 const styles = StyleSheet.create({
   mainText: {
-    color: "#000",
+    color: colors.textPrimary,
     fontSize: scale(18),
-    fontWeight: "bold",
-    marginBottom: scale(3),
+    fontWeight: "800",
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
   },
   circle: {
-    width: scale(35),
-    height: scale(35),
-    borderRadius: scale(75),
-    borderColor: "#0089ff",
-    borderWidth: scale(2),
-    backgroundColor: "#0089ff",
+    width: scale(40),
+    height: scale(40),
+    borderRadius: borderRadius.xxl,
+    backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
-    marginHorizontal: scale(18),
-    marginTop: scale(20),
-    position: "relative",
+    marginHorizontal: spacing.xl,
+    marginTop: spacing.md,
+    ...shadows.primaryGlow,
   },
   badge: {
     position: "absolute",
-    top: scale(-5),
-    right: scale(-5),
-    backgroundColor: "#ff4444",
+    top: scale(-2),
+    right: scale(-2),
+    backgroundColor: colors.error,
     borderRadius: scale(10),
     minWidth: scale(18),
     height: scale(18),
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: scale(1),
-    borderColor: "#fff",
+    borderWidth: 2,
+    borderColor: colors.surface,
   },
   badgeText: {
-    color: "#fff",
+    color: colors.surface,
     fontSize: scale(10),
     fontWeight: "bold",
     textAlign: "center",

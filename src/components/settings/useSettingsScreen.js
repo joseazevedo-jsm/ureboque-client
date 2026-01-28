@@ -3,12 +3,14 @@ import { Alert } from "react-native";
 import { useUserData } from "../../context/UserDataContext";
 import { useAuth } from "../../context/AuthContext";
 import { useLogger } from "../../hooks/useLogger";
+import { useAlert } from "../../context/AlertContext";
 import api from "../../services/APIService";
 
 const useSettingsScreen = () => {
   const logger = useLogger('useSettingsScreen');
   const { user } = useUserData();
   const { logout } = useAuth();
+  const { showAlert } = useAlert();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChangePassword = () => {
@@ -76,14 +78,15 @@ const useSettingsScreen = () => {
 
   const handleLogout = () => {
     logger.debug('Logout requested');
-    
-    Alert.alert(
-      "Terminar Sessão",
-      "Tem certeza que deseja sair da sua conta?",
-      [
+
+    showAlert({
+      type: 'confirmation',
+      title: "Terminar Sessão",
+      message: "Tem certeza que deseja sair da sua conta?",
+      buttons: [
         {
           text: "Cancelar",
-          style: "cancel"
+          style: "cancel",
         },
         {
           text: "Sair",
@@ -94,36 +97,42 @@ const useSettingsScreen = () => {
               await logout();
             } catch (error) {
               logger.error('Logout error', { error: error.message });
-              Alert.alert("Erro", "Erro ao terminar sessão. Tente novamente.");
+              showAlert({
+                type: 'error',
+                title: "Erro",
+                message: "Erro ao terminar sessão. Tente novamente.",
+              });
             }
-          }
-        }
-      ]
-    );
+          },
+        },
+      ],
+    });
   };
 
   const handleDeleteAccount = () => {
     logger.debug('Delete account requested');
-    
-    Alert.alert(
-      "Eliminar Conta",
-      "Esta ação é irreversível. Tem certeza que deseja eliminar permanentemente a sua conta?",
-      [
+
+    showAlert({
+      type: 'warning',
+      title: "Eliminar Conta",
+      message: "Esta ação é irreversível. Tem certeza que deseja eliminar permanentemente a sua conta?",
+      buttons: [
         {
           text: "Cancelar",
-          style: "cancel"
+          style: "cancel",
         },
         {
           text: "Eliminar",
           style: "destructive",
           onPress: () => {
+            // Second confirmation via native prompt (requires text input)
             Alert.prompt(
               "Confirmar Eliminação",
               "Digite 'ELIMINAR' para confirmar:",
               [
                 {
                   text: "Cancelar",
-                  style: "cancel"
+                  style: "cancel",
                 },
                 {
                   text: "Eliminar",
@@ -132,16 +141,20 @@ const useSettingsScreen = () => {
                     if (text === "ELIMINAR") {
                       deleteAccount();
                     } else {
-                      Alert.alert("Erro", "Confirmação incorreta");
+                      showAlert({
+                        type: 'error',
+                        title: "Erro",
+                        message: "Confirmação incorreta",
+                      });
                     }
-                  }
-                }
+                  },
+                },
               ]
             );
-          }
-        }
-      ]
-    );
+          },
+        },
+      ],
+    });
   };
 
   const deleteAccount = async () => {

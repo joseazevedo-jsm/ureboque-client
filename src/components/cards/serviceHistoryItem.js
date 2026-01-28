@@ -3,6 +3,7 @@ import { View, TouchableOpacity, StyleSheet, Text, Image } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
 import RouteItem from "./routeItem";
+import { colors, shadows, spacing, borderRadius } from "../../theme";
 
 const ServiceHistoryItem = memo(({ service, onPress }) => {
   // Handle nested service structure: { car: {...}, service: {...} }
@@ -12,31 +13,31 @@ const ServiceHistoryItem = memo(({ service, onPress }) => {
   const getStatusInfo = (status) => {
     switch (status) {
       case 'completed':
-        return { 
-          text: 'Concluído', 
-          color: '#4CAF50', 
-          bgColor: '#E8F5E8',
+        return {
+          text: 'Concluído',
+          color: colors.success,
+          bgColor: colors.successLight,
           icon: 'check-circle'
         };
       case 'cancelled':
-        return { 
-          text: 'Cancelado', 
-          color: '#F44336', 
-          bgColor: '#FFEBEE',
+        return {
+          text: 'Cancelado',
+          color: colors.error,
+          bgColor: colors.errorLight,
           icon: 'cancel'
         };
       case 'requested':
-        return { 
-          text: 'Solicitado', 
-          color: '#FF9800', 
+        return {
+          text: 'Solicitado',
+          color: colors.warning,
           bgColor: '#FFF3E0',
           icon: 'schedule'
         };
       default:
-        return { 
-          text: status, 
-          color: '#666', 
-          bgColor: '#f0f0f0',
+        return {
+          text: status,
+          color: colors.textSecondary,
+          bgColor: colors.background,
           icon: 'help'
         };
     }
@@ -151,7 +152,7 @@ const ServiceHistoryItem = memo(({ service, onPress }) => {
           {price && (
             <Text style={styles.priceText}>{price}</Text>
           )}
-          <Icon name="chevron-right" size={scale(20)} color="#ccc" />
+          <Icon name="chevron-right" size={scale(20)} color={colors.textMuted} />
         </View>
       </View>
 
@@ -164,7 +165,7 @@ const ServiceHistoryItem = memo(({ service, onPress }) => {
 
       <View style={styles.footer}>
         <View style={styles.carInfo}>
-          <Icon name="directions-car" size={scale(16)} color="#666" />
+          <Icon name="directions-car" size={scale(16)} color={colors.textSecondary} />
           <Text style={styles.carText}>{formatCarDetails(carData)}</Text>
         </View>
         
@@ -177,7 +178,7 @@ const ServiceHistoryItem = memo(({ service, onPress }) => {
 
       {serviceData.driver && typeof serviceData.driver === 'object' && serviceData.driver.details?.name && (
         <View style={styles.driverInfo}>
-          <Icon name="person" size={scale(16)} color="#666" />
+          <Icon name="person" size={scale(16)} color={colors.textSecondary} />
           <Text style={styles.driverText}>Motorista: {serviceData.driver.details.name}</Text>
           {serviceData.driver.details.car && serviceData.driver.details.car.licensePlate && (
             <View style={styles.licensePlate}>
@@ -192,26 +193,19 @@ const ServiceHistoryItem = memo(({ service, onPress }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fff",
-    borderRadius: scale(12),
-    padding: scale(16),
-    marginBottom: scale(12),
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: "#f0f0f0",
+    borderColor: colors.background,
+    ...shadows.md,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: scale(12),
+    marginBottom: spacing.md,
   },
   leftSection: {
     flex: 1,
@@ -222,20 +216,20 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: scale(14),
-    color: "#333",
+    color: colors.textPrimary,
     fontWeight: "500",
-    marginBottom: scale(6),
+    marginBottom: spacing.xs,
   },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: scale(8),
-    paddingVertical: scale(4),
-    borderRadius: scale(12),
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
     alignSelf: "flex-start",
   },
   statusIcon: {
-    marginRight: scale(4),
+    marginRight: spacing.xs,
   },
   statusText: {
     fontSize: scale(12),
@@ -244,18 +238,18 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: scale(16),
     fontWeight: "bold",
-    color: "#0089FF",
-    marginRight: scale(8),
+    color: colors.primary,
+    marginRight: spacing.sm,
   },
   routeContainer: {
-    marginBottom: scale(12),
-    paddingLeft: scale(4),
+    marginBottom: spacing.md,
+    paddingLeft: spacing.xs,
   },
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: scale(8),
+    marginBottom: spacing.sm,
   },
   carInfo: {
     flexDirection: "row",
@@ -264,43 +258,43 @@ const styles = StyleSheet.create({
   },
   carText: {
     fontSize: scale(12),
-    color: "#666",
-    marginLeft: scale(6),
+    color: colors.textSecondary,
+    marginLeft: spacing.xs,
     flex: 1,
   },
   typeInfo: {
-    backgroundColor: "#f0f0f0",
-    paddingHorizontal: scale(8),
-    paddingVertical: scale(4),
-    borderRadius: scale(8),
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
   },
   typeText: {
     fontSize: scale(10),
-    color: "#666",
+    color: colors.textSecondary,
     fontWeight: "600",
   },
   driverInfo: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: scale(8),
+    paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
+    borderTopColor: colors.background,
   },
   driverText: {
     fontSize: scale(12),
-    color: "#666",
-    marginLeft: scale(6),
+    color: colors.textSecondary,
+    marginLeft: spacing.xs,
     flex: 1,
   },
   licensePlate: {
-    backgroundColor: "#e0e0e0",
-    paddingHorizontal: scale(8),
+    backgroundColor: colors.borderLight,
+    paddingHorizontal: spacing.sm,
     paddingVertical: scale(2),
-    borderRadius: scale(4),
+    borderRadius: borderRadius.sm,
   },
   licensePlateText: {
     fontSize: scale(10),
-    color: "#333",
+    color: colors.textPrimary,
     fontWeight: "bold",
   },
 });

@@ -4,6 +4,7 @@ import { useSavedAddresses } from './hooks/useSavedAddresses';
 import AddressesList from './components/AddressesList';
 import AddressForm from './components/AddressForm';
 import LocationSearch from './components/LocationSearch';
+import { colors } from '../../theme';
 
 const SavedAddressesModal = ({ visible, onClose, onMapDragRequest }) => {
   const savedAddresses = useSavedAddresses();
@@ -72,19 +73,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.background,
     padding: 20
   },
   placeholderText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#0089FF',
+    color: colors.primary,
     marginBottom: 20,
     textAlign: 'center'
   },
   debugText: {
     fontSize: 16,
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 10,
     textAlign: 'center'
   }

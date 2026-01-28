@@ -194,7 +194,7 @@ const RegistrationSuccessScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
     paddingVertical: scale(20),
   },
   content: {
@@ -217,14 +217,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
+    elevation: 6,
     shadowColor: '#4CAF50',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 6,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
   },
   textContainer: {
     alignItems: 'center',
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   accountCreatedText: {
     fontSize: scale(20),
-    color: '#333333',
+    color: '#1E293B',
     marginBottom: scale(15),
     textAlign: 'center',
   },
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: scale(18),
-    color: '#707070',
+    color: '#64748B',
     marginBottom: scale(5),
   },
   nameText: {
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   benefitsTitle: {
     fontSize: scale(16),
     fontWeight: '600',
-    color: '#333333',
+    color: '#1E293B',
     marginBottom: scale(15),
   },
   benefitsList: {
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   },
   benefitText: {
     fontSize: scale(14),
-    color: '#333333',
+    color: '#1E293B',
     marginLeft: scale(10),
   },
   phoneConfirmation: {
@@ -298,25 +298,25 @@ const styles = StyleSheet.create({
    },
   startButton: {
     backgroundColor: '#0089FF',
-    borderRadius: scale(8),
+    borderRadius: scale(16),
     paddingVertical: scale(16),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#000',
+    shadowColor: '#0089FF',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
     marginBottom: scale(15),
   },
   startButtonText: {
     color: '#FFFFFF',
     fontSize: scale(16),
-    fontWeight: 'bold',
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
   startButtonIcon: {
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   },
   loginHintText: {
     fontSize: scale(12),
-    color: '#707070',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: scale(18),
   },

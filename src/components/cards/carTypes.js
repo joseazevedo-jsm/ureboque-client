@@ -1,8 +1,10 @@
 import React, { memo, useCallback, useMemo } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Icon } from "react-native-elements/dist/icons/Icon";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useLogger } from "../../hooks/useLogger";
+import { ScalePressable } from "../common/ScalePressable";
+import { LinearGradient } from "expo-linear-gradient";
+import { colors, shadows, spacing, borderRadius } from "../../theme";
 
 // Memoized image sources for performance
 const imageMap = {
@@ -10,90 +12,95 @@ const imageMap = {
   DEFAULT: require("../../../resources/icons/UREB_TUR.png")
 };
 
-// card view that receives props like title, description
 const CarTypes = memo(({ typeCar, descr, descr2, price, route, onPress }) => {
   const logger = useLogger('CarTypes');
-  const distance = route?.distance;
-  const duration = route?.duration;
-  logger.debug("Car type selection details", { distance, typeCar, descr, descr2, price });
 
-  const handlePress = useCallback(() => {
-    onPress();
-  }, [onPress]);
-
-  const carImage = useMemo(() => {
-    return typeCar === "JEEP" ? imageMap.JEEP : imageMap.DEFAULT;
-  }, [typeCar]);
-
-  const formattedPrice = useMemo(() => {
-    return price.toLocaleString();
-  }, [price]);
+  const formattedPrice = useMemo(() => price.toLocaleString(), [price]);
+  const carImage = useMemo(() => typeCar === "JEEP" ? imageMap.JEEP : imageMap.DEFAULT, [typeCar]);
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity 
-        onPress={handlePress}
-        accessibilityLabel={`Selecionar ${typeCar}, ${descr}, preço ${formattedPrice} AOA`}
-        accessibilityRole="button"
+    <ScalePressable onPress={onPress} style={styles.container}>
+      <LinearGradient
+        colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
+        style={styles.cardGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <View style={styles.containerStyle}>
+        <View style={styles.contentRow}>
           <Image
             source={carImage}
             style={styles.image}
-            resizeMode="cover"
+            resizeMode="contain"
           />
 
-          <View style={styles.text}>
+          <View style={styles.infoContainer}>
             <Text style={styles.title}>{typeCar}</Text>
-            <Text style={styles.description}>{descr}</Text>
-            <Text style={styles.description}>{descr2}</Text>
+            <Text style={styles.subtext}>{descr}</Text>
+            <Text style={styles.subtext}>{descr2}</Text>
           </View>
-          <View style={styles.priceBox}>
-            <Text style={styles.coin}>AOA </Text>
+
+          <View style={styles.priceContainer}>
+            <Text style={styles.currency}>AOA</Text>
             <Text style={styles.price}>{formattedPrice}</Text>
           </View>
         </View>
-      </TouchableOpacity>
-    </View>
+      </LinearGradient>
+    </ScalePressable>
   );
 });
 
 const styles = StyleSheet.create({
-  container: {},
-  containerStyle: {
-    flexDirection: "row",
-    marginBottom: scale(19),
+  container: {
+    marginBottom: spacing.sm,
+    marginHorizontal: spacing.xl,
+    ...shadows.lg,
   },
-  title: {
-    marginTop: scale(8),
-    fontSize: scale(17),
-    fontWeight: "bold",
-    marginBottom: scale(4),
+  cardGradient: {
+    borderRadius: borderRadius.xxl,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.6)',
+  },
+  contentRow: {
+    flexDirection: "row",
+    alignItems: 'center',
   },
   image: {
-    marginLeft: scale(7),
+    width: scale(80),
+    height: scale(50),
+    marginRight: spacing.lg,
   },
-  description: {
-    fontSize: scale(11),
-    color: "#ccc",
+  infoContainer: {
+    flex: 1,
   },
-  coin: {
+  title: {
+    fontSize: scale(18),
+    fontWeight: "800",
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  subtext: {
     fontSize: scale(12),
-    marginTop: scale(12),
+    color: colors.textSecondary,
+    fontWeight: "500",
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  currency: {
+    fontSize: scale(12),
+    fontWeight: "700",
+    color: colors.textMuted,
+    marginBottom: scale(2),
   },
   price: {
-    fontSize: scale(27),
-  },
-  text: {
-    marginLeft: scale(7),
-  },
-  priceBox: {
-    flexDirection: "row",
-    marginTop: scale(20),
-    position: "absolute",
-    right: scale(10),
+    fontSize: scale(20),
+    fontWeight: "900",
+    color: colors.textPrimary,
   },
 });
+
 export default CarTypes;
 
 // Peso entre</Text>

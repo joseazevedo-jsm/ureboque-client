@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,10 @@ import {
 } from "@react-navigation/drawer";
 import { useNavigation } from "@react-navigation/native";
 import { scale } from "react-native-size-matters";
+import Icon from "react-native-vector-icons/MaterialIcons";
 import { UserContext } from "../../context/UserContext";
+import { useTripState } from "../../context/TripStateContext";
+import { useAlert } from "../../context/AlertContext";
 
 // Import custom icons
 import ProfileIcon from "../../../resources/icons/side_bar/profile.png";
@@ -34,23 +37,64 @@ const UserProfile = ({ user }) => (
   </View>
 );
 
-const DrawerMenuItem = ({ label, iconSource, onPress }) => (
+const DrawerMenuItem = ({ label, iconSource, iconName, onPress }) => (
   <DrawerItem
     label={() => <Text style={styles.drawerItemLabel}>{label}</Text>}
     onPress={onPress}
-    icon={({ color }) => (
-      <Image
-        source={iconSource}
-        style={styles.drawerItemIcon}
-        resizeMode="contain"
-      />
-    )}
+    icon={() =>
+      iconName ? (
+        <Icon name={iconName} size={scale(22)} color="#fff" style={{ opacity: 0.9 }} />
+      ) : (
+        <Image
+          source={iconSource}
+          style={styles.drawerItemIcon}
+          resizeMode="contain"
+        />
+      )
+    }
   />
 );
 
 const SideMenuDrawer = (props) => {
   const navigation = useNavigation();
   const { user, logout } = useContext(UserContext);
+  const { isTripActive } = useTripState();
+  const { showAlert } = useAlert();
+
+  const navigateWithGuard = useCallback((screenName, params) => {
+    if (isTripActive) {
+      showAlert({
+        type: 'confirmation',
+        title: 'Viagem em andamento',
+        message: 'Tem uma viagem ativa. Deseja sair desta tela?',
+        buttons: [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Continuar',
+            onPress: () => navigation.navigate(screenName, params),
+          },
+        ],
+      });
+    } else {
+      navigation.navigate(screenName, params);
+    }
+  }, [isTripActive, showAlert, navigation]);
+
+  const handleLogout = useCallback(() => {
+    showAlert({
+      type: 'confirmation',
+      title: 'Terminar Sessão',
+      message: 'Tem certeza que deseja sair da sua conta?',
+      buttons: [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sair',
+          style: 'destructive',
+          onPress: () => logout(),
+        },
+      ],
+    });
+  }, [showAlert, logout]);
 
   return (
     <View style={styles.container}>
@@ -59,29 +103,34 @@ const SideMenuDrawer = (props) => {
         <View style={styles.divider} />
         <View style={styles.drawerItemsContainer}>
           <DrawerMenuItem
+            label="Início"
+            iconName="home"
+            onPress={() => navigateWithGuard("Map")}
+          />
+          <DrawerMenuItem
             label="Perfil"
             iconSource={ProfileIcon}
-            onPress={() => navigation.navigate("Perfil", 123)}
+            onPress={() => navigateWithGuard("Perfil", 123)}
           />
           <DrawerMenuItem
             label="Histórico"
             iconSource={HistoryIcon}
-            onPress={() => navigation.navigate("Historico")}
+            onPress={() => navigateWithGuard("Historico")}
           />
           <DrawerMenuItem
             label="Promoções"
             iconSource={PromotionsIcon}
-            onPress={() => navigation.navigate("Promocoes", 123)}
+            onPress={() => navigateWithGuard("Promocoes", 123)}
           />
           <DrawerMenuItem
             label="Convidar amigos"
             iconSource={InviteIcon}
-            onPress={() => navigation.navigate("Convidar")}
+            onPress={() => navigateWithGuard("Convidar")}
           />
           <DrawerMenuItem
             label="Sair"
             iconSource={HelpIcon}
-            onPress={logout}
+            onPress={handleLogout}
           />
         </View>
       </DrawerContentScrollView>
@@ -92,45 +141,61 @@ const SideMenuDrawer = (props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0089FF",
-    borderBottomRightRadius: scale(25),
-    borderTopRightRadius: scale(25),
+    backgroundColor: '#0089FF', // Keep brand blue base
+    borderTopRightRadius: scale(30),
+    borderBottomRightRadius: scale(30),
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 5, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
     elevation: 10,
-    overflow: "hidden",
   },
   drawerContent: {
-    backgroundColor: "#0089FF",
+    paddingTop: scale(20),
+    paddingHorizontal: scale(10),
   },
   userProfileContainer: {
     flexDirection: "row",
-    marginVertical: scale(15),
+    alignItems: 'center',
+    paddingVertical: scale(24),
+    paddingHorizontal: scale(10),
+    marginBottom: scale(10),
   },
   userImageContainer: {
-    borderRadius: scale(45),
-    borderColor: "#fff",
-    borderWidth: scale(2),
-    marginHorizontal: scale(15),
-    height: scale(65),
-    width: scale(65),
+    borderRadius: scale(40),
+    borderColor: "rgba(255,255,255,0.3)",
+    borderWidth: 2,
+    padding: 3,
+    marginRight: scale(16),
   },
   userImage: {
-    height: "100%",
-    width: "100%",
-    borderRadius: scale(45),
+    height: scale(60),
+    width: scale(60),
+    borderRadius: scale(30),
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   userNameContainer: {
     justifyContent: "center",
+    flex: 1,
   },
   userName: {
     color: "#fff",
-    fontSize: scale(15),
+    fontSize: scale(18),
+    fontWeight: "700",
+    marginBottom: scale(4),
+    letterSpacing: 0.3,
+  },
+  userRole: { // Added role text if needed
+    color: "rgba(255,255,255,0.7)",
+    fontSize: scale(12),
+    fontWeight: "500",
   },
   divider: {
-    flex: 1,
-    borderWidth: scale(1.5),
-    borderColor: "#fff",
-    marginTop: scale(15),
-    marginBottom: scale(50),
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    marginHorizontal: scale(10),
+    marginBottom: scale(20),
   },
   drawerItemsContainer: {
     flex: 1,
@@ -138,11 +203,19 @@ const styles = StyleSheet.create({
   drawerItemLabel: {
     color: "#fff",
     fontSize: scale(15),
+    fontWeight: "600",
+    marginLeft: scale(-10), // Adjust alignment with icon
+  },
+  drawerItem: {
+    borderRadius: scale(12),
+    marginVertical: scale(4),
+    paddingVertical: scale(4),
   },
   drawerItemIcon: {
-    width: scale(23),
-    height: scale(23),
+    width: scale(22),
+    height: scale(22),
     tintColor: "#fff",
+    opacity: 0.9,
   },
 });
 

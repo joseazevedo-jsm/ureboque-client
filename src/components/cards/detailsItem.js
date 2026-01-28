@@ -2,6 +2,7 @@ import React, { memo, useMemo } from "react";
 import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
+import { colors, spacing, borderRadius } from "../../theme";
 
 const DetailsItem = memo(({ destination, driver, clientCar, paymentMethod, onBackPress }) => {
   const towCarInfo = useMemo(() => {
@@ -10,57 +11,57 @@ const DetailsItem = memo(({ destination, driver, clientCar, paymentMethod, onBac
 
   return (
     <View style={styles.containerStyle}>
-  
+
       {/* Header with back button and title */}
       <View style={styles.headerContainer}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={onBackPress}
           activeOpacity={0.7}
         >
-          <Icon name="arrow-back" size={scale(22)} color="#0089FF" />
+          <Icon name="arrow-back" size={scale(22)} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.titleStyle}>DETALHES DA VIAGEM</Text>
         <Text>        </Text>
 
       </View>
-      
+
       {/* Content in compact format */}
       <View style={styles.contentContainer}>
         <View style={styles.detailRow}>
-          <Icon name="location-on" size={scale(18)} color="#0089FF" style={styles.rowIcon} />
+          <Icon name="location-on" size={scale(18)} color={colors.primary} style={styles.rowIcon} />
           <View style={styles.rowContent}>
             <Text style={styles.labelText}>Indo para</Text>
             <Text style={styles.valueText}>{destination}</Text>
           </View>
         </View>
-        
+
         <View style={styles.detailRow}>
-          <Icon name="person" size={scale(18)} color="#0089FF" style={styles.rowIcon} />
+          <Icon name="person" size={scale(18)} color={colors.primary} style={styles.rowIcon} />
           <View style={styles.rowContent}>
             <Text style={styles.labelText}>Motorista</Text>
             <Text style={styles.valueText}>{driver?.name}</Text>
           </View>
         </View>
-        
+
         <View style={styles.detailRow}>
-          <Icon name="directions-car" size={scale(18)} color="#0089FF" style={styles.rowIcon} />
+          <Icon name="directions-car" size={scale(18)} color={colors.primary} style={styles.rowIcon} />
           <View style={styles.rowContent}>
             <Text style={styles.labelText}>Seu carro</Text>
             <Text style={styles.valueText}>{clientCar}</Text>
           </View>
         </View>
-        
+
         <View style={styles.detailRow}>
-          <Icon name="local-shipping" size={scale(18)} color="#0089FF" style={styles.rowIcon} />
+          <Icon name="local-shipping" size={scale(18)} color={colors.primary} style={styles.rowIcon} />
           <View style={styles.rowContent}>
             <Text style={styles.labelText}>Reboque</Text>
             <Text style={styles.valueText}>{towCarInfo}</Text>
           </View>
         </View>
-        
+
         <View style={[styles.detailRow, styles.lastRow]}>
-          <Icon name="payment" size={scale(18)} color="#0089FF" style={styles.rowIcon} />
+          <Icon name="payment" size={scale(18)} color={colors.primary} style={styles.rowIcon} />
           <View style={styles.rowContent}>
             <Text style={styles.labelText}>Pagamento</Text>
             <Text style={styles.valueText}>{paymentMethod}</Text>
@@ -73,68 +74,62 @@ const DetailsItem = memo(({ destination, driver, clientCar, paymentMethod, onBac
 
 const styles = StyleSheet.create({
   containerStyle: {
-    backgroundColor: '#ffffff',
-    paddingBottom: scale(20),
-  },
-  handleContainer: {
-    alignItems: 'center',
-    paddingVertical: scale(8),
-  },
-  handle: {
-    width: scale(40),
-    height: scale(4),
-    backgroundColor: '#d1d5db',
-    borderRadius: scale(2),
+    backgroundColor: 'transparent',
+    paddingBottom: spacing.xl,
   },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent:'space-between',
-    paddingHorizontal: scale(20),
-    paddingVertical: scale(12),
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border,
   },
   backButton: {
-    padding: scale(6),
-    marginRight: scale(12),
+    padding: spacing.sm,
+    marginRight: spacing.md,
+    backgroundColor: colors.primaryLight,
+    borderRadius: borderRadius.xxl,
   },
   titleStyle: {
-    fontSize: scale(16),
-    color: "#0089FF",
-    fontWeight: "700",
+    fontSize: scale(14),
+    color: colors.primary,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
   contentContainer: {
-    paddingHorizontal: scale(20),
-    paddingTop: scale(16),
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: scale(12),
+    paddingVertical: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#f9fafb',
+    borderBottomColor: colors.border,
   },
   lastRow: {
     borderBottomWidth: 0,
   },
   rowIcon: {
     width: scale(24),
-    marginRight: scale(12),
+    marginRight: spacing.lg,
   },
   rowContent: {
     flex: 1,
   },
   labelText: {
     fontSize: scale(11),
-    color: '#6b7280',
-    fontWeight: '500',
-    marginBottom: scale(2),
+    color: colors.textSecondary,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   valueText: {
-    fontSize: scale(14),
-    color: '#1f2937',
+    fontSize: scale(15),
+    color: colors.textPrimary,
     fontWeight: '600',
   },
 });

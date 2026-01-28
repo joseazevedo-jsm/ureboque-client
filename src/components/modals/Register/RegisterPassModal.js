@@ -22,7 +22,7 @@ const RegisterPassModal = ({ visible, changeLoginState, phone }) => {
         <View>
           <Text style={styles.title}>NOVA SENHA</Text>
           <View style={styles.inputInfo}>
-            <Text style={{ fontSize: scale(18), alignSelf: "center" }}>
+            <Text style={{ fontSize: scale(16), alignSelf: "center", color: "#64748B", textAlign: "center", lineHeight: scale(24) }}>
               Introduza uma nova senha para a sua conta!
             </Text>
             <View style={styles.input}>
@@ -79,11 +79,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
   },
   title: {
-    fontSize: scale(50),
-    fontWeight: "bold",
-    color: "#0089FF",
+    fontSize: scale(40),
+    fontWeight: "800",
+    color: "#1E293B",
     textAlign: "center",
     paddingHorizontal: scale(10),
     paddingTop: scale(80),
@@ -94,36 +95,56 @@ const styles = StyleSheet.create({
   },
   input: {},
   inputBox: {
-    borderColor: "#0089FF",
-    borderWidth: scale(3),
-    borderRadius: scale(7),
+    borderColor: "rgba(0,0,0,0.05)",
+    borderWidth: 1,
+    borderRadius: scale(14),
     fontSize: scale(15),
-    paddingVertical: scale(10),
-    paddingHorizontal: scale(15),
+    paddingVertical: scale(14),
+    paddingHorizontal: scale(16),
     marginTop: scale(15),
+    backgroundColor: "#fff",
+    color: "#1E293B",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   bottom: {
     backgroundColor: "#0089FF",
     marginHorizontal: scale(20),
     alignItems: "center",
-    borderRadius: scale(7),
+    borderRadius: scale(16),
+    marginBottom: scale(30),
+    shadowColor: "#0089FF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   save: {
-    fontSize: scale(20),
-    fontWeight: "bold",
+    fontSize: scale(18),
+    fontWeight: "700",
     color: "#FFF",
-    paddingVertical: scale(15),
+    paddingVertical: scale(16),
+    letterSpacing: 0.5,
   },
   errorContainer: {
     marginTop: scale(15),
+    backgroundColor: "#FFF5F5",
+    padding: scale(12),
+    borderRadius: scale(12),
   },
   error: {
-    fontSize: scale(18),
+    fontSize: scale(14),
+    color: "#1E293B",
+    fontWeight: "600",
   },
   errorItem: {
-    fontSize: scale(18),
-    paddingHorizontal:scale(5)
+    fontSize: scale(14),
+    paddingHorizontal: scale(5),
+    color: "#F44336",
+    marginTop: scale(4),
   }
-
 });
 export default RegisterPassModal;

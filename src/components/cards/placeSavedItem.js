@@ -2,6 +2,7 @@ import React, { memo, useMemo, useCallback } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Icon } from "react-native-elements/dist/icons/Icon";
 import { scale } from "react-native-size-matters";
+import { colors, spacing, borderRadius } from "../../theme";
 
 const PlaceSavedItem = memo(({ place, edit, onPressEditItem, add }) => {
   const iconName = useMemo(() => {
@@ -18,7 +19,7 @@ const PlaceSavedItem = memo(({ place, edit, onPressEditItem, add }) => {
     <>
       <View style={styles.container}>
         <View style={styles.iconContainer}>
-          <Icon name={iconName} size={scale(30)} color="#0089FF" />
+          <Icon name={iconName} size={scale(30)} color={colors.primary} />
         </View>
         <View style={styles.textContainer}>
           <Text style={styles.placeName}>
@@ -26,12 +27,12 @@ const PlaceSavedItem = memo(({ place, edit, onPressEditItem, add }) => {
           </Text>
           {add && (
             <TouchableOpacity onPress={handleEditPress}>
-              <Icon name="add" size={scale(30)} color="#ccc" />
+              <Icon name="add" size={scale(30)} color={colors.textMuted} />
             </TouchableOpacity>
           )}
           {edit && !add && (
             <TouchableOpacity onPress={handleEditPress}>
-              <Icon name="edit-off" size={scale(30)} color="#ccc" />
+              <Icon name="edit-off" size={scale(30)} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -50,15 +51,15 @@ const styles = StyleSheet.create({
   iconContainer: {
     height: scale(45),
     width: scale(45),
-    borderRadius: scale(7),
+    borderRadius: borderRadius.sm,
     borderWidth: scale(2),
-    borderColor: "#0089FF",
+    borderColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: scale(7),
+    marginRight: spacing.sm,
   },
   iconImage: {
-    tintColor: "#fff",
+    tintColor: colors.surface,
     height: scale(25),
     width: scale(25),
   },
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "center",
   },
   divider: {
-    borderBottomColor: "#ccc",
+    borderBottomColor: colors.borderLight,
     borderBottomWidth: scale(1),
     marginRight: scale(10),
   },

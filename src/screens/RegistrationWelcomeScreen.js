@@ -107,8 +107,8 @@ const RegistrationWelcomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    paddingVertical:scale(20)
+    backgroundColor: '#F8FAFC',
+    paddingVertical: scale(20),
   },
   header: {
     paddingHorizontal: scale(20),
@@ -119,6 +119,13 @@ const styles = StyleSheet.create({
     height: scale(40),
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: scale(20),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   content: {
     flex: 1,
@@ -134,16 +141,16 @@ const styles = StyleSheet.create({
     height: scale(80),
     marginBottom: scale(20),
   },
-  
+
   welcomeTitle: {
     fontSize: scale(28),
     fontWeight: 'bold',
-    color: '#333333',
+    color: '#1E293B',
     marginBottom: scale(8),
   },
   subtitle: {
     fontSize: scale(18),
-    color: '#707070',
+    color: '#64748B',
     textAlign: 'center',
   },
   infoSection: {
@@ -153,15 +160,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#fff',
     paddingVertical: scale(12),
     paddingHorizontal: scale(16),
-    borderRadius: scale(8),
+    borderRadius: scale(14),
     marginBottom: scale(30),
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   phoneText: {
     fontSize: scale(16),
-    color: '#333333',
+    color: '#1E293B',
     marginLeft: scale(8),
     fontWeight: '500',
   },
@@ -171,7 +185,7 @@ const styles = StyleSheet.create({
   requirementsTitle: {
     fontSize: scale(18),
     fontWeight: '600',
-    color: '#333333',
+    color: '#1E293B',
     marginBottom: scale(15),
     textAlign: 'center',
   },
@@ -185,7 +199,7 @@ const styles = StyleSheet.create({
   },
   requirementText: {
     fontSize: scale(16),
-    color: '#333333',
+    color: '#1E293B',
     marginLeft: scale(12),
   },
   timeEstimate: {
@@ -195,7 +209,7 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: scale(14),
-    color: '#707070',
+    color: '#64748B',
     marginLeft: scale(8),
   },
   footer: {
@@ -204,7 +218,7 @@ const styles = StyleSheet.create({
   },
   disclaimerText: {
     fontSize: scale(12),
-    color: '#707070',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: scale(18),
     marginBottom: scale(25),
@@ -212,22 +226,19 @@ const styles = StyleSheet.create({
   },
   getStartedButton: {
     backgroundColor: '#0089FF',
-    borderRadius: scale(8),
+    borderRadius: scale(16),
     paddingVertical: scale(16),
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowColor: '#0089FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   getStartedButtonText: {
     color: '#FFFFFF',
     fontSize: scale(16),
-    fontWeight: 'bold',
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
 });

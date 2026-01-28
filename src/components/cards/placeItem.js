@@ -2,6 +2,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Icon } from "react-native-elements/dist/icons/Icon";
 import { scale } from "react-native-size-matters";
+import { colors, spacing, borderRadius } from "../../theme";
 
 const PlaceItem = memo(({ name, address, iconUrl, onPress, saved }) => {
   const handlePress = useCallback(() => {
@@ -10,11 +11,11 @@ const PlaceItem = memo(({ name, address, iconUrl, onPress, saved }) => {
 
   const iconComponent = useMemo(() => {
     if (saved) {
-      return <Icon name={iconUrl} size={scale(25)} color="#0089FF" />;
+      return <Icon name={iconUrl} size={scale(25)} color={colors.primary} />;
     } else if (iconUrl) {
       return <Image source={{ uri: iconUrl }} style={styles.iconImage} />;
     } else {
-      return <Icon name="location-on" size={scale(25)} color="#0089FF" />;
+      return <Icon name="location-on" size={scale(25)} color={colors.primary} />;
     }
   }, [saved, iconUrl]);
 
@@ -47,15 +48,15 @@ const styles = StyleSheet.create({
   iconContainer: {
     height: scale(45),
     width: scale(45),
-    borderRadius: scale(7),
-    borderColor: "#0089FF",
+    borderRadius: borderRadius.sm,
+    borderColor: colors.primary,
     borderWidth: scale(3),
     alignItems: "center",
     justifyContent: "center",
-    marginRight: scale(7),
+    marginRight: spacing.sm,
   },
   iconImage: {
-    tintColor: "#0089FF",
+    tintColor: colors.primary,
     height: scale(25),
     width: scale(25),
   },
@@ -73,9 +74,9 @@ const styles = StyleSheet.create({
     fontSize: scale(10),
   },
   divider: {
-    borderBottomColor: "#ccc",
+    borderBottomColor: colors.borderLight,
     borderBottomWidth: 1,
-    marginVertical: scale(5),
+    marginVertical: spacing.xs,
   },
 });
 export default PlaceItem;
@@ -84,7 +85,7 @@ export default PlaceItem;
           <Icon
             name="location-on"
             size={scale(25)}
-            color="#0089FF"
+            color={colors.primary}
             style={styles.icon}
           /> */
 }

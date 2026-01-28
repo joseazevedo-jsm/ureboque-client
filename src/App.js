@@ -12,6 +12,8 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import SplashScreenComponent from './components/common/SplashScreen';
 import Logger from './utils/Logger';
 import { LocationPermissionsService } from './services/LocationPermissionsService';
+import { AlertProvider } from './context/AlertContext';
+import { TripStateProvider } from './context/TripStateContext';
 import React, { useEffect, useState } from 'react';
 
 // Keep the native splash screen visible while we fetch resources
@@ -84,9 +86,13 @@ function AppContent() {
   return (
     <ErrorBoundary>
       <LocationPermissionsService />
-      <UserLocationStateContextProvider>
-        <AppNav />
-      </UserLocationStateContextProvider>
+      <AlertProvider>
+        <TripStateProvider>
+          <UserLocationStateContextProvider>
+            <AppNav />
+          </UserLocationStateContextProvider>
+        </TripStateProvider>
+      </AlertProvider>
     </ErrorBoundary>
   );
 }

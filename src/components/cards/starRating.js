@@ -1,25 +1,50 @@
 import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { scale } from "react-native-size-matters";
+import { colors } from "../../theme";
 
-const StarRating = ({ rating, onRate }) => {
+const StarRating = ({
+  rating,
+  onRate,
+  size = scale(38),
+  activeColor = colors.primary,
+  inactiveColor = colors.textMuted,
+  gap = scale(6),
+}) => {
   const renderStar = (index) => {
     const isFilled = index < rating;
-    const starColor =  '#0089ff' ;
+    const starColor = isFilled ? activeColor : inactiveColor;
 
     return (
-      <TouchableOpacity key={index} onPress={() => onRate(index + 1)}>
-        <Icon name={isFilled ? 'star' : 'star-border'} size={scale(35)} color={starColor} />
+      <TouchableOpacity
+        key={index}
+        onPress={() => onRate(index + 1)}
+        style={{ marginHorizontal: gap / 2 }}
+        activeOpacity={0.7}
+      >
+        <Icon
+          name={isFilled ? 'star' : 'star-border'}
+          size={size}
+          color={starColor}
+        />
       </TouchableOpacity>
     );
   };
 
   return (
-    <View style={{ flexDirection: 'row' }}>
+    <View style={styles.container}>
       {[...Array(5)].map((_, index) => renderStar(index))}
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
 export default StarRating;

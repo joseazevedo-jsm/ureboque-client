@@ -7,42 +7,39 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 
 const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCancelSearch, calculateProgress }) => {
   return (
-    <View>
-      <View style={{ marginLeft: scale(10), width: scale(325) }}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            paddingVertical: scale(15),
-          }}
-        >
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.row}>
           {accepted ? (
-            <Text style={styles.mainText}>Conectando ao motorista </Text>
+            <Text style={styles.mainText}>Conectando ao motorista</Text>
           ) : (
             <>
               <Text style={styles.mainText}>Procurando um reboque</Text>
-              <Text style={{ fontSize: scale(18) }}>{formatTime(timer)}</Text>
+              <Text style={styles.timerText}>{formatTime(timer)}</Text>
             </>
           )}
         </View>
 
         <ProgressBar
           progress={calculateProgress ? calculateProgress() : (1 - timer / 180)}
-          borderWidth={scale(0.1)}
+          borderWidth={0}
           fillColor="#0089FF"
-          unfilledColor="black"
-          height={scale(2)}
-          borderColor="black"
+          unfilledColor="rgba(0,0,0,0.05)"
+          height={scale(4)}
+          borderColor="transparent"
           duration={100}
+          width={null} // Let layout handle width if possible, or force full width via parent
+          style={{ width: '100%', borderRadius: scale(2) }}
         />
-        <View style={{ marginTop: scale(15), width: scale(250) }}>
+
+        <View style={styles.descriptionContainer}>
           {accepted ? (
-            <Text style={{ fontSize: scale(14) }}>
-              Motorista a verificar os detalhes da viagem... Por favor, 
+            <Text style={styles.descriptionText}>
+              Motorista a verificar os detalhes da viagem... Por favor,
               espere um pouco!
             </Text>
           ) : (
-            <Text style={{ fontSize: scale(14) }}>
+            <Text style={styles.descriptionText}>
               Estamos procurando um reboque para você. Por favor, espere um
               pouco!
             </Text>
@@ -50,62 +47,85 @@ const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCanc
         </View>
       </View>
 
-      <View
-        style={{ paddingVertical: scale(15), paddingHorizontal: scale(10) }}
-      >
+      <View style={styles.routeContainer}>
         <RouteItem origin={origin} destination={destination} />
       </View>
 
-      <View>
-        <View style={{ height: scale(10), backgroundColor: "#ccc" }} />
+      <View style={styles.spacer} />
 
-        <TouchableOpacity onPress={() => onCancelSearch()}>
-          <View style={styles.optionsButton}>
-            <View style={styles.cancel}>
-              <Icon name="close" size={scale(13)} color="red" />
-            </View>
-            <Text style={styles.optionsButtonText}>Cancelar Viagem</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity onPress={() => onCancelSearch()} style={styles.cancelButton}>
+        <View style={styles.cancelIconContainer}>
+          <Icon name="close" size={scale(16)} color="#DC2626" />
+        </View>
+        <Text style={styles.cancelText}>Cancelar Viagem</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: scale(20),
+    paddingBottom: scale(20),
+  },
+  header: {
+    width: '100%',
+    marginBottom: scale(16),
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: 'center',
+    marginBottom: scale(12),
+  },
   mainText: {
     fontSize: scale(18),
+    fontWeight: "800",
+    color: "#1E293B",
+    letterSpacing: 0.5,
   },
-  options: {
-    paddingVertical: scale(14),
+  timerText: {
+    fontSize: scale(18),
+    fontWeight: "800",
+    color: "#0089FF",
+    fontVariant: ['tabular-nums'],
   },
-  options2: {
-    borderColor: "#B7B7B7",
-    borderTopWidth: scale(7),
-    paddingVertical: scale(14),
+  descriptionContainer: {
+    marginTop: scale(16),
   },
-  optionsButton: {
-    flexDirection: "row",
-    paddingHorizontal: scale(10),
-    paddingVertical: scale(15),
+  descriptionText: {
+    fontSize: scale(14),
+    color: "#64748B",
+    lineHeight: scale(20),
+    fontWeight: "500",
   },
-  optionsButtonText: {
-    // fontFamily: "Poppins-Medium",
-    fontSize: scale(15),
-    color: "red",
-    paddingHorizontal: scale(10),
-    textAlignVertical: "center",
+  routeContainer: {
+    paddingVertical: scale(16),
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    marginVertical: scale(8),
   },
-  cancel: {
-    width: scale(20),
+  spacer: {
     height: scale(20),
-    borderRadius: scale(75),
-    borderWidth: scale(2),
-    borderColor: "red",
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-    alignSelf: "center",
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2', // Light Red Background
+    paddingVertical: scale(14),
+    borderRadius: scale(12),
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  cancelIconContainer: {
+    marginRight: scale(8),
+  },
+  cancelText: {
+    fontSize: scale(15),
+    color: "#DC2626",
+    fontWeight: "700",
   },
 });
 

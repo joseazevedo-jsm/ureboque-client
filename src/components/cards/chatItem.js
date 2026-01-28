@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { scale } from "react-native-size-matters";
+import { colors, shadows, borderRadius } from "../../theme";
 
 const ChatItem = ({ text, isSender, timestamp }) => {
   // Format timestamp to display time
@@ -76,41 +77,49 @@ const ChatItem = ({ text, isSender, timestamp }) => {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: scale(15),
-    paddingVertical: scale(8),
-    paddingHorizontal: scale(15),
-    marginTop: scale(15),
-    marginHorizontal: scale(10),
-    maxWidth: "70%",
+    borderRadius: borderRadius.xl,
+    paddingVertical: scale(10),
+    paddingHorizontal: scale(14),
+    marginTop: scale(8),
+    marginHorizontal: scale(12),
+    maxWidth: "78%",
   },
   senderContainer: {
     alignSelf: "flex-end",
-    backgroundColor: "#0089FF",
+    backgroundColor: colors.primary,
+    borderBottomRightRadius: scale(4),
+    ...shadows.primaryGlow,
   },
   receiverContainer: {
     alignSelf: "flex-start",
-    backgroundColor: "#E6E6E6",
+    backgroundColor: colors.surface,
+    borderBottomLeftRadius: scale(4),
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.md,
   },
   messageText: {
     fontSize: scale(15),
-    marginBottom: scale(3),
+    lineHeight: scale(21),
+    marginBottom: scale(4),
   },
   senderMessageText: {
-    color: "#fff",
+    color: "#FFFFFF",
   },
   receiverMessageText: {
-    color: "#000",
+    color: colors.textPrimary,
   },
   timestampText: {
-    fontSize: scale(10),
+    fontSize: scale(11),
     marginTop: scale(2),
+    fontWeight: "500",
   },
   senderTimestampText: {
-    color: "rgba(255, 255, 255, 0.7)",
+    color: "rgba(255, 255, 255, 0.75)",
     alignSelf: "flex-end",
   },
   receiverTimestampText: {
-    color: "rgba(0, 0, 0, 0.5)",
+    color: colors.textMuted,
     alignSelf: "flex-end",
   },
 });

@@ -15,49 +15,48 @@ export const useDestinationModal = (externalIsCurrLocation) => {
   const [inputIndex, setInputIndex] = useState();
 
   useEffect(() => {
-    const data = [
-      {
-        place_id: -1,
-        name: "Definir localização no mapa",
-      },
-      {
-        place_id: 0,
-        name: "Localização atual",
-      },
-    ]
-    
-    const data2 = user?.saved_places ? user?.saved_places.map((item) => {
-      data.push({
-        place_id: item._id,
-        name: item.place.name,
-        geometry: {
-          location: {
-            lat: item.place.coordinates.latitude,
-            lng: item.place.coordinates.longitude,
-          },
+    const savedPlaces = user?.saved_places ? user.saved_places.map((item) => ({
+      place_id: item._id,
+      name: item.place.name,
+      geometry: {
+        location: {
+          lat: item.place.coordinates.latitude,
+          lng: item.place.coordinates.longitude,
         },
-        formatted_address: item.place.description,
-      });
-    }) : [];
+      },
+      formatted_address: item.place.description,
+    })) : [];
 
-    if (data) {
-      setData(data);
-      // console.log(data);
-    }
+    setData(savedPlaces);
   }, [user?.saved_places]);
 
+  const [originInputValue, setOriginInputValue] = useState("");
   const [destinationInputValue, setDestinationInputValue] = useState("");
+  const [activeInput, setActiveInput] = useState("destination"); // "origin" or "destination"
   const textInputOriginRef = useRef(null);
   const textInputDestinationRef = useRef(null);
-  const debounceDestinationInputValue = useDebounce(destinationInputValue, 500);
+
+  const activeInputValue = activeInput === "origin" ? originInputValue : destinationInputValue;
+  const debounceActiveInputValue = useDebounce(activeInputValue, 500);
 
   const { responseData, setResponseData } = useTextSearchQuery(
-    debounceDestinationInputValue[0] || ""
+    debounceActiveInputValue[0] || ""
   );
-  //console.log(debounceDestinationInputValue[0]);
+
+  const handleOriginInputValueChange = (text) => {
+    setOriginInputValue(text);
+  };
 
   const handleDestinationInputValueChange = (text) => {
     setDestinationInputValue(text);
+  };
+
+  const handleOriginFocus = () => {
+    setActiveInput("origin");
+  };
+
+  const handleDestinationFocus = () => {
+    setActiveInput("destination");
   };
   const handleInputTextChange = (onFocus) => {
       setDestinationInputValue("");
@@ -79,8 +78,13 @@ export const useDestinationModal = (externalIsCurrLocation) => {
 
   return {
     models: {
+      originInputValue,
+      origin: originInputValue,
       destinationInputValue,
-      queryResponseData: responseData?.results || (isCurrLocation ? data.filter(item => item.place_id !== 0) : data),
+      destination: destinationInputValue,
+      activeInput,
+      queryResponseData: responseData?.results || data,
+      places: responseData?.results || data,
       queryResponseDataSave: responseData?.results,
       data,
       textInputOriginRef,
@@ -88,12 +92,16 @@ export const useDestinationModal = (externalIsCurrLocation) => {
       inputIndex
     },
     operations: {
+      handleOriginInputValueChange,
+      handleOriginChange: handleOriginInputValueChange,
       handleDestinationInputValueChange,
+      handleDestinationChange: handleDestinationInputValueChange,
+      handleOriginFocus,
+      handleDestinationFocus,
       handleInputTextChange,
       handleOnIsCurrLocation,
       handleOnSelectInputIndex,
       handleSetResponseData
-
     },
   };
 };

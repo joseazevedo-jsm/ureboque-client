@@ -2,6 +2,7 @@ import React, { memo, useCallback } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Icon } from "react-native-elements/dist/icons/Icon";
 import { scale } from "react-native-size-matters";
+import { colors, spacing, borderRadius } from "../../theme";
 
 // card view that receives props like title, description
 const CardSpots = memo(({ title, description, onPress }) => {
@@ -23,7 +24,7 @@ const CardSpots = memo(({ title, description, onPress }) => {
           <Icon
             name="location-on"
             size={scale(23)}
-            color="#0089FF"
+            color={colors.primary}
             style={styles.icon}
           />
         </View>
@@ -34,21 +35,20 @@ const CardSpots = memo(({ title, description, onPress }) => {
 
 const styles = StyleSheet.create({
   container: {
-    borderColor: "black",
     borderWidth: scale(4),
-    padding: scale(5),
+    padding: spacing.xs,
     width: scale(150),
     height: scale(100),
-    borderRadius: scale(7),
-    borderColor: "#0089ff",
-    marginRight: scale(7),
+    borderRadius: borderRadius.sm,
+    borderColor: colors.primary,
+    marginRight: spacing.sm,
   },
   title: {
     fontSize: scale(12),
     fontWeight: "bold",
   },
   image: {
-    marginLeft: scale(7),
+    marginLeft: spacing.sm,
   },
   icon: {
     marginLeft: scale(22),
