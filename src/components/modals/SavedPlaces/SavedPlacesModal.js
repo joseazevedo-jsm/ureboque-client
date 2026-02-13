@@ -13,6 +13,7 @@ import PlaceSavedItem from "../../cards/placeSavedItem";
 import { useSavedPlacesModal } from "./components/useSavedPlacesModal.js";
 import AddressModal from "./AddressModal";
 import { useLogger } from "../../../hooks/useLogger";
+import { colors, borderRadius, shadows } from "../../../theme";
 
 const SavedPlacesModal = ({
   visible,
@@ -21,7 +22,7 @@ const SavedPlacesModal = ({
   mapDrag,
 }) => {
   const logger = useLogger('SavedPlacesModal');
-  
+
   const { models, operations } = useSavedPlacesModal();
   logger.debug("Modal props received", { addressCallBack, mapDrag });
   const handeBackButtonPress = () => {
@@ -75,79 +76,59 @@ const SavedPlacesModal = ({
         onRequestClose={closeModal}
         visible={visible}
         animationType="slide"
+        transparent={true}
       >
-        <View style={styles.container}>
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
-          >
-            <TouchableOpacity
-              style={styles.goback}
-              onPress={handeBackButtonPress}
-            >
-              <Icon name="close" size={scale(25)} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ top: scale(15), marginRight: scale(10) }}
-              onPress={operations.handleEditPress}
-            >
-              <Text style={{ fontWeight: "500" }}>Editar</Text>
-            </TouchableOpacity>
-          </View>
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={closeModal}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.contentWrapper}>
+              <View style={styles.header}>
+                <TouchableOpacity
+                  style={styles.goback}
+                  onPress={handeBackButtonPress}
+                >
+                  <Icon name="close" size={scale(25)} color={colors.textPrimary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={operations.handleEditPress}
+                >
+                  <Text style={styles.editText}>Editar</Text>
+                </TouchableOpacity>
+              </View>
 
-          <Text
-            style={{
-              fontSize: scale(20),
-              marginLeft: scale(10),
-              marginTop: scale(25),
-              color: "#0089FF",
-              fontWeight: "700",
-            }}
-          >
-            LUGAGES SALVOS
-          </Text>
-          <Text
-            style={{
-              marginLeft: scale(10),
-              fontSize: scale(11),
-            }}
-          >
-            O motorista irá levá-lo exatamente onde você está indo!
-          </Text>
-          <View
-            style={{
-              marginLeft: scale(10),
-              marginTop: scale(40),
-              height: "75%",
-            }}
-          >
-            <FlatList
-              data={models.savedPlaces}
-              renderItem={renderFlatListItem}
-              keyExtractor={(item) => item._id.toString()}
-              keyboardShouldPersistTaps="always"
-              keyboardDismissMode="on-drag"
-              ItemSeparatorComponent={() => (
-                <View style={{ height: scale(15) }} />
-              )}
-            />
-            <TouchableOpacity
-              style={{
-                borderColor: "#0089FF",
-                borderWidth: scale(3),
-                borderRadius: scale(7),
-                width: scale(300),
-                alignItems: "center",
-                alignSelf: "center",
-                padding: scale(18),
-              }}
-              onPress={operations.handleAddFavouriteButtonPress()}
-            >
-              <Text style={{ color: "#0089FF", fontWeight: "700" }}>
-                ADICIONAR LUGAR
+              <Text style={styles.title}>LUGARES SALVOS</Text>
+              <Text style={styles.subtitle}>
+                O motorista irá levá-lo exatamente onde você está indo!
               </Text>
-            </TouchableOpacity>
+
+              <View style={styles.listContainer}>
+                <FlatList
+                  data={models.savedPlaces}
+                  renderItem={renderFlatListItem}
+                  keyExtractor={(item) => item._id.toString()}
+                  keyboardShouldPersistTaps="always"
+                  keyboardDismissMode="on-drag"
+                  ItemSeparatorComponent={() => (
+                    <View style={{ height: scale(15) }} />
+                  )}
+                  showsVerticalScrollIndicator={false}
+                />
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={operations.handleAddFavouriteButtonPress()}
+                >
+                  <Text style={styles.addButtonText}>
+                    ADICIONAR LUGAR
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
       <AddressModal
         visible={
@@ -177,16 +158,81 @@ const SavedPlacesModal = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: scale(25),
+    borderTopRightRadius: scale(25),
+    height: "85%",
+    ...shadows.xl,
+
+  },
+  contentWrapper: {
+    flex: 1,
+    paddingHorizontal: scale(20),
+    paddingTop: scale(30),
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: scale(20),
   },
   goback: {
     width: scale(40),
     height: scale(40),
-    borderRadius: scale(7),
-    backgroundColor: "#fff",
-    top: scale(15),
-    marginLeft: scale(10),
+    borderRadius: scale(20),
+    backgroundColor: colors.surface,
+    justifyContent: "center",
+    alignItems: "center",
+    ...shadows.sm,
+  },
+  editButton: {
+    padding: scale(8),
+  },
+  editText: {
+    fontWeight: "700",
+    color: colors.primary,
+    fontSize: scale(14),
+  },
+  title: {
+    fontSize: scale(22),
+    color: colors.primary,
+    fontWeight: "800",
+    marginTop: scale(20),
+  },
+  subtitle: {
+    fontSize: scale(12),
+    color: colors.textMuted,
+    marginTop: scale(8),
+    lineHeight: scale(18),
+  },
+  listContainer: {
+    flex: 1,
+    marginTop: scale(40),
+    paddingBottom: scale(20),
+  },
+  addButton: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+    borderRadius: borderRadius.md,
+    width: "100%",
+    alignItems: "center",
+    alignSelf: "center",
+    padding: scale(16),
+    backgroundColor: colors.surface,
+    marginTop: scale(15),
+    marginBottom: scale(10),
+    ...shadows.sm,
+  },
+  addButtonText: {
+    color: colors.primary,
+    fontWeight: "700",
+    fontSize: scale(14),
   },
 });
 export default SavedPlacesModal;

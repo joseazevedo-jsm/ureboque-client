@@ -3,8 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  StyleSheet,
-  Alert
+  StyleSheet
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
@@ -12,48 +11,51 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Haptics from 'expo-haptics';
 import { ScalePressable } from '../../common/ScalePressable';
 import { colors, shadows, borderRadius, spacing, componentStyles } from '../../../theme';
+import { useAlert } from '../../../context/AlertContext';
 
-const AddressForm = ({ 
-  state, 
-  updateCurrentAddress, 
-  saveAddress, 
+const AddressForm = ({
+  state,
+  updateCurrentAddress,
+  saveAddress,
   deleteAddress,
   openSearch,
-  onClose 
+  onClose
 }) => {
+  const { showAlert } = useAlert();
   const isEdit = state.mode === 'edit';
   const { currentAddress } = state;
 
   const handleSave = async () => {
     try {
       await saveAddress();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => { });
       // Success handled in hook - returns to list
     } catch (error) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      Alert.alert("Erro", "Não foi possível salvar o endereço. Tente novamente.");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => { });
+      showAlert({ type: 'error', title: 'Erro', message: 'Não foi possível salvar o endereço. Tente novamente.' });
     }
   };
 
   const handleDelete = async () => {
-    Alert.alert(
-      "Confirmar",
-      "Deseja realmente excluir este endereço?",
-      [
-        { text: "Cancelar", style: "cancel" },
+    showAlert({
+      type: 'warning',
+      title: 'Confirmar',
+      message: 'Deseja realmente excluir este endereço?',
+      buttons: [
+        { text: 'Cancelar', style: 'cancel' },
         {
-          text: "Excluir",
-          style: "destructive",
+          text: 'Excluir',
+          style: 'destructive',
           onPress: async () => {
             try {
               await deleteAddress(currentAddress.id);
             } catch (error) {
-              Alert.alert("Erro", "Não foi possível excluir o endereço.");
+              showAlert({ type: 'error', title: 'Erro', message: 'Não foi possível excluir o endereço.' });
             }
           }
         }
       ]
-    );
+    });
   };
 
   // Calculate if save button should be enabled

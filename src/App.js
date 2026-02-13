@@ -42,9 +42,9 @@ Sentry.init({
   beforeSend(event) {
     // Filter out certain errors in development
     if (__DEV__ && event.exception) {
-      console.debug('Sentry Event Captured', { 
-        eventId: event.event_id, 
-        message: event.exception?.values?.[0]?.value 
+      console.debug('Sentry Event Captured', {
+        eventId: event.event_id,
+        message: event.exception?.values?.[0]?.value
       });
     }
     return event;
@@ -63,7 +63,7 @@ function AppContent() {
       sessionId: Logger.getSessionId(),
       startTime: new Date().toISOString(),
     });
-    
+
     Sentry.addBreadcrumb({
       category: 'app',
       message: 'Application started',
@@ -85,8 +85,8 @@ function AppContent() {
   // Show main app when everything is ready
   return (
     <ErrorBoundary>
-      <LocationPermissionsService />
       <AlertProvider>
+        <LocationPermissionsService />
         <TripStateProvider>
           <UserLocationStateContextProvider>
             <AppNav />

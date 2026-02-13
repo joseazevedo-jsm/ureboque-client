@@ -1,155 +1,290 @@
 import React from "react";
-import { FlatList } from "react-native";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Icon } from "react-native-elements";
+import {
+  FlatList,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  SafeAreaView,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
+import { colors, spacing, borderRadius, shadows, typography } from "../../../theme";
 
 const CancelationModal = ({
   questions,
   visible,
   onPressQuestion,
   closeModal,
-  alert
 }) => {
-  const handleBackButtonPress = () => {
-    closeModal();
+  const [selectedQuestion, setSelectedQuestion] = React.useState(null);
+  const [otherText, setOtherText] = React.useState("");
+
+  const handleConfirm = () => {
+    const finalReason = selectedQuestion === "Outro" ? otherText : selectedQuestion;
+    onPressQuestion(finalReason);
+    // Reset state for next time
+    setSelectedQuestion(null);
+    setOtherText("");
   };
+
   const renderQuestionItem = ({ item }) => {
+    const isSelected = selectedQuestion === item.question;
     return (
-      <View style={styles.questionsBox}>
-        <TouchableOpacity onPress={() => onPressQuestion(item.question)}>
-          <Text style={styles.questions}>{item.question}</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={[
+          styles.questionCard,
+          isSelected && styles.selectedQuestionCard
+        ]}
+        onPress={() => {
+          if (item.question === "Outro") {
+            setSelectedQuestion("Outro");
+          } else {
+            onPressQuestion(item.question);
+          }
+        }}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.questionText}>{item.question}</Text>
+        <Icon
+          name={isSelected ? "radio-button-checked" : "chevron-right"}
+          size={scale(20)}
+          color={isSelected ? colors.primary : colors.textMuted}
+        />
+      </TouchableOpacity>
     );
   };
 
   return (
     <Modal
       visible={visible}
-      onRequestClose={handleBackButtonPress}
-      animationType="fade"
+      onRequestClose={closeModal}
+      animationType="slide"
+      statusBarTranslucent
     >
-      <View>
-        <View style={styles.header}>
-            <Icon
-              name="close"
-              size={scale(30)}
-              color="#0089FF"
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : scale(20)}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.closeButton}
               onPress={closeModal}
-            />
-            <Text style={styles.title}>CANCELAR VIAGEM</Text>
-            <Text> </Text>
-        </View>
-        <View style={styles.descriptionBox}>
-          <Text style={styles.description}>
-            O motorista já viajou por vários minutos. Antes de canecelar
-            diga-nos porque quer cancelar!
-          </Text>
-        </View>
-        <View style={styles.questionsContent}>
-          <Text style={styles.question}>O que aconteceu? Conte-nos mais:</Text>
-          <FlatList
-            data={questions}
-            renderItem={renderQuestionItem}
-            keyExtractor={(item) => item.key.toString()}
-          />
-        </View>
-      </View>
+              activeOpacity={0.7}
+            >
+              <Icon name="close" size={scale(24)} color={colors.textPrimary} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Cancelar Viagem</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+
+          {/* Warning Card */}
+          <View style={styles.warningCard}>
+            <View style={styles.warningIconContainer}>
+              <Icon name="warning-amber" size={scale(24)} color={colors.warning} />
+            </View>
+            <Text style={styles.warningText}>
+              O motorista já viajou por vários minutos. Antes de cancelar,
+              diga-nos porque quer cancelar!
+            </Text>
+          </View>
+
+          {/* Main Content Area */}
+          <View style={styles.contentArea}>
+            {selectedQuestion === "Outro" ? (
+              <View style={styles.focusedOtherContainer}>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => setSelectedQuestion(null)}
+                >
+                  <Icon name="arrow-back" size={scale(20)} color={colors.primary} />
+                  <Text style={styles.backButtonText}>Mudar motivo</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.sectionTitle}>Conte-nos o que aconteceu:</Text>
+
+                <TextInput
+                  style={styles.otherInputFocus}
+                  placeholder="Descreva o motivo do cancelamento..."
+                  value={otherText}
+                  onChangeText={setOtherText}
+                  multiline
+                  numberOfLines={6}
+                  autoFocus
+                  textAlignVertical="top"
+                />
+
+                <TouchableOpacity
+                  style={[
+                    styles.confirmButton,
+                    !otherText.trim() && styles.disabledButton
+                  ]}
+                  onPress={handleConfirm}
+                  disabled={!otherText.trim()}
+                >
+                  <Text style={styles.confirmButtonText}>Confirmar Cancelamento</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.questionsSection}>
+                <Text style={styles.sectionTitle}>O que aconteceu? Conte-nos mais:</Text>
+                <FlatList
+                  data={questions}
+                  renderItem={renderQuestionItem}
+                  keyExtractor={(item) => item.key.toString()}
+                  contentContainerStyle={styles.questionsList}
+                  ItemSeparatorComponent={() => <View style={styles.separator} />}
+                  showsVerticalScrollIndicator={false}
+                />
+              </View>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </Modal>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  box: {
-    backgroundColor: "#fff",
-    borderRadius: scale(10),
-    alignSelf: "center",
-    marginVertical: "50%",
-  },
-  content: {
-    marginHorizontal: scale(10),
-    paddingVertical: scale(10),
-  },
-  buttonnocancel: {
-    borderRadius: scale(7),
-    padding: scale(15),
-    alignItems: "center",
-    backgroundColor: "#0089FF",
-    marginBottom: scale(10),
-  },
-  buttoncancel: {
-    borderRadius: scale(7),
-    padding: scale(15),
-    alignItems: "center",
-  },
-  goback: {
-    width: scale(50),
-    height: scale(50),
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-    left: scale(10),
-    top: scale(20),
-  },
-  profile: {
-    width: scale(275),
-    height: scale(275),
-    position: "absolute",
-    borderRadius: scale(45 / 2),
-    backgroundColor: "#fff",
-    alignSelf: "center",
-    top: "35%",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: scale(2), height: scale(2) },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 8,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: scale(10),
     justifyContent: "space-between",
-    paddingVertical: scale(20),
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  title: {
-    fontSize: scale(18),
-    color: "#0089FF",
-    fontWeight: "bold",
-
-  },
-  descriptionBox: {
+  closeButton: {
+    width: scale(40),
+    height: scale(40),
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.background,
+    justifyContent: "center",
     alignItems: "center",
-    paddingBottom: scale(80),
   },
-  description: {
-    textAlign: "center",
-    fontSize: scale(13),
-    paddingVertical: scale(20),
-    marginHorizontal: scale(60),
-    color: "#0089FF",
-    fontWeight: "bold",
-
+  headerTitle: {
+    ...typography.h3,
+    color: colors.primary,
   },
-  question: {
-    paddingBottom: scale(20),
-    fontSize: scale(12),
+  headerSpacer: {
+    width: scale(40),
   },
-  questions: {
-    fontSize: scale(12),
-    fontWeight: "bold",
+  warningCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: colors.warningLight,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    gap: spacing.md,
   },
-  questionsBox: {
-    paddingVertical: scale(8),
-    marginBottom: scale(5),
+  warningIconContainer: {
+    marginTop: scale(2),
   },
-  questionsContent: {
-    marginHorizontal: scale(15),
-  }
+  warningText: {
+    flex: 1,
+    ...typography.bodySmall,
+    color: colors.textPrimary,
+    lineHeight: scale(20),
+  },
+  contentArea: {
+    flex: 1,
+  },
+  questionsSection: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
+  },
+  focusedOtherContainer: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  backButtonText: {
+    marginLeft: spacing.xs,
+    color: colors.primary,
+    fontWeight: "600",
+    fontSize: scale(14),
+  },
+  sectionTitle: {
+    ...typography.sectionTitle,
+    marginBottom: spacing.lg,
+  },
+  questionsList: {
+    paddingBottom: spacing.xxl,
+  },
+  questionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  selectedQuestionCard: {
+    borderColor: colors.primary,
+    backgroundColor: "#F0F9FF",
+  },
+  questionText: {
+    flex: 1,
+    ...typography.body,
+    fontWeight: "500",
+    marginRight: spacing.sm,
+  },
+  separator: {
+    height: spacing.sm,
+  },
+  otherInputFocus: {
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...typography.body,
+    minHeight: scale(150),
+    textAlignVertical: "top",
+    marginBottom: spacing.xxl,
+    ...shadows.sm,
+  },
+  confirmButton: {
+    backgroundColor: colors.error,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    alignItems: "center",
+    ...shadows.md,
+  },
+  confirmButtonText: {
+    ...typography.buttonLabel,
+    color: colors.surface,
+    fontSize: scale(16),
+  },
+  disabledButton: {
+    backgroundColor: colors.border,
+    opacity: 0.6,
+  },
 });
+
 export default CancelationModal;

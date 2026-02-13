@@ -1,7 +1,5 @@
 import React from "react";
 import {
-  FlatList,
-  Image,
   Modal,
   StyleSheet,
   Text,
@@ -10,8 +8,7 @@ import {
 } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
 import { scale } from "react-native-size-matters";
-import Icon from "react-native-vector-icons/MaterialIcons";
-import { useRegisterModal } from "./components/useRegisterModal";
+import { colors, spacing, shadows, borderRadius } from "../../../theme";
 const RegisterInfoModal = ({
   visible,
   changeLoginState,
@@ -83,48 +80,40 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "space-between",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.background,
   },
   title: {
     fontSize: scale(40),
     fontWeight: "800",
-    color: "#1E293B",
+    color: colors.textPrimary,
     textAlign: "center",
-    paddingHorizontal: scale(10),
+    paddingHorizontal: spacing.sm,
     paddingTop: scale(80),
   },
   inputInfo: {
-    marginHorizontal: scale(20),
+    marginHorizontal: spacing.xl,
     paddingVertical: scale(50),
   },
   input: {},
   inputBox: {
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: scale(14),
+    borderRadius: borderRadius.lg,
     fontSize: scale(15),
     paddingVertical: scale(14),
-    paddingHorizontal: scale(16),
-    marginTop: scale(15),
-    backgroundColor: "#fff",
-    color: "#1E293B",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
+    ...shadows.sm,
   },
   bottom: {
-    backgroundColor: "#0089FF",
-    marginHorizontal: scale(20),
+    backgroundColor: colors.primary,
+    marginHorizontal: spacing.xl,
     alignItems: "center",
-    borderRadius: scale(16),
+    borderRadius: borderRadius.xl,
     marginBottom: scale(30),
-    shadowColor: "#0089FF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    ...shadows.primaryGlow,
   },
   save: {
     fontSize: scale(18),
@@ -134,21 +123,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   errorContainer: {
-    marginTop: scale(15),
-    backgroundColor: "#FFF5F5",
-    padding: scale(12),
-    borderRadius: scale(12),
+    marginTop: spacing.lg,
+    backgroundColor: colors.errorLight,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
   },
   error: {
     fontSize: scale(14),
-    color: "#1E293B",
+    color: colors.textPrimary,
     fontWeight: "600",
   },
   errorItem: {
     fontSize: scale(14),
-    paddingHorizontal: scale(5),
-    color: "#F44336",
-    marginTop: scale(4),
+    paddingHorizontal: spacing.xs,
+    color: colors.error,
+    marginTop: spacing.xs,
   }
 });
 export default RegisterInfoModal;

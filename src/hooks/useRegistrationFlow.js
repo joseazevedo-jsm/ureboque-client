@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useLogger } from './useLogger';
 import api from '../services/APIService';
 
-export const useRegistrationFlow = (initialPhone = '', initialPassword = '') => {
+export const useRegistrationFlow = (initialPhone = '', initialPassword = '', showAlert = null) => {
   const logger = useLogger('useRegistrationFlow');
   const navigation = useNavigation();
 
@@ -179,11 +178,12 @@ export const useRegistrationFlow = (initialPhone = '', initialPassword = '') => 
 
   const goToPersonalInfo = () => {
     if (!isPasswordValid()) {
-      Alert.alert(
-        'Senha inválida',
-        'Por favor, certifique-se de que a senha atende a todos os requisitos.',
-        [{ text: 'OK' }]
-      );
+      showAlert?.({
+        type: 'error',
+        title: 'Senha inválida',
+        message: 'Por favor, certifique-se de que a senha atende a todos os requisitos.',
+        buttons: [{ text: 'OK' }]
+      });
       return false;
     }
 
@@ -207,11 +207,12 @@ export const useRegistrationFlow = (initialPhone = '', initialPassword = '') => 
   // API Integration
   const createUserAccount = async () => {
     if (!isPersonalInfoValid()) {
-      Alert.alert(
-        'Informações incompletas',
-        'Por favor, preencha todos os campos corretamente.',
-        [{ text: 'OK' }]
-      );
+      showAlert?.({
+        type: 'error',
+        title: 'Informações incompletas',
+        message: 'Por favor, preencha todos os campos corretamente.',
+        buttons: [{ text: 'OK' }]
+      });
       return false;
     }
 
@@ -244,11 +245,12 @@ export const useRegistrationFlow = (initialPhone = '', initialPassword = '') => 
       return false;
     } catch (error) {
       logger.error('Registration failed', error);
-      Alert.alert(
-        'Erro no cadastro',
-        'Ocorreu um erro ao criar a sua conta. Tente novamente.',
-        [{ text: 'OK' }]
-      );
+      showAlert?.({
+        type: 'error',
+        title: 'Erro no cadastro',
+        message: 'Ocorreu um erro ao criar a sua conta. Tente novamente.',
+        buttons: [{ text: 'OK' }]
+      });
       return false;
     } finally {
       updateUIState('isLoading', false);

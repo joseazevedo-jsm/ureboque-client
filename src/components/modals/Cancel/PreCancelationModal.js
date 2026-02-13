@@ -2,126 +2,125 @@ import React from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import { BlurView } from "expo-blur";
+import Icon from "react-native-vector-icons/MaterialIcons";
+import { colors, spacing, borderRadius, shadows, typography } from "../../../theme";
 
 const PreCancelationModal = ({ visible, closeModal, onPressCancel }) => {
-  const handleBackButtonPress = () => {
-    closeModal();
-  };
-
   return (
-    <>
-        <Modal
-          visible={visible}
-          onRequestClose={handleBackButtonPress}
-          transparent={true}
-          animationType="fade"
-        >
-                <BlurView  style={{flex: 1}}tint="dark" intensity={40} blurReductionFactor={2}>
-          <View style={styles.box}>
-            <View style={styles.content}>
-              <Text style={styles.title}>CANCELAR VIAGEM</Text>
-              <Text style={styles.description}>
-                Seu motorista já viajou por vários minutos. {"\n"}Se você
-                cancelar esta viagem para solicitar uma nova imediatamente,
-                poderá ter que esperar mais.
-              </Text>
-              <View
-                style={{
-                  justifyContent: "space-between",
-                }}
-              >
-                <TouchableOpacity
-                  onPress={closeModal}
-                  style={styles.buttonnocancel}
-                >
-                  <Text style={{ color: "#fff" }}>
-                    Continuar com este motorista
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.buttoncancel}
-                  onPress={onPressCancel}
-                >
-                  <Text style={{ color: "#0089FF" }}>
-                    Confirmar cancelamento
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+    <Modal
+      visible={visible}
+      onRequestClose={closeModal}
+      transparent={true}
+      animationType="fade"
+      statusBarTranslucent
+    >
+      <BlurView style={styles.overlay} tint="dark" intensity={40}>
+        <View style={styles.card}>
+          <View style={styles.iconCircle}>
+            <Icon name="warning-amber" size={scale(32)} color={colors.warning} />
           </View>
-      </BlurView>
 
-        </Modal>
-    </>
+          <Text style={styles.title}>Cancelar Viagem</Text>
+
+          <Text style={styles.message}>
+            Seu motorista já viajou por vários minutos. Se você cancelar esta
+            viagem para solicitar uma nova imediatamente, poderá ter que esperar mais.
+          </Text>
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.continueButton}
+              onPress={closeModal}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.continueButtonText}>
+                Continuar com este motorista
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={onPressCancel}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.cancelButtonText}>
+                Confirmar cancelamento
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </BlurView>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  box: {
-    backgroundColor: "#fff",
-    borderRadius: scale(10),
-    alignSelf: "center",
-    marginVertical: "50%",
-  },
-  content: {
-    marginHorizontal: scale(10),
-    paddingVertical: scale(10),
-  },
-  buttonnocancel: {
-    borderRadius: scale(7),
-    padding: scale(15),
-    alignItems: "center",
-    backgroundColor: "#0089FF",
-    marginBottom: scale(10),
-  },
-  buttoncancel: {
-    borderRadius: scale(7),
-    padding: scale(15),
-    alignItems: "center",
-  },
-  goback: {
-    width: scale(50),
-    height: scale(50),
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-    left: scale(10),
-    top: scale(20),
-  },
-  profile: {
-    width: scale(275),
-    height: scale(275),
-    position: "absolute",
-    borderRadius: scale(45 / 2),
-    backgroundColor: "#fff",
-    alignSelf: "center",
-    top: "35%",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: scale(2), height: scale(2) },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 8,
-  },
   overlay: {
-    width: "100%",
-    height: "62%",
-    borderBottomStartRadius: scale(250),
-    borderBottomEndRadius: scale(250),
-    backgroundColor: "#0089ff",
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
+    padding: spacing.xxl,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.xxl,
+    alignItems: "center",
+    width: "100%",
+    maxWidth: scale(320),
+    ...shadows.lg,
+  },
+  iconCircle: {
+    width: scale(64),
+    height: scale(64),
+    borderRadius: scale(32),
+    backgroundColor: colors.warningLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.lg,
   },
   title: {
-    fontSize: scale(16),
-    color: "#0089FF",
+    ...typography.h3,
+    textAlign: "center",
+    marginBottom: spacing.sm,
   },
-  description: {
-    fontSize: scale(13),
-    paddingVertical: scale(20),
+  message: {
+    ...typography.bodySmall,
+    textAlign: "center",
+    marginBottom: spacing.xl,
+    lineHeight: scale(20),
+  },
+  buttonContainer: {
+    width: "100%",
+    gap: spacing.sm,
+  },
+  continueButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: "center",
+    ...shadows.primaryGlow,
+  },
+  continueButtonText: {
+    color: colors.surface,
+    fontSize: scale(14),
+    fontWeight: "600",
+  },
+  cancelButton: {
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.error,
+  },
+  cancelButtonText: {
+    color: colors.error,
+    fontSize: scale(14),
+    fontWeight: "600",
   },
 });
+
 export default PreCancelationModal;

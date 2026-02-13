@@ -5,13 +5,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import useSettingsScreen from "../components/settings/useSettingsScreen";
 import { useLogger } from "../hooks/useLogger";
+import { useAlert } from "../context/AlertContext";
 
 const SettingsScreen = () => {
   const logger = useLogger('SettingsScreen', { 
@@ -21,6 +21,7 @@ const SettingsScreen = () => {
   
   const navigation = useNavigation();
   const { models, operations } = useSettingsScreen();
+  const { showAlert } = useAlert();
   
   logger.debug('SettingsScreen rendered', {
     hasUser: !!models?.user,
@@ -90,7 +91,7 @@ const SettingsScreen = () => {
             subtitle="Proteja a sua conta com 2FA"
             onPress={() => {
               logger.logUserInteraction('two_factor_pressed', { from: 'SettingsScreen' });
-              Alert.alert("2FA", "Funcionalidade em desenvolvimento");
+              showAlert({ type: 'info', title: '2FA', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
             }}
           />
         </SettingSection>
@@ -112,7 +113,7 @@ const SettingsScreen = () => {
             subtitle="Controle a privacidade da sua conta"
             onPress={() => {
               logger.logUserInteraction('privacy_pressed', { from: 'SettingsScreen' });
-              Alert.alert("Privacidade", "Funcionalidade em desenvolvimento");
+              showAlert({ type: 'info', title: 'Privacidade', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
             }}
           />
         </SettingSection>
@@ -125,7 +126,7 @@ const SettingsScreen = () => {
             subtitle="Gerir notificações do aplicativo"
             onPress={() => {
               logger.logUserInteraction('push_notifications_pressed', { from: 'SettingsScreen' });
-              Alert.alert("Notificações", "Funcionalidade em desenvolvimento");
+              showAlert({ type: 'info', title: 'Notificações', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
             }}
           />
           <SettingItem
@@ -134,7 +135,7 @@ const SettingsScreen = () => {
             subtitle="Receber notificações por email"
             onPress={() => {
               logger.logUserInteraction('email_notifications_pressed', { from: 'SettingsScreen' });
-              Alert.alert("Email", "Funcionalidade em desenvolvimento");
+              showAlert({ type: 'info', title: 'Email', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
             }}
           />
         </SettingSection>
@@ -147,7 +148,7 @@ const SettingsScreen = () => {
             subtitle="Português"
             onPress={() => {
               logger.logUserInteraction('language_pressed', { from: 'SettingsScreen' });
-              Alert.alert("Idioma", "Funcionalidade em desenvolvimento");
+              showAlert({ type: 'info', title: 'Idioma', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
             }}
           />
           <SettingItem
@@ -156,7 +157,7 @@ const SettingsScreen = () => {
             subtitle="Claro"
             onPress={() => {
               logger.logUserInteraction('theme_pressed', { from: 'SettingsScreen' });
-              Alert.alert("Tema", "Funcionalidade em desenvolvimento");
+              showAlert({ type: 'info', title: 'Tema', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
             }}
           />
         </SettingSection>
@@ -177,7 +178,7 @@ const SettingsScreen = () => {
             title="Termos de Serviço"
             onPress={() => {
               logger.logUserInteraction('terms_pressed', { from: 'SettingsScreen' });
-              Alert.alert("Termos", "Funcionalidade em desenvolvimento");
+              showAlert({ type: 'info', title: 'Termos', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
             }}
           />
           <SettingItem
@@ -185,7 +186,7 @@ const SettingsScreen = () => {
             title="Política de Privacidade"
             onPress={() => {
               logger.logUserInteraction('privacy_policy_pressed', { from: 'SettingsScreen' });
-              Alert.alert("Política", "Funcionalidade em desenvolvimento");
+              showAlert({ type: 'info', title: 'Política', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
             }}
           />
         </SettingSection>

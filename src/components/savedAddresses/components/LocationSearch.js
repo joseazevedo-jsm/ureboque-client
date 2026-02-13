@@ -4,8 +4,7 @@ import {
   Text,
   TextInput,
   FlatList,
-  StyleSheet,
-  Alert
+  StyleSheet
 } from 'react-native';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
@@ -18,8 +17,9 @@ import { useDebounce } from 'use-debounce';
 import { useUserLocationStateContext } from '../../../context/UserLocationStateContext';
 import Geocoder from 'react-native-geocoding';
 import { colors, shadows, borderRadius, spacing } from '../../../theme';
+import { useAlert } from '../../../context/AlertContext';
 
-const LocationSearch = ({ 
+const LocationSearch = ({
   state,
   searchLocations,
   selectSearchResult,
@@ -28,6 +28,7 @@ const LocationSearch = ({
   onMapDragRequest
 }) => {
   const { userLocation } = useUserLocationStateContext();
+  const { showAlert } = useAlert();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
   const { responseData } = useTextSearchQuery(debouncedSearchQuery);
@@ -42,7 +43,7 @@ const LocationSearch = ({
   const searchResults = responseData?.results || [];
 
   const handleLocationSelect = (location) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
     // Transform Google Places API response to expected format and return to form
     selectSearchResult({
       address: location.formatted_address,
@@ -57,7 +58,7 @@ const LocationSearch = ({
   const handleCurrentLocation = async () => {
     try {
       if (!userLocation?.latitude || !userLocation?.longitude) {
-        Alert.alert('Erro', 'Não foi possível determinar sua localização. Tente novamente.');
+        showAlert({ type: 'error', title: 'Erro', message: 'Não foi possível determinar sua localização. Tente novamente.' });
         return;
       }
 
@@ -66,7 +67,7 @@ const LocationSearch = ({
       const name = response.results[0]?.address_components[0]?.long_name;
 
       if (!address) {
-        Alert.alert('Erro', 'Não foi possível determinar seu endereço. Tente novamente.');
+        showAlert({ type: 'error', title: 'Erro', message: 'Não foi possível determinar seu endereço. Tente novamente.' });
         return;
       }
 
@@ -85,7 +86,7 @@ const LocationSearch = ({
         name: name || 'Localização Atual'
       });
     } catch (error) {
-      Alert.alert('Erro', 'Algo deu errado. Tente novamente.');
+      showAlert({ type: 'error', title: 'Erro', message: 'Algo deu errado. Tente novamente.' });
     }
   };
 

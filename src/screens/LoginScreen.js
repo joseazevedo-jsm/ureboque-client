@@ -9,8 +9,6 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import CountryPickerWithFlag from "../components/login/CountryPickerWithFlag";
@@ -20,6 +18,8 @@ import { useRoute } from "@react-navigation/native";
 import OTPModal from "../components/modals/OTP/OTPModal";
 import RegisterPassModal from "../components/modals/Register/RegisterPassModal";
 import { useLogger } from "../hooks/useLogger";
+import KeyboardAvoidingWrapper from "../components/common/KeyboardAvoidingWrapper";
+import { colors, spacing, shadows, borderRadius } from "../theme";
 
 const LoginScreen = () => {
   const logger = useLogger('LoginScreen', { 
@@ -50,11 +50,7 @@ const LoginScreen = () => {
 
   return (
     <>
-      <KeyboardAvoidingView 
-        style={styles.container} 
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        enabled={Platform.OS === "ios"}
-      >
+      <KeyboardAvoidingWrapper style={styles.container}>
         <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
           <View style={styles.content}>
               <View style={styles.logo}>
@@ -191,7 +187,7 @@ const LoginScreen = () => {
               </View>
             </View>
         </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+      </KeyboardAvoidingWrapper>
       <OTPModal
         visible={models.modalOtpVisible}
         OTPChange={operations.handleOTPChange}
@@ -212,163 +208,151 @@ const LoginScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.background,
     flex: 1,
     width: "100%",
     height: "100%",
   },
   content: {
     flex: 1,
-    marginHorizontal: scale(20),
+    marginHorizontal: spacing.xl,
     paddingVertical: scale(40),
     justifyContent: "space-between",
    },
   logo: {
     alignItems: "center",
-    marginBottom: scale(10),
+    marginBottom: spacing.sm,
   },
   initsess: {
     flexDirection: "row",
     alignSelf: "center",
-    paddingVertical: scale(25),
+    paddingVertical: spacing.xxl,
   },
   text: {
     fontSize: 16,
-    color: "#64748B",
-    paddingHorizontal: scale(25),
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.xxl,
   },
   divider: {
     borderBottomWidth: scale(0.5),
-    borderColor: "#CBD5E0",
+    borderColor: colors.textDisabled,
     width: scale(100),
     alignSelf: "center",
   },
   formContainer: {
     justifyContent: "center",
-    paddingVertical: scale(5),
+    paddingVertical: spacing.xs,
   },
   phoneDiv: {
-    paddingHorizontal: scale(10),
+    paddingHorizontal: spacing.sm,
   },
   instructionText: {
-    color: "#64748B",
+    color: colors.textSecondary,
     fontSize: scale(16),
-    marginBottom: scale(15),
+    marginBottom: spacing.lg,
   },
   phone: {
-    borderRadius: scale(14),
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: colors.border,
     flexDirection: "row",
-    paddingVertical: scale(12),
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
+    ...shadows.sm,
   },
   phoneError: {
-    borderColor: "#F44336",
-    backgroundColor: "#FFF5F5",
+    borderColor: colors.error,
+    backgroundColor: colors.errorLight,
   },
   numberFlag: {
     flexDirection: "row",
-    paddingHorizontal: scale(10),
+    paddingHorizontal: spacing.sm,
   },
   separator: {
     fontSize: 20,
     alignSelf: "center",
-    color: "#CBD5E0",
+    color: colors.textDisabled,
   },
   input: {
     flex: 1,
-    color: "#1E293B",
+    color: colors.textPrimary,
     fontSize: 18,
-    paddingHorizontal: scale(10),
+    paddingHorizontal: spacing.sm,
   },
   passwordContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: scale(10),
+    paddingHorizontal: spacing.sm,
   },
   passwordInput: {
     flex: 1,
-    color: "#1E293B",
+    color: colors.textPrimary,
     fontSize: 18,
-    paddingRight: scale(10),
+    paddingRight: spacing.sm,
   },
   eyeButton: {
-    padding: scale(8),
+    padding: spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: scale(5),
+    marginLeft: spacing.xs,
   },
   errorContainer: {
-    marginTop: scale(10),
-    paddingHorizontal: scale(5),
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.xs,
     minHeight: scale(40),
     justifyContent: "center",
   },
   warningText: {
-    color: "#F44336",
+    color: colors.error,
     fontSize: scale(14),
-    paddingHorizontal: scale(10),
+    paddingHorizontal: spacing.sm,
     textAlign: "center",
     lineHeight: scale(20),
   },
   errorText: {
     fontWeight: "600",
-    color: "#F44336",
+    color: colors.error,
   },
   changeNumberButton: {
-    marginTop: scale(15),
-    paddingVertical: scale(12),
-    paddingHorizontal: scale(20),
-    backgroundColor: "#fff",
-    borderRadius: scale(14),
+    marginTop: spacing.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: colors.border,
     alignItems: "center",
-    marginHorizontal: scale(5),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    marginHorizontal: spacing.xs,
+    ...shadows.sm,
   },
   changeNumberText: {
-    color: "#0089FF",
+    color: colors.primary,
     fontSize: scale(14),
     fontWeight: "600",
   },
   bottom: {
-    paddingTop: scale(10),
+    paddingTop: spacing.sm,
   },
   disclaimerText: {
-    paddingBottom: scale(20),
-    paddingHorizontal: scale(10),
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.sm,
     fontSize: scale(12),
-    color: "#64748B",
+    color: colors.textSecondary,
     lineHeight: scale(16),
     textAlign: "center",
   },
   button: {
-    backgroundColor: "#0089FF",
-    borderRadius: scale(16),
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.xl,
     alignItems: "center",
-    marginHorizontal: scale(10),
+    marginHorizontal: spacing.sm,
     minHeight: scale(50),
     justifyContent: "center",
-    shadowColor: "#0089FF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    ...shadows.primaryGlow,
   },
   buttonLoading: {
-    backgroundColor: "#CBD5E0",
+    backgroundColor: colors.textDisabled,
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -376,10 +360,10 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    color: "white",
+    color: colors.surface,
     fontSize: 18,
     fontWeight: "bold",
-    paddingVertical: scale(15),
+    paddingVertical: spacing.lg,
   },
 });
 

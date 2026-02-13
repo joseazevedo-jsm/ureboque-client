@@ -7,23 +7,23 @@ import PlaceSavedItem from '../../cards/placeSavedItem';
 import { ScalePressable } from '../../common/ScalePressable';
 import { colors, shadows, borderRadius, spacing } from '../../../theme';
 
-const AddressesList = ({ 
-  addresses, 
-  startAdd, 
-  startEdit, 
-  deleteAddress, 
+const AddressesList = ({
+  addresses,
+  startAdd,
+  startEdit,
+  deleteAddress,
   state,
-  onClose 
+  onClose
 }) => {
   const [editMode, setEditMode] = React.useState(false);
 
   // Add default Home/Work if not exists (keep existing logic)
   const displayAddresses = React.useMemo(() => {
     const data = [...addresses];
-    
+
     const hasHome = data.some(addr => addr.place.name === "Casa");
     const hasWork = data.some(addr => addr.place.name === "Trabalho");
-    
+
     if (!hasWork) {
       data.unshift({
         _id: "add-work",
@@ -31,15 +31,15 @@ const AddressesList = ({
         isAdd: true
       });
     }
-    
+
     if (!hasHome) {
       data.unshift({
-        _id: "add-home", 
+        _id: "add-home",
         place: { name: "Adicionar Casa" },
         isAdd: true
       });
     }
-    
+
     return data;
   }, [addresses]);
 
@@ -47,7 +47,7 @@ const AddressesList = ({
     if (item.isAdd) {
       // Auto-populate name and type for home/work addresses
       if (item._id === "add-home") {
-        startAdd({ name: "Casa"});
+        startAdd({ name: "Casa" });
       } else if (item._id === "add-work") {
         startAdd({ name: "Trabalho" });
       } else {
@@ -95,7 +95,7 @@ const AddressesList = ({
 
       {/* Title - Same design */}
       <Animated.View entering={FadeInDown.delay(100).springify()}>
-        <Text style={styles.title}>LUGAGES SALVOS</Text>
+        <Text style={styles.title}>LUGARES SALVOS</Text>
         <Text style={styles.subtitle}>
           O motorista irá levá-lo exatamente onde você está indo!
         </Text>
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingTop: spacing.lg,
+    paddingTop: scale(60),
     paddingHorizontal: spacing.lg,
   },
   closeButton: {

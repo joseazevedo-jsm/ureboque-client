@@ -235,7 +235,7 @@ const HistoryScreen = () => {
           showsHorizontalScrollIndicator={false}
           data={['all', 'completed', 'cancelled', 'requested']}
           keyExtractor={(item) => item}
-          contentContainerStyle={{ paddingHorizontal: scale(20), paddingBottom: scale(10) }}
+          contentContainerStyle={{ paddingHorizontal: scale(20), paddingBottom: scale(10), gap: scale(2) }}
           renderItem={({ item }) => {
             const labelMap = {
               all: 'Todos',
@@ -243,7 +243,11 @@ const HistoryScreen = () => {
               cancelled: 'Cancelados',
               requested: 'Solicitados'
             };
-            return renderFilterButton(item, labelMap[item]);
+            return (
+              <View style={{ marginRight: scale(8) }}>
+                {renderFilterButton(item, labelMap[item])}
+              </View>
+            );
           }}
           style={{ maxHeight: scale(50) }}
         />

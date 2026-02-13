@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Clipboard,
-  Alert,
   Share,
   ActivityIndicator,
   Dimensions,
@@ -17,7 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useInviteScreen } from "../components/invite/useInviteScreen";
 import { useLogger } from "../hooks/useLogger";
-
+import { useAlert } from "../context/AlertContext";
 // New Design Dependencies
 import Animated, {
   FadeInDown,
@@ -76,6 +75,7 @@ const InviteScreen = () => {
   const logger = useLogger('InviteScreen', { enableLifecycleLogging: true });
   const { models, operations } = useInviteScreen();
   const navigation = useNavigation();
+  const { showAlert } = useAlert();
 
   // Animation states
   const [isSharing, setIsSharing] = useState(false);
@@ -114,7 +114,7 @@ const InviteScreen = () => {
       }
     } catch (error) {
       logger.error('Error sharing invite code', error);
-      Alert.alert("Erro", "Não foi possível compartilhar o código");
+      showAlert({ type: 'error', title: 'Erro', message: 'Não foi possível compartilhar o código' });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsSharing(false);
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: scale(24),
-    paddingTop: scale(24), // SafeArea handles top, just need some breathing room
+    paddingTop: scale(60), // SafeArea handles top, just need some breathing room
     paddingBottom: scale(20),
   },
   headerTitle: {

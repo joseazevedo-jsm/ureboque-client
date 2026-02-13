@@ -67,9 +67,19 @@ const getCarIconByColor = (color) => {
 // --- Reusable Glass Components ---
 const GlassBackground = ({ style }) => (
   <BlurView
-    intensity={90}
-    tint="systemThickMaterialLight"
-    style={[style, { borderRadius: scale(32), overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.5)' }]}
+    intensity={Platform.select({ ios: 40, android: 90 })}
+    tint={Platform.select({ ios: 'light', android: 'light' })}
+    style={[
+      style,
+      {
+        borderRadius: scale(32),
+        overflow: 'hidden',
+        backgroundColor: Platform.select({
+          ios: 'rgba(255,255,255,0.7)',
+          android: 'rgba(255,255,255,0.7)'
+        })
+      }
+    ]}
   />
 );
 
@@ -158,18 +168,17 @@ const MapScreen = memo(() => {
   }, [models.driver, models.driverLocation?.latitude, models.driverLocation?.longitude, models.driverLocation?.heading]);
 
   // Memoized spots item renderer
-  const renderSpotsItem = useCallback(({ item }) => {
-    return item.place.name === "Adicionar Favorito" ? (
+  const renderSpotsItem = useCallback(({ item, index }) => {
+    const isAddFavorite = item.place.name === "Adicionar Favorito";
+    return (
       <CardSpots
         title={item.place.name}
         description={item.place.description}
-        onPress={operations.handleAddFavouriteButtonPress}
-      />
-    ) : (
-      <CardSpots
-        title={item.place.name}
-        description={item.place.description}
-        onPress={operations.handleOnFavouriteButtonPress(item)}
+        onPress={isAddFavorite
+          ? operations.handleAddFavouriteButtonPress
+          : operations.handleOnFavouriteButtonPress(item)}
+        index={index}
+        isAddFavorite={isAddFavorite}
       />
     );
   }, [operations.handleAddFavouriteButtonPress, operations.handleOnFavouriteButtonPress]);
@@ -359,7 +368,7 @@ const MapScreen = memo(() => {
                 style={styles.floatingPillContainer}
               >
                 <LinearGradient
-                  colors={['#FFFFFF', '#F1F5F9']}
+                  colors={['#FFFFFF', '#F0F9FF']}
                   style={styles.floatingPill}
                 >
                   <View style={styles.pillIconBubble}>
@@ -377,37 +386,11 @@ const MapScreen = memo(() => {
               <Text style={styles.glassSectionTitle}>Seus Lugares</Text>
               <FlatList
                 data={models.favPlaces}
-                renderItem={({ item, index }) => (
-                  <Animated.View entering={FadeInRight.delay(200 + (index * 50)).springify()}>
-                    <TouchableOpacity
-                      onPress={item.place.name === "Adicionar Favorito"
-                        ? operations.handleAddFavouriteButtonPress
-                        : operations.handleOnFavouriteButtonPress(item)
-                      }
-                    >
-                      <View style={styles.squircleCard}>
-                        <LinearGradient
-                          colors={item.place.name === "Adicionar Favorito" ? ['#E0F2FE', '#BAE6FD'] : ['#F8FAFC', '#E2E8F0']}
-                          style={styles.squircleGradient}
-                        >
-                          <Icon
-                            name={item.place.name === "Adicionar Favorito" ? "add" : "place"}
-                            size={scale(24)}
-                            color={item.place.name === "Adicionar Favorito" ? "#0089FF" : "#475569"}
-                          />
-                        </LinearGradient>
-                        <Text style={styles.squircleText} numberOfLines={1}>
-                          {item.place.name === "Adicionar Favorito" ? "Adicionar" : item.place.name}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  </Animated.View>
-                )}
+                renderItem={renderSpotsItem}
                 keyExtractor={(item) => item._id.toString()}
                 horizontal={true}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: scale(20), paddingVertical: scale(10) }}
-                ItemSeparatorComponent={() => <View style={{ width: scale(16) }} />}
               />
             </View>
           </View>
@@ -486,7 +469,7 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.rideSearchSheetRef}
           index={0}
-          snapPoints={[scale(270), scale(320)]}
+          snapPoints={[scale(270), scale(350)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -510,7 +493,7 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.tripStartedSheetRef}
           index={0}
-          snapPoints={[scale(310), scale(435)]}
+          snapPoints={[scale(310), scale(450)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -594,7 +577,7 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.bottomSheetModalRefDetails}
           index={0}
-          snapPoints={[scale(380), scale(520)]}
+          snapPoints={[scale(520)]}
           enableDynamicSizing={false}
           stackBehavior="replace"
           keyboardBehavior="interactive"
@@ -605,10 +588,13 @@ const MapScreen = memo(() => {
         >
           {models.driver && models.service && (
             <DetailsItem
+              origin={models.originCity}
               destination={models.destinationCity}
               driver={models?.driver}
               clientCar={`${models.brand} | ${models.model} | ${models.color} | ${models.license}`}
               paymentMethod={models?.service?.payment?.method}
+              paymentPrice={models.ridePrice}
+              type={models?.service?.type_car}
               onBackPress={operations.handleBackDetailsButtonPress}
             />
           )}
@@ -679,6 +665,7 @@ const MapScreen = memo(() => {
         origin={models.locationSelection?.origin?.address || models.originCity}
         destination={models.locationSelection?.destination?.address || models.destinationCity}
         inputCurr={models.locationSelection?.origin?.isCurrentLocation || models.isCurrLocation}
+        activeInputIndex={models.inputLocationObject}
       />
 
       {/* NEW: Simplified saved addresses system - no complex state management */}
@@ -934,12 +921,8 @@ const styles = StyleSheet.create({
     shadowColor: "#0089FF",
     shadowOffset: { width: 0, height: 4 }, // Softer shadow
     shadowOpacity: 0.12,
-    marginBottom: scale(20),
-    shadowColor: "#0089FF",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
     shadowRadius: 16,
-    elevation: 8,
+    elevation: 8
   },
   floatingPill: {
     flexDirection: 'row',
@@ -980,7 +963,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#64748B', // Slate 500
     marginBottom: scale(16),
-    marginLeft: scale(4),
+    marginHorizontal: scale(24),
     textTransform: 'uppercase',
     letterSpacing: 1,
   },

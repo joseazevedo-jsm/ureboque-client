@@ -4,7 +4,7 @@ import { scale } from "react-native-size-matters";
 import { useSocket } from "../../context/SocketContext";
 import { useUserData } from "../../context/UserDataContext";
 import Geocoder from "react-native-geocoding";
-import { Keyboard, Linking } from "react-native";
+import { Keyboard, Linking, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/APIService";
 import ErrorService from "../../services/ErrorService";
@@ -26,7 +26,7 @@ export const useMapScreen = () => {
   // --- Refs ---
   const mapRef = useRef(null);
   const bottomSheetModalRef = useRef(null);
-  // pollingTimerRef removed - timers now managed locally in effects
+  const transitionTimeoutRef = useRef(null);
 
   // Modals - Consolidated state
   const [modalState, setModalState] = useState({
@@ -62,7 +62,7 @@ export const useMapScreen = () => {
   const bottomSheetModalDragMarker = useRef(null);
 
   // Bottom sheet state management
-  const [activeBottomSheet, setActiveBottomSheet] = useState('initial'); // 'initial' | 'carType' | 'userCarInfo' | 'payment' | 'rideSearch' | 'tripStarted' | 'driverArriving' | 'tripEnding' | 'details' | 'dragMarker' | null
+  const [activeBottomSheet, setActiveBottomSheet] = useState(null); // 'initial' | 'carType' | 'userCarInfo' | 'payment' | 'rideSearch' | 'tripStarted' | 'driverArriving' | 'tripEnding' | 'details' | 'dragMarker' | null
   const isTransitioningRef = useRef(false);
 
   // Map and Markers - Consolidated state
@@ -714,10 +714,9 @@ export const useMapScreen = () => {
     };
   }, [socket]);
 
-  // Effect - Show initial bottom sheet
   useEffect(() => {
-    bottomSheetModalRef.current?.present();
-  }, []);
+    presentBottomSheet('initial');
+  }, [presentBottomSheet]);
 
   // Effect - Consolidated timer management (polling + countdown)
   useEffect(() => {
@@ -887,7 +886,7 @@ export const useMapScreen = () => {
 
   // --- Button Press Handlers ---
 
-  const handleMapSearchBarPress = () => {
+  const handleMapSearchBarPress = async () => {
     if (!userLocation?.latitude || !userLocation?.longitude) {
       logger.warn("handleMapSearchBarPress: User location not available");
       showAlert({
@@ -897,19 +896,31 @@ export const useMapScreen = () => {
       });
       return;
     }
-    getAddressFromCoordinates(userLocation.latitude, userLocation.longitude);
-    setOriginCity(mapState.markerCity);
-    setOriginCoords({
+    const address = await getAddressFromCoordinates(userLocation.latitude, userLocation.longitude);
+    const coordinates = {
       latitude: userLocation.latitude,
       longitude: userLocation.longitude,
-    });
-    if (mapState.markerCity) {
-      updateModal('destination', true);
-      setIsCurrLocation({
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude,
-      });
-    }
+    };
+
+    setOriginCity(address || "Localização atual");
+    setOriginCoords(coordinates);
+    setIsCurrLocation(coordinates);
+
+    // Dismiss any active bottom sheet before opening the modal
+    // to prevent it from being visible in the background or during transitions
+    dismissAllBottomSheets();
+
+    setLocationSelection(prev => ({
+      ...prev,
+      origin: {
+        address: address || "Localização atual",
+        coords: coordinates,
+        isCurrentLocation: true
+      }
+    }));
+
+    updateModal('destination', true);
+    updateTripData({ inputLocationObject: 1 }); // Default focus to destination when opening from main pill
   };
 
   const handleOnFavouriteButtonPress = useCallback((item) => async () => {
@@ -1034,7 +1045,7 @@ export const useMapScreen = () => {
         pendingDragLocation: { address: null, coords: null }
       }));
       setMarkerCoordinates(null);
-      bottomSheetModalDragMarker.current.dismiss();
+      dismissAllBottomSheets();
       updateModal('savedPlaces', true);
       return;
     }
@@ -1074,8 +1085,13 @@ export const useMapScreen = () => {
       presentBottomSheet('carType');
     } else {
       // Only one location set - return to destination modal
+      // If we just set origin, switch focus to destination
+      if (inputType === 'origin') {
+        updateTripData({ inputLocationObject: 1 });
+      }
+
       updateModal('destination', true);
-      bottomSheetModalDragMarker.current.dismiss();
+      dismissAllBottomSheets();
       updateMapState({ markerVisible: false });
     }
   };
@@ -1227,7 +1243,7 @@ export const useMapScreen = () => {
     // Check if this is from saved addresses modal
     if (savedAddressMapDragCallback) {
       // Return to saved addresses modal without applying location
-      bottomSheetModalDragMarker.current.dismiss();
+      dismissAllBottomSheets();
       updateMapState({ markerVisible: false });
       updateModal('savedPlaces', true);
       return;
@@ -1243,7 +1259,7 @@ export const useMapScreen = () => {
       });
     }
 
-    bottomSheetModalDragMarker.current.dismiss();
+    dismissAllBottomSheets();
     updateMapState({ markerVisible: false });
     updateModal('destination', true);
   }, [savedAddressMapDragCallback, locationSelection, mapState.markerCity, applyLocationSelection]);
@@ -1305,6 +1321,7 @@ export const useMapScreen = () => {
     updateTripData({ color });
   };
 
+
   const handlePressSelectTypeRoad = (type) => {
     updateTripData({ carType: type });
   };
@@ -1347,8 +1364,9 @@ export const useMapScreen = () => {
       } else {
         logger.warn("Socket not connected for serviceCancel");
       }
-      // resetToInitialState already presents the initial sheet, no need to do it again
-      resetToInitialState();
+      // resetToInitialState() moved to handleCancelAlert to prevent visual overlap
+      // while the alert is still visible
+
       // Reset unified location selection state
       logger.debug('Resetting locationSelection in onConfirmCancelTrip');
     }
@@ -1379,6 +1397,9 @@ export const useMapScreen = () => {
 
   const handlePressQuestion = (question) => {
     handleCancelTrip(question);
+    updateModal("cancel", false);
+
+
     handleCancelAlert();
   };
 
@@ -1578,8 +1599,7 @@ export const useMapScreen = () => {
         {
           text: "OK",
           onPress: () => {
-            updateModal('preCancel', false);
-            updateModal('cancel', false);
+            resetToInitialState();
           },
         },
       ],
@@ -1626,31 +1646,31 @@ export const useMapScreen = () => {
     tripEndingSheetRef?.current?.dismiss();
     bottomSheetModalRefDetails?.current?.dismiss();
     bottomSheetModalDragMarker?.current?.dismiss();
+
+    // Reset tracking state so subsequent present calls for the same sheet aren't skipped
+    setActiveBottomSheet(null);
   }, []);
 
   const presentBottomSheet = useCallback((sheetName) => {
-    // Prevent concurrent transitions
-    if (isTransitioningRef.current) {
-      logger.debug('Sheet transition already in progress, queuing', { sheetName });
-      return;
-    }
-
-    // Skip if already showing this sheet
+    // 1. State Guard: Already active
     if (activeBottomSheet === sheetName) {
       logger.debug('Sheet already active', { sheetName });
       return;
     }
 
-    isTransitioningRef.current = true;
+    // 2. Concurrency Management: Clear any pending transitions
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+      transitionTimeoutRef.current = null;
+    }
 
-    // First dismiss all sheets
+    // 3. Teardown
     dismissAllBottomSheets();
-
-    // Set the new active sheet
     setActiveBottomSheet(sheetName);
 
-    // Wait for dismiss animation, then present new sheet
-    setTimeout(() => {
+    // 4. Build presentation delay
+    // We use a timeout to let the previous sheet finish its dismissal animation
+    transitionTimeoutRef.current = setTimeout(() => {
       const sheetMap = {
         'initial': bottomSheetModalRef,
         'carType': carTypeSelectionSheetRef,
@@ -1669,16 +1689,11 @@ export const useMapScreen = () => {
         sheetRef.current.present();
       }
 
-      isTransitioningRef.current = false;
+      transitionTimeoutRef.current = null;
     }, 300);
   }, [activeBottomSheet, dismissAllBottomSheets]);
 
   const resetToInitialState = () => {
-    // IMPORTANT: Dismiss all sheets FIRST before clearing state
-    // This prevents sheets from re-rendering with empty data
-    dismissAllBottomSheets();
-    setActiveBottomSheet('initial');
-
     // Close modals
     updateModal('savedPlaces', false);
     updateModal('cancel', false);
@@ -1739,10 +1754,8 @@ export const useMapScreen = () => {
 
     resetTimer();
 
-    // Present initial sheet after dismiss animation completes
-    setTimeout(() => {
-      bottomSheetModalRef.current?.present();
-    }, 300);
+    // Present initial sheet via managed helper to ensure state sync
+    presentBottomSheet('initial');
   };
 
 

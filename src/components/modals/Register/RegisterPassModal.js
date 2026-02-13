@@ -1,7 +1,5 @@
 import React from "react";
 import {
-  FlatList,
-  Image,
   Modal,
   StyleSheet,
   Text,
@@ -10,9 +8,9 @@ import {
 } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
 import { scale } from "react-native-size-matters";
-import Icon from "react-native-vector-icons/MaterialIcons";
 import RegisterInfoModal from "./RegisterInfoModal";
 import { useRegisterModal } from "./components/useRegisterModal";
+import { colors, borderRadius, shadows } from "../../../theme";
 const RegisterPassModal = ({ visible, changeLoginState, phone }) => {
   const { models, operations } = useRegisterModal();
 
@@ -111,16 +109,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   bottom: {
-    backgroundColor: "#0089FF",
+    backgroundColor: colors.primary,
     marginHorizontal: scale(20),
     alignItems: "center",
-    borderRadius: scale(16),
+    borderRadius: borderRadius.xl,
     marginBottom: scale(30),
-    shadowColor: "#0089FF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    ...shadows.primaryGlow,
   },
   save: {
     fontSize: scale(18),

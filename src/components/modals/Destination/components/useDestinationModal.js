@@ -4,7 +4,12 @@ import { useDebounce } from "use-debounce";
 import { useRef } from "react";
 import { useEffect } from "react";
 import { UserContext } from "../../../../context/UserContext";
-export const useDestinationModal = (externalIsCurrLocation) => {
+export const useDestinationModal = (
+  externalIsCurrLocation,
+  externalActiveInputIndex,
+  externalOrigin,
+  externalDestination
+) => {
   const { user } = useContext(UserContext);
 
   const [data, setData] = useState([]);
@@ -32,7 +37,23 @@ export const useDestinationModal = (externalIsCurrLocation) => {
 
   const [originInputValue, setOriginInputValue] = useState("");
   const [destinationInputValue, setDestinationInputValue] = useState("");
-  const [activeInput, setActiveInput] = useState("destination"); // "origin" or "destination"
+  const [activeInput, setActiveInput] = useState(externalActiveInputIndex === 0 ? "origin" : "destination"); // "origin" or "destination"
+
+  useEffect(() => {
+    if (externalActiveInputIndex !== undefined && externalActiveInputIndex !== null) {
+      setActiveInput(externalActiveInputIndex === 0 ? "origin" : "destination");
+    }
+  }, [externalActiveInputIndex]);
+
+  useEffect(() => {
+    // Keep internal input values empty so the external address shows as a placeholder
+    // unless the user has explicitly typed something.
+  }, [externalOrigin]);
+
+  useEffect(() => {
+    // Keep internal input values empty so the external address shows as a placeholder
+    // unless the user has explicitly typed something.
+  }, [externalDestination]);
   const textInputOriginRef = useRef(null);
   const textInputDestinationRef = useRef(null);
 
@@ -59,8 +80,8 @@ export const useDestinationModal = (externalIsCurrLocation) => {
     setActiveInput("destination");
   };
   const handleInputTextChange = (onFocus) => {
-      setDestinationInputValue("");
-      onFocus(1);
+    setDestinationInputValue("");
+    onFocus(1);
   }; // check this later
 
   const handleOnIsCurrLocation = (val) => {

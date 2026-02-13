@@ -26,30 +26,30 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
   const getStatusInfo = (status) => {
     switch (status) {
       case 'completed':
-        return { 
-          text: 'Concluído', 
-          color: '#4CAF50', 
+        return {
+          text: 'Concluído',
+          color: '#4CAF50',
           bgColor: '#E8F5E8',
           icon: 'check-circle'
         };
       case 'cancelled':
-        return { 
-          text: 'Cancelado', 
-          color: '#F44336', 
+        return {
+          text: 'Cancelado',
+          color: '#F44336',
           bgColor: '#FFEBEE',
           icon: 'cancel'
         };
       case 'requested':
-        return { 
-          text: 'Solicitado', 
-          color: '#FF9800', 
+        return {
+          text: 'Solicitado',
+          color: '#FF9800',
           bgColor: '#FFF3E0',
           icon: 'schedule'
         };
       default:
-        return { 
-          text: status, 
-          color: '#666', 
+        return {
+          text: status,
+          color: '#666',
           bgColor: '#f0f0f0',
           icon: 'help'
         };
@@ -62,20 +62,20 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const isSameDate = (d1, d2) => 
-      d1.getDate() === d2.getDate() && 
-      d1.getMonth() === d2.getMonth() && 
+    const isSameDate = (d1, d2) =>
+      d1.getDate() === d2.getDate() &&
+      d1.getMonth() === d2.getMonth() &&
       d1.getFullYear() === d2.getFullYear();
 
     if (isSameDate(date, today)) {
-      return `Hoje às ${date.toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      return `Hoje às ${date.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
       })}`;
     } else if (isSameDate(date, yesterday)) {
-      return `Ontem às ${date.toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      return `Ontem às ${date.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
       })}`;
     } else {
       return date.toLocaleDateString('pt-BR', {
@@ -91,16 +91,16 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
 
   const getOriginDestination = (locations) => {
     console.log('🗺️ Modal locations data:', locations);
-    
+
     // Handle case where locations is [Array] placeholder or not an array
     if (!locations || !Array.isArray(locations) || locations.length === 0) {
       return { origin: "Localização não definida", destination: "Destino não definido" };
     }
 
     if (locations.length === 1) {
-      return { 
-        origin: locations[0]?.address || locations[0]?.name || "Localização não definida", 
-        destination: "Destino não definido" 
+      return {
+        origin: locations[0]?.address || locations[0]?.name || "Localização não definida",
+        destination: "Destino não definido"
       };
     }
 
@@ -125,15 +125,15 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
     if (!carData) {
       return 'Veículo não especificado';
     }
-    
+
     const { brand, model, color, licensePlate } = carData;
     const parts = [];
-    
+
     if (brand) parts.push(brand);
     if (model) parts.push(model);
     if (color) parts.push(color);
     if (licensePlate) parts.push(licensePlate);
-    
+
     return parts.length > 0 ? parts.join(' ') : 'Veículo não especificado';
   };
 
@@ -164,10 +164,10 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
             <View style={styles.section}>
               <View style={styles.statusContainer}>
                 <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
-                  <Icon 
-                    name={statusInfo.icon} 
-                    size={scale(16)} 
-                    color={statusInfo.color} 
+                  <Icon
+                    name={statusInfo.icon}
+                    size={scale(16)}
+                    color={statusInfo.color}
                   />
                   <Text style={[styles.statusText, { color: statusInfo.color }]}>
                     {statusInfo.text}
@@ -251,8 +251,8 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
                 <View style={styles.reviewContainer}>
                   {serviceData.review.rating && (
                     <View style={styles.ratingContainer}>
-                      <StarRating 
-                        rating={serviceData.review.rating} 
+                      <StarRating
+                        rating={serviceData.review.rating}
                         size={scale(20)}
                         readonly={true}
                       />
@@ -301,7 +301,7 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
                 <Text style={styles.actionButtonText}>Avaliar Serviço</Text>
               </TouchableOpacity>
             )}
-            
+
             <TouchableOpacity style={[styles.actionButton, styles.supportButton]}>
               <Icon name="support-agent" size={scale(20)} color="#0089FF" />
               <Text style={[styles.actionButtonText, styles.supportButtonText]}>

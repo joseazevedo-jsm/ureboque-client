@@ -6,9 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
@@ -17,6 +14,9 @@ import useProfileScreen from "../components/profile/useProfileScreen";
 import { useLogger } from "../hooks/useLogger";
 import { extractCountryCode, extractPhoneNumber } from "../utils/phoneUtils";
 import OTPModal from "../components/modals/OTP/OTPModal";
+import KeyboardAvoidingWrapper from "../components/common/KeyboardAvoidingWrapper";
+import { colors, spacing, shadows, borderRadius } from "../theme";
+import { useAlert } from "../context/AlertContext";
 
 // Import your images
 import phoneIcon from "../../resources/icons/profile_settings/phone.png";
@@ -30,7 +30,8 @@ const ProfileScreen = () => {
     logProps: true
   });
 
-  const { models, operations } = useProfileScreen();
+  const { showAlert } = useAlert();
+  const { models, operations } = useProfileScreen(showAlert);
   const navigation = useNavigation();
 
   logger.debug('ProfileScreen rendered', {
@@ -40,11 +41,7 @@ const ProfileScreen = () => {
   });
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 10}
-    >
+    <KeyboardAvoidingWrapper style={styles.container}>
       {/* Header */}
       <View style={styles.headerContainer}>
         <TouchableOpacity
@@ -57,8 +54,10 @@ const ProfileScreen = () => {
           <Icon name="menu" size={scale(25)} color="#0089FF" />
         </TouchableOpacity>
         <Text style={styles.headerText}>PERFIL</Text>
-        <Text> </Text>
 
+        <View style={{
+          paddingHorizontal: spacing.lg,
+        }} />
       </View>
 
       <View style={styles.contentContainer}>
@@ -186,59 +185,51 @@ const ProfileScreen = () => {
         isLoading={models?.isVerifyingOTP}
         onClose={() => operations.handleOTPModalClose()}
       />
-    </KeyboardAvoidingView>
+    </KeyboardAvoidingWrapper>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC', // Slate 50
+    backgroundColor: colors.background,
   },
   headerContainer: {
-    paddingTop: scale(60),
-    paddingBottom: scale(20),
-    paddingHorizontal: scale(24),
-    backgroundColor: 'transparent', // Let content flow
+    paddingTop: spacing.headerHeight,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.xxl,
+    backgroundColor: 'transparent',
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   backButton: {
-    padding: scale(8),
-    borderRadius: scale(20),
-    backgroundColor: '#fff',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    padding: spacing.sm,
+    borderRadius: borderRadius.xxl,
+    backgroundColor: colors.surface,
+    ...shadows.sm,
   },
   headerText: {
     fontWeight: "800",
     fontSize: scale(18),
-    color: "#1E293B",
+    color: colors.textPrimary,
     letterSpacing: 0.5,
   },
   contentContainer: {
     flex: 1,
-    paddingHorizontal: scale(24),
+    paddingHorizontal: spacing.xxl,
   },
   profileSection: {
     alignItems: 'center',
-    marginVertical: scale(20),
+    marginVertical: spacing.xl,
   },
   profileImageContainer: {
     width: scale(100),
     height: scale(100),
-    borderRadius: scale(50),
-    padding: scale(4),
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#0089FF',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    borderRadius: borderRadius.full,
+    padding: spacing.xs,
+    backgroundColor: colors.surface,
+    ...shadows.primaryGlow,
   },
   profileImage: {
     width: "100%",
@@ -249,58 +240,50 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: "#0089FF",
-    borderRadius: scale(20),
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.xxl,
     width: scale(36),
     height: scale(36),
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 3,
-    borderColor: "#fff",
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+    borderColor: colors.surface,
+    ...shadows.md,
   },
   formSection: {
-    marginBottom: scale(24),
+    marginBottom: spacing.xxl,
   },
   sectionTitle: {
     fontSize: scale(14),
     fontWeight: '700',
-    color: '#64748B',
-    marginBottom: scale(16),
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   inputContainer: {
-    marginBottom: scale(16),
+    marginBottom: spacing.lg,
   },
   inputLabel: {
     fontSize: scale(13),
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: scale(8),
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
   textInput: {
     fontSize: scale(15),
-    color: '#1E293B',
+    color: colors.textPrimary,
     paddingVertical: scale(14),
-    paddingHorizontal: scale(16),
-    backgroundColor: '#fff',
-    borderRadius: scale(12),
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
-    elevation: 1,
+    borderColor: colors.border,
+    ...shadows.sm,
   },
   phoneRow: {
     flexDirection: "row",
-    gap: scale(12),
+    gap: spacing.md,
   },
   shortInputContainer: {
     width: scale(80),
@@ -311,49 +294,41 @@ const styles = StyleSheet.create({
   inputWithIcon: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: '#fff',
-    borderRadius: scale(12),
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    paddingHorizontal: scale(16),
-    paddingVertical: scale(2), // Adjust for vertically centered text
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
-    elevation: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: scale(2),
+    ...shadows.sm,
   },
   icon_small: {
     width: scale(20),
     height: scale(20),
-    marginRight: scale(12),
-    tintColor: '#94A3B8',
+    marginRight: spacing.md,
+    tintColor: colors.textMuted,
   },
   textInputInContainer: {
     flex: 1,
     fontSize: scale(15),
-    color: '#1E293B',
-    paddingVertical: scale(12),
+    color: colors.textPrimary,
+    paddingVertical: spacing.md,
   },
   saveButton: {
-    backgroundColor: '#0089FF',
-    paddingVertical: scale(16),
-    borderRadius: scale(16),
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
-    marginTop: scale(24),
-    shadowColor: '#0089FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    marginTop: spacing.xxl,
+    ...shadows.primaryGlow,
   },
   saveButtonDisabled: {
-    backgroundColor: "#CBD5E0",
+    backgroundColor: colors.textDisabled,
     shadowOpacity: 0,
     elevation: 0,
   },
   saveButtonText: {
-    color: "#FFFFFF",
+    color: colors.surface,
     fontSize: scale(16),
     fontWeight: "700",
     letterSpacing: 0.5,
@@ -364,32 +339,28 @@ const styles = StyleSheet.create({
   actionItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: scale(16),
-    paddingHorizontal: scale(20),
-    backgroundColor: '#fff',
-    borderRadius: scale(16),
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: colors.border,
+    ...shadows.sm,
   },
   actionIcon: {
     width: scale(24),
     height: scale(24),
-    marginRight: scale(16),
-    tintColor: '#0089FF',
+    marginRight: spacing.lg,
+    tintColor: colors.primary,
   },
   actionText: {
     flex: 1,
     fontSize: scale(15),
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.textPrimary,
   },
   actionArrow: {
-    color: '#CBD5E0',
+    color: colors.textDisabled,
   },
 });
 

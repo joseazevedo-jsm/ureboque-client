@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Alert } from "react-native";
 import { useUserData } from "../../context/UserDataContext";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios"; // Keep for external image service
@@ -7,7 +6,7 @@ import api from "../../services/APIService";
 import { useLogger } from "../../hooks/useLogger";
 import { extractPhoneNumber, formatFullPhoneNumber } from "../../utils/phoneUtils";
 
-const useProfileScreen = () => {
+const useProfileScreen = (showAlert) => {
   const logger = useLogger('useProfileScreen');
   const { user, updateUser } = useUserData();
   const [name, setName] = useState();
@@ -73,20 +72,19 @@ const useProfileScreen = () => {
     await updateUser(user.id, userData);
 
     // Show success message and navigate back
-    Alert.alert(
-      "Sucesso",
-      "Perfil atualizado com sucesso!",
-      [
-        {
-          text: "OK",
-          onPress: () => {
-            if (navigation && navigation.goBack) {
-              navigation.goBack();
-            }
+    showAlert?.({
+      type: 'success',
+      title: 'Sucesso',
+      message: 'Perfil atualizado com sucesso!',
+      buttons: [{
+        text: 'OK',
+        onPress: () => {
+          if (navigation && navigation.goBack) {
+            navigation.goBack();
           }
         }
-      ]
-    );
+      }]
+    });
   };
 
   const handleSaveChanges = async (navigation) => {
@@ -121,11 +119,12 @@ const useProfileScreen = () => {
       logger.error('Error updating user profile', error);
 
       // Show error message
-      Alert.alert(
-        "Erro",
-        "Erro ao atualizar perfil. Por favor verifique os dados.",
-        [{ text: "OK" }]
-      );
+      showAlert?.({
+        type: 'error',
+        title: 'Erro',
+        message: 'Erro ao atualizar perfil. Por favor verifique os dados.',
+        buttons: [{ text: 'OK' }]
+      });
     } finally {
       setIsSaving(false);
     }
@@ -187,7 +186,7 @@ const useProfileScreen = () => {
 
   const handleOTPVerification = async (otp) => {
     if (!otp || otp.length !== 4) {
-      Alert.alert("Erro", "Por favor, digite o código de 4 dígitos");
+      showAlert?.({ type: 'error', title: 'Erro', message: 'Por favor, digite o código de 4 dígitos', buttons: [{ text: 'OK' }] });
       return;
     }
 
@@ -222,21 +221,23 @@ const useProfileScreen = () => {
           setIsVerifyingOTP(false);
           setShowOTPModal(false);
 
-          Alert.alert(
-            "Erro",
-            "Erro ao atualizar perfil. Tente novamente.",
-            [{ text: "OK" }]
-          );
+          showAlert?.({
+            type: 'error',
+            title: 'Erro',
+            message: 'Erro ao atualizar perfil. Tente novamente.',
+            buttons: [{ text: 'OK' }]
+          });
         }
       } else {
         logger.warn('Mock OTP verification failed - incorrect code');
         setIsVerifyingOTP(false);
 
-        Alert.alert(
-          "Erro",
-          "Código de verificação inválido. Use 1234 para testar.",
-          [{ text: "OK" }]
-        );
+        showAlert?.({
+          type: 'error',
+          title: 'Erro',
+          message: 'Código de verificação inválido. Use 1234 para testar.',
+          buttons: [{ text: 'OK' }]
+        });
       }
     }, 1000); // 1 second delay to simulate API call
   };

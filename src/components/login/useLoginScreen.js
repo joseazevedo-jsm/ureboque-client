@@ -7,9 +7,9 @@ import { useNavigation } from "@react-navigation/native";
 import api from "../../services/APIService";
 import ErrorService from "../../services/ErrorService";
 import axios from "axios";
-import { Alert } from "react-native";
 import { useLogger } from "../../hooks/useLogger";
- 
+import { useAlert } from "../../context/AlertContext";
+
 const apiOTP = axios.create({
   baseURL: "https://api.releans.com/v2/message",
   headers: {
@@ -20,13 +20,14 @@ const apiOTP = axios.create({
 
 export const useLoginScreen = () => {
   const logger = useLogger('useLoginScreen');
-  
+  const { showAlert } = useAlert();
+
   // Form validation for phone number
   const phoneForm = useForm(
     { phoneNumber: "", callingCode: "244" },
     { phoneNumber: loginValidationSchema.phoneNumber }
   );
-  
+
   // Form validation for OTP
   const otpForm = useForm(
     { otpCode: "" },
@@ -111,17 +112,17 @@ export const useLoginScreen = () => {
       setIsLoading(true);
       setWarning("");
       setLoginFailed(false);
-      
+
       logger.info('Login attempt', { hasPassword: !!password, phone });
-      
+
       const response = await api.post("/users/login", {
         password: password,
         phone: phone,
       });
-      
+
       const data = response.data;
       logger.info('Login successful', { userId: data.user?.id, hasToken: !!data.token, role: data.user?.role });
-      
+
       // Check user role - drivers cannot log into client app
       if (data.user?.role === 'driver') {
         logger.warn('Driver attempted to login to client app', { userId: data.user.id, role: data.user.role });
@@ -129,7 +130,7 @@ export const useLoginScreen = () => {
         setWarning("Este tipo de conta não pode acessar a aplicação cliente. Use a aplicação do motorista.");
         return;
       }
-      
+
       if (data) {
         try {
           setUser(data.user);
@@ -146,7 +147,7 @@ export const useLoginScreen = () => {
     } catch (error) {
       logger.error('Login failed', error);
       setLoginFailed(true);
-      
+
       // Handle different error types
       if (error.response?.status === 401) {
         setWarning("Credenciais incorretas. Verifique sua senha.");
@@ -165,16 +166,16 @@ export const useLoginScreen = () => {
   const verifyOTPCode = async () => {
     // Check against generated OTP or development default
     const expectedOTP = codeOTP?.code?.toString() || process.env.EXPO_PUBLIC_OTP_DEFAULT;
-    
+
     if (otpForm.values.otpCode === expectedOTP) {
       setModalOtpVisible(false);
-      
+
       const fullPhoneNumber = `${phoneForm.values.callingCode}${phoneForm.values.phoneNumber}`;
-      
+
       try {
         // Check if user exists using GET /phone/:phone endpoint
         const checkUserResponse = await api.get(`/users/phone/${fullPhoneNumber}`);
-         if (checkUserResponse.data) {
+        if (checkUserResponse.data) {
           // User exists - go to password screen
           logger.info('User found, navigating to login');
           navigation.navigate("Login", {
@@ -205,7 +206,7 @@ export const useLoginScreen = () => {
         }
       }
     } else {
-      Alert.alert("Error", "Invalid OTP code. Please - try again.");
+      showAlert({ type: 'error', title: 'Erro', message: 'Código OTP inválido. Tente novamente.' });
     }
   };
 

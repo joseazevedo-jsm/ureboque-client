@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { scale } from 'react-native-size-matters';
 
 // Design Tokens for Ureboque App
@@ -34,7 +35,12 @@ export const colors = {
   // Legacy (for reference, avoid using in new code)
   legacyGray: '#707070',
   legacyBorder: '#ccc',
+
+  // Overlays
+  overlay: 'rgba(0, 0, 0, 0.5)',
+  glass: 'rgba(255, 255, 255, 0.9)',
 };
+
 
 export const spacing = {
   xs: scale(4),
@@ -44,6 +50,12 @@ export const spacing = {
   xl: scale(20),
   xxl: scale(24),
   xxxl: scale(32),
+
+  // Layout
+  safeTop: Platform.select({ ios: scale(44), android: scale(24) }),
+  safeBottom: Platform.select({ ios: scale(34), android: scale(16) }),
+  modalSafeTop: Platform.select({ ios: scale(50), android: scale(20) }),
+  headerHeight: scale(60),
 };
 
 export const borderRadius = {
@@ -99,41 +111,84 @@ export const typography = {
 };
 
 export const shadows = {
-  sm: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  primaryGlow: {
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  successGlow: {
-    shadowColor: colors.success,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
+  sm: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 3,
+    },
+    android: {
+      elevation: 2,
+    },
+  }),
+  md: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 6,
+    },
+    android: {
+      elevation: 4,
+    },
+  }),
+  lg: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+    },
+    android: {
+      elevation: 8,
+    },
+  }),
+  primaryGlow: Platform.select({
+    ios: {
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+    },
+    android: {
+      elevation: 8,
+      shadowColor: colors.primary, // Android 9+ supports colored shadows
+    },
+  }),
+  successGlow: Platform.select({
+    ios: {
+      shadowColor: colors.success,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+    },
+    android: {
+      elevation: 8,
+      shadowColor: colors.success,
+    },
+  }),
+};
+
+// Font weights - Platform-specific mapping for consistent rendering
+export const fontWeights = {
+  light: Platform.select({ ios: '300', android: '300' }),
+  normal: Platform.select({ ios: '400', android: 'normal' }),
+  medium: Platform.select({ ios: '500', android: '500' }),
+  semiBold: Platform.select({ ios: '600', android: '600' }),
+  bold: Platform.select({ ios: '700', android: 'bold' }),
+  extraBold: Platform.select({ ios: '800', android: '800' }),
+};
+
+// Keyboard configuration - Unified KeyboardAvoidingView behavior
+export const keyboardConfig = {
+  behavior: Platform.select({ ios: 'padding', android: 'height' }),
+  keyboardVerticalOffset: Platform.select({ ios: 0, android: 10 }),
+};
+
+// Interaction constants - Standardized touch feedback
+export const interactions = {
+  activeOpacity: 0.7,
 };
 
 // Common component styles
@@ -241,5 +296,8 @@ export default {
   borderRadius,
   typography,
   shadows,
+  fontWeights,
+  keyboardConfig,
+  interactions,
   componentStyles,
 };

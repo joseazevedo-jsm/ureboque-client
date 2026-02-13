@@ -29,7 +29,8 @@ const UserCarInfo = ({
     brand: 'Toyota',
     model: 'Corolla',
     license: 'LD-10-10',
-    color: 'Preto'
+    color: 'Preto',
+    motive: "Motor Avariado"
   });
 
   const validateForm = () => {
@@ -172,6 +173,7 @@ const styles = StyleSheet.create({
     marginHorizontal: scale(10),
     paddingVertical: scale(14),
     ...shadows.primaryGlow,
+    marginTop: spacing.sm,
   },
   input: {
     height: scale(54),

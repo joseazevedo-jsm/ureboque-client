@@ -11,15 +11,13 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { scale } from "react-native-size-matters";
-import { UserContext } from "../context/UserContext";
-import { useContext } from "react";
 import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { usePromotionScreen } from "../components/promotion/usePromotionScreen";
 import DiscountItem from "../components/cards/discountItem";
-import { KeyboardAvoidingView } from "react-native";
-import { Platform } from "react-native";
 import { useLogger } from "../hooks/useLogger";
+import KeyboardAvoidingWrapper from "../components/common/KeyboardAvoidingWrapper";
+import { colors, spacing, shadows, borderRadius } from "../theme";
 
 const PromotionScreen = () => {
   const logger = useLogger('PromotionScreen', { enableLifecycleLogging: true });
@@ -118,10 +116,7 @@ const PromotionScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
+    <KeyboardAvoidingWrapper style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -289,14 +284,14 @@ const PromotionScreen = () => {
         {/* Footer Space */}
         <View style={styles.footerSpace} />
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAvoidingWrapper>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC", // Slate 50
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
@@ -305,25 +300,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: scale(24),
-    paddingTop: scale(60),
-    paddingBottom: scale(20),
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.headerHeight,
+    paddingBottom: spacing.xl,
     backgroundColor: "transparent",
   },
   backButton: {
-    padding: scale(8),
-    borderRadius: scale(20),
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    padding: spacing.sm,
+    borderRadius: borderRadius.xxl,
+    backgroundColor: colors.surface,
+    ...shadows.sm,
   },
   headerTitle: {
     fontSize: scale(18),
     fontWeight: "800",
-    color: "#1E293B",
+    color: colors.textPrimary,
     textAlign: "center",
     letterSpacing: 0.5,
   },
@@ -331,181 +322,161 @@ const styles = StyleSheet.create({
     width: scale(40),
   },
   heroSection: {
-    paddingHorizontal: scale(24),
+    paddingHorizontal: spacing.xxl,
     paddingVertical: scale(30),
     alignItems: "center",
-    marginBottom: scale(10),
+    marginBottom: spacing.sm,
   },
   iconContainer: {
     width: scale(100),
     height: scale(100),
-    borderRadius: scale(50),
-    backgroundColor: "#E0F2FE", // Light Blue
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primaryLight,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: scale(20),
-    shadowColor: "#0089FF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
+    marginBottom: spacing.xl,
+    ...shadows.md,
   },
   heroTitle: {
     fontSize: scale(22),
     fontWeight: "800",
-    color: "#1E293B",
-    marginBottom: scale(8),
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
     textAlign: "center",
   },
   heroSubtitle: {
     fontSize: scale(15),
-    color: "#64748B",
+    color: colors.textSecondary,
     textAlign: "center",
     lineHeight: scale(22),
-    paddingHorizontal: scale(20),
+    paddingHorizontal: spacing.xl,
   },
   activePromoSection: {
-    backgroundColor: "#fff",
-    marginHorizontal: scale(24),
-    borderRadius: scale(16),
-    padding: scale(20),
-    marginBottom: scale(24),
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.xxl,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    marginBottom: spacing.xxl,
+    ...shadows.successGlow,
     borderLeftWidth: scale(4),
-    borderLeftColor: "#4CAF50",
+    borderLeftColor: colors.success,
   },
   activePromoHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: scale(12),
+    marginBottom: spacing.md,
   },
   activePromoTitle: {
     fontSize: scale(16),
     fontWeight: "700",
-    color: "#4CAF50",
-    marginLeft: scale(10),
+    color: colors.success,
+    marginLeft: spacing.sm,
   },
   inputSection: {
-    marginHorizontal: scale(24),
-    marginBottom: scale(24),
+    marginHorizontal: spacing.xxl,
+    marginBottom: spacing.xxl,
   },
   inputLabel: {
     fontSize: scale(13),
     fontWeight: "600",
-    color: "#1E293B",
-    marginBottom: scale(10),
-    marginLeft: scale(4),
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    borderRadius: scale(14),
-    paddingHorizontal: scale(16),
-    paddingVertical: scale(4), // Balance for text input height
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.surface,
+    ...shadows.sm,
   },
   inputContainerFocused: {
-    borderColor: "#0089FF",
-    backgroundColor: "#fff",
-    shadowColor: "#0089FF",
+    borderColor: colors.primary,
+    backgroundColor: colors.surface,
+    shadowColor: colors.primary,
     shadowOpacity: 0.1,
   },
   inputContainerError: {
-    borderColor: "#EF4444",
-    backgroundColor: "#FEF2F2",
+    borderColor: colors.error,
+    backgroundColor: colors.errorLight,
   },
   inputIcon: {
-    marginRight: scale(12),
+    marginRight: spacing.md,
   },
   textInput: {
     flex: 1,
     fontSize: scale(16),
-    color: "#1E293B",
+    color: colors.textPrimary,
     fontWeight: '600',
-    paddingVertical: scale(12),
+    paddingVertical: spacing.md,
   },
   errorContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: scale(10),
-    paddingHorizontal: scale(4),
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
   errorText: {
     fontSize: scale(13),
-    color: "#EF4444",
-    marginLeft: scale(8),
+    color: colors.error,
+    marginLeft: spacing.sm,
     flex: 1,
     fontWeight: '500',
   },
   successContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: scale(10),
-    paddingHorizontal: scale(4),
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
   successText: {
     fontSize: scale(14),
-    color: "#4CAF50",
-    marginLeft: scale(8),
+    color: colors.success,
+    marginLeft: spacing.sm,
     fontWeight: "600",
   },
   actionButton: {
     flexDirection: "row",
-    backgroundColor: "#0089FF",
-    borderRadius: scale(16),
-    paddingVertical: scale(16),
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.xl,
+    paddingVertical: spacing.lg,
     paddingHorizontal: scale(30),
-    marginHorizontal: scale(24),
+    marginHorizontal: spacing.xxl,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: scale(30),
-    shadowColor: "#0089FF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
+    ...shadows.primaryGlow,
   },
   disabledButton: {
-    backgroundColor: "#CBD5E0",
+    backgroundColor: colors.textDisabled,
     shadowOpacity: 0,
     elevation: 0,
   },
   buttonIcon: {
-    marginRight: scale(10),
+    marginRight: spacing.sm,
   },
   buttonText: {
-    color: "#fff",
+    color: colors.surface,
     fontSize: scale(16),
     fontWeight: "700",
     letterSpacing: 0.5,
   },
   infoSection: {
-    paddingHorizontal: scale(24),
+    paddingHorizontal: spacing.xxl,
     marginBottom: scale(40),
   },
   infoCard: {
-    backgroundColor: "#fff",
-    borderRadius: scale(16),
-    padding: scale(24),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xxl,
+    ...shadows.sm,
   },
   infoIconContainer: {
-    marginBottom: scale(16),
+    marginBottom: spacing.lg,
   },
   infoContent: {
     flex: 1,
@@ -513,11 +484,11 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: scale(16),
     fontWeight: "700",
-    color: "#1E293B",
-    marginBottom: scale(16),
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
   },
   stepsList: {
-    gap: scale(16),
+    gap: spacing.lg,
   },
   stepItem: {
     flexDirection: "row",
@@ -526,21 +497,21 @@ const styles = StyleSheet.create({
   stepNumber: {
     width: scale(24),
     height: scale(24),
-    borderRadius: scale(12),
-    backgroundColor: "#F1F5F9",
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: scale(12),
+    marginRight: spacing.md,
     marginTop: scale(2),
   },
   stepNumberText: {
     fontSize: scale(12),
     fontWeight: "700",
-    color: "#0089FF",
+    color: colors.primary,
   },
   stepText: {
     fontSize: scale(14),
-    color: "#64748B",
+    color: colors.textSecondary,
     lineHeight: scale(20),
     flex: 1,
   },

@@ -85,6 +85,8 @@ const DriverItem = ({
                 width: scale(75),
                 height: scale(75),
                 borderRadius: scale(45),
+                borderWidth: 3,
+                borderColor: colors.primary,
               }}
             />
             <Text

@@ -58,6 +58,7 @@ const AlertModal = ({ visible, type = 'info', title, message, buttons = [], onDi
       visible={visible}
       animationType="fade"
       statusBarTranslucent
+      presentationStyle="overFullScreen"
       onRequestClose={() => onDismiss()}
     >
       <BlurView tint="dark" intensity={40} style={styles.overlay}>
@@ -136,6 +137,7 @@ const styles = StyleSheet.create({
   },
   buttonPrimary: {
     backgroundColor: colors.primary,
+    ...shadows.primaryGlow,
   },
   buttonDestructive: {
     backgroundColor: colors.error,

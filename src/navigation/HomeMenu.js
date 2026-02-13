@@ -15,7 +15,12 @@ const HomeMenu = () => {
   return (
     <Drawer.Navigator
       drawerContent={(props) => <SideMenuDrawer {...props} />}
-      screenOptions={drawerScreenOptions}
+      screenOptions={{
+        ...drawerScreenOptions,
+        sceneContainerStyle: { backgroundColor: 'transparent' },
+        drawerType: 'front',
+        overlayColor: 'rgba(0,0,0,0.5)',
+      }}
     >
       <Drawer.Screen name="Map" component={MapScreen} />
       <Drawer.Screen name="Historico" component={HistoryScreen} />

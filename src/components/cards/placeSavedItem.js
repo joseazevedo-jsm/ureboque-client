@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    height: scale(60),
+    height: scale(70),
   },
   iconContainer: {
     height: scale(45),

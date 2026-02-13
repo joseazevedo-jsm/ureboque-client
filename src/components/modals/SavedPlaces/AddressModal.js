@@ -7,11 +7,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import PlaceSavedItem from "../../cards/placeSavedItem";
 import { useSavedPlacesModal } from "./components/useSavedPlacesModal.js";
 import {
   BottomSheetModal,
@@ -20,6 +18,8 @@ import {
 } from "@gorhom/bottom-sheet";
 import { useDestinationModal } from "../Destination/components/useDestinationModal";
 import PlaceItem from "../../cards/placeItem";
+import { colors, borderRadius, shadows } from "../../../theme";
+import { useAlert } from "../../../context/AlertContext";
 
 const AddressModal = ({
   visible,
@@ -31,19 +31,20 @@ const AddressModal = ({
   name,
   button,
   placeId,
-  onAddressChange,  
+  onAddressChange,
   onInstructionsChange,
   onPressItem,
   mapDrag,
   callbackAddress,
-  onSaveAddress,  
+  onSaveAddress,
   onDeleteAddress,
   onAtualLocationPress,
 }) => {
   const { models, operations } = useSavedPlacesModal();
   const destination = useDestinationModal();
+  const { showAlert } = useAlert();
 
-  
+
 
   const handeBackButtonPress = () => {
     closeModal();
@@ -79,7 +80,7 @@ const AddressModal = ({
   return (
     <Modal onRequestClose={closeModal} visible={visible} animationType="none">
       <View style={styles.container}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", padding: scale(50) }}>
           <TouchableOpacity
             style={styles.goback}
             onPress={handeBackButtonPress}
@@ -105,7 +106,7 @@ const AddressModal = ({
             marginTop: scale(25),
             marginBottom: scale(20),
             alignSelf: "center",
-            color: "#0089FF",
+            color: colors.primary,
             fontWeight: "700",
           }}
         >
@@ -113,9 +114,9 @@ const AddressModal = ({
         </Text>
         <TextInput
           style={{
-            borderRadius: scale(7),
-            borderWidth: scale(3),
-            borderColor: "#0089FF",
+            borderRadius: borderRadius.sm,
+            borderWidth: 2,
+            borderColor: colors.primary,
             fontSize: scale(18),
             padding: scale(8),
             marginBottom: scale(30),
@@ -123,14 +124,13 @@ const AddressModal = ({
           placeholderTextColor="#808080"
           placeholder="Nome do endereço"
           defaultValue={name !== "" ? name : ""}
-          // value={models.name ? models.name : "Nome"}
           onChangeText={onAddressChange}
         />
         <View
           style={{
-            borderRadius: scale(7),
-            borderWidth: scale(3),
-            borderColor: "#0089FF",
+            borderRadius: borderRadius.sm,
+            borderWidth: 2,
+            borderColor: colors.primary,
             marginBottom: scale(30),
           }}
         >
@@ -155,9 +155,9 @@ const AddressModal = ({
 
         <TextInput
           style={{
-            borderRadius: scale(7),
-            borderWidth: scale(3),
-            borderColor: "#0089FF",
+            borderRadius: borderRadius.sm,
+            borderWidth: 2,
+            borderColor: colors.primary,
             fontSize: scale(18),
             paddingBottom: scale(100),
             padding: scale(8),
@@ -172,29 +172,24 @@ const AddressModal = ({
         />
 
         <TouchableOpacity
-          style={{
-            backgroundColor: "#0089FF",
-            borderRadius: scale(7),
-            width: scale(300),
-            alignItems: "center",
-            alignSelf: "center",
-            padding: scale(18),
-          }}
+          style={styles.saveButton}
           onPress={async () => {
             try {
-              await onSaveAddress(callbackAddress,type)
-              console.log("Save completed, calling onGoHomePress")
+              await onSaveAddress(callbackAddress, type)
               onGoHomePress()
-              console.log("onGoHomePress completed, calling closeModal")
               closeModal()
-              console.log("closeModal completed")
             } catch (error) {
               console.log("Save error:", error)
-              Alert.alert("Erro", "Não foi possível salvar o endereço. Tente novamente.")
+              showAlert({
+                type: 'error',
+                title: 'Erro',
+                message: 'Não foi possível salvar o endereço. Tente novamente.',
+                buttons: [{ text: 'OK' }]
+              })
             }
           }}
         >
-          <Text style={{ color: "#FFF", fontWeight: "700" }}>SALVAR</Text>
+          <Text style={styles.saveButtonText}>SALVAR</Text>
         </TouchableOpacity>
         <BottomSheetModalProvider>
           <BottomSheetModal
@@ -207,9 +202,9 @@ const AddressModal = ({
               <View style={styles.searchContainer}>
                 <View
                   style={{
-                    borderRadius: scale(7),
-                    borderWidth: scale(3),
-                    borderColor: "#0089FF",
+                    borderRadius: borderRadius.sm,
+                    borderWidth: 2,
+                    borderColor: colors.primary,
                     fontSize: scale(18),
                     padding: scale(8),
                     marginBottom: scale(20),
@@ -239,7 +234,7 @@ const AddressModal = ({
                       <Icon
                         name="navigation"
                         size={scale(30)}
-                        color="#0089FF"
+                        color={colors.primary}
                       />
                     </View>
                     <Text style={styles.locationText}>
@@ -253,7 +248,7 @@ const AddressModal = ({
                 }>
                   <View style={styles.locationButton}>
                     <View style={styles.iconContainer}>
-                      <Icon name="map" size={scale(30)} color="#0089FF" />
+                      <Icon name="map" size={scale(30)} color={colors.primary} />
                     </View>
                     <Text style={styles.locationText}>
                       Definir localização no mapa
@@ -297,12 +292,26 @@ const styles = StyleSheet.create({
   iconContainer: {
     height: scale(45),
     width: scale(45),
-    borderRadius: scale(7),
-    borderWidth: scale(2),
-    borderColor: "#0089FF",
+    borderRadius: borderRadius.sm,
+    borderWidth: 2,
+    borderColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     marginRight: scale(7),
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    width: scale(300),
+    alignItems: "center",
+    alignSelf: "center",
+    padding: scale(16),
+    ...shadows.primaryGlow,
+  },
+  saveButtonText: {
+    color: colors.surface,
+    fontWeight: "700",
+    fontSize: scale(14),
   },
   modalContainer: {
     backgroundColor: "#ccc",

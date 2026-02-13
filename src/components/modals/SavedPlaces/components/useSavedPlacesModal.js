@@ -5,10 +5,12 @@ import { UserContext } from "../../../../context/UserContext";
 import Geocoder from "react-native-geocoding";
 import { useUserLocationStateContext } from "../../../../context/UserLocationStateContext";
 import { useLogger } from "../../../../hooks/useLogger";
+import { useAlert } from "../../../../context/AlertContext";
 
 export const useSavedPlacesModal = () => {
   const logger = useLogger('useSavedPlacesModal');
-  
+  const { showAlert } = useAlert();
+
   const { user, saveUserFavouriteAddress, removeUserFavouriteAddress, updateUserFavouriteAddress } = useContext(UserContext);
   const { userLocation } = useUserLocationStateContext();
   const bottomSheetModalAddAddress = useRef(null);
@@ -94,33 +96,33 @@ export const useSavedPlacesModal = () => {
 
   const handleSaveFavouriteButtonPress = (callback, type) => {
     logger.debug("Save favourite name data", { nameFAV, name });
-       let place = {
-        place: {
-          name: name || nameFAV,
-          description: address,
-          coordinates: coordinates,
-          instructions: instructions,
-        },
-      };
+    let place = {
+      place: {
+        name: name || nameFAV,
+        description: address,
+        coordinates: coordinates,
+        instructions: instructions,
+      },
+    };
 
-      if (callback && callback.coordinates && callback.city) {
-        place.place.coordinates = callback.coordinates;
-        place.place.description = callback.city;
-      }
+    if (callback && callback.coordinates && callback.city) {
+      place.place.coordinates = callback.coordinates;
+      place.place.description = callback.city;
+    }
 
-      switch (type) {
-        case "NOVO":
-          logger.info("Saving new place", place);
-          saveUserFavouriteAddress(place);
-          break;
-        case "EDITAR":
-          logger.info("Updating existing place", place);
-          updateUserFavouriteAddress(place, placeId);
-          break;
-        default:
-          logger.warn("Invalid type provided");
-          break;
-      }
+    switch (type) {
+      case "NOVO":
+        logger.info("Saving new place", place);
+        saveUserFavouriteAddress(place);
+        break;
+      case "EDITAR":
+        logger.info("Updating existing place", place);
+        updateUserFavouriteAddress(place, placeId);
+        break;
+      default:
+        logger.warn("Invalid type provided");
+        break;
+    }
   };
   const handeBackButtonPress = () => {
     setAddress("");
@@ -129,7 +131,7 @@ export const useSavedPlacesModal = () => {
 
   const handleLocationPress = () => {
     logger.debug("Bottom sheet modal ref", { ref: bottomSheetModalAddAddress.current });
-    
+
     bottomSheetModalAddAddress.current.present();
   };
 
@@ -144,9 +146,9 @@ export const useSavedPlacesModal = () => {
       setCoordinates(coords);
       setAddress(formatted_address);
       setNameFAV(name);
-    
+
       // Dismiss the bottom sheet
-      bottomsheet.current.dismiss();   
+      bottomsheet.current.dismiss();
     };
   };
 
@@ -163,7 +165,7 @@ export const useSavedPlacesModal = () => {
   const handleCurrentLocationPress = async () => {
     try {
       if (!userLocation?.latitude || !userLocation?.longitude) {
-        Alert.alert('Error', 'Could not determine your location. Please try again.');
+        showAlert({ type: 'error', title: 'Erro', message: 'Não foi possível determinar sua localização. Tente novamente.' });
         return;
       }
 
@@ -172,7 +174,7 @@ export const useSavedPlacesModal = () => {
       const name = response.results[0]?.address_components[0]?.long_name;
 
       if (!address) {
-        Alert.alert('Error', 'Could not determine your address. Please try again.');
+        showAlert({ type: 'error', title: 'Erro', message: 'Não foi possível determinar seu endereço. Tente novamente.' });
         return;
       }
 
@@ -186,7 +188,7 @@ export const useSavedPlacesModal = () => {
 
     } catch (error) {
       logger.error('Error handling current location', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      showAlert({ type: 'error', title: 'Erro', message: 'Algo deu errado. Tente novamente.' });
     }
   };
 

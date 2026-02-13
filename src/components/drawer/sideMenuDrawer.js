@@ -141,7 +141,7 @@ const SideMenuDrawer = (props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0089FF', // Keep brand blue base
+    backgroundColor: 'transparent',
     borderTopRightRadius: scale(30),
     borderBottomRightRadius: scale(30),
     overflow: 'hidden',
@@ -154,6 +154,8 @@ const styles = StyleSheet.create({
   drawerContent: {
     paddingTop: scale(20),
     paddingHorizontal: scale(10),
+    backgroundColor: '#0089FF',
+    flex: 1,
   },
   userProfileContainer: {
     flexDirection: "row",

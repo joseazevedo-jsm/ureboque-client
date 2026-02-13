@@ -13,10 +13,12 @@ import { useRoute } from '@react-navigation/native';
 import { scale } from 'react-native-size-matters';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRegistrationFlow } from '../hooks/useRegistrationFlow';
+import { useAlert } from '../context/AlertContext';
 
 const PersonalInfoScreen = () => {
   const route = useRoute();
   const { phone, password } = route.params || {};
+  const { showAlert } = useAlert();
 
   const {
     formData,
@@ -30,7 +32,7 @@ const PersonalInfoScreen = () => {
     handleEmailChange,
     createUserAccount,
     logger,
-  } = useRegistrationFlow(phone, password);
+  } = useRegistrationFlow(phone, password, showAlert);
 
   logger.debug('PersonalInfoScreen initialized', { hasPhone: !!phone, hasPassword: !!password });
 

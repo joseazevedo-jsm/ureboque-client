@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Alert } from "react-native";
 import { useUserData } from "../../context/UserDataContext";
 import { useAuth } from "../../context/AuthContext";
 import { useLogger } from "../../hooks/useLogger";
@@ -16,25 +15,26 @@ const useSettingsScreen = () => {
   const handleChangePassword = () => {
     logger.debug('Password reset via email requested');
 
-    Alert.alert(
-      "Alterar Senha",
-      `Será enviado um email para ${user?.email || 'o seu endereço de email'} com instruções para alterar a sua senha.`,
-      [
+    showAlert({
+      type: 'confirmation',
+      title: 'Alterar Senha',
+      message: `Será enviado um email para ${user?.email || 'o seu endereço de email'} com instruções para alterar a sua senha.`,
+      buttons: [
         {
-          text: "Cancelar",
-          style: "cancel"
+          text: 'Cancelar',
+          style: 'cancel'
         },
         {
-          text: "Enviar Email",
+          text: 'Enviar Email',
           onPress: () => requestPasswordReset()
         }
       ]
-    );
+    });
   };
 
   const requestPasswordReset = async () => {
     if (!user?.email) {
-      Alert.alert("Erro", "Email do utilizador não encontrado");
+      showAlert({ type: 'error', title: 'Erro', message: 'Email do utilizador não encontrado', buttons: [{ text: 'OK' }] });
       return;
     }
 
@@ -48,11 +48,12 @@ const useSettingsScreen = () => {
       });
 
       logger.info(resp.data.message);
-      Alert.alert(
-        "Email Enviado",
-        "Verifique a sua caixa de email para instruções sobre como alterar a sua senha.",
-        [{ text: "OK", style: "default" }]
-      );
+      showAlert({
+        type: 'success',
+        title: 'Email Enviado',
+        message: 'Verifique a sua caixa de email para instruções sobre como alterar a sua senha.',
+        buttons: [{ text: 'OK' }]
+      });
 
     } catch (error) {
       logger.error('Password reset request failed', {
@@ -62,13 +63,12 @@ const useSettingsScreen = () => {
         responseData: error.response?.data
       });
 
-      let errorMessage = 'Erro ao enviar email de recuperação';
-    
-      Alert.alert(
-        "Erro",
-        errorMessage,
-        [{ text: "OK", style: "default" }]
-      );
+      showAlert({
+        type: 'error',
+        title: 'Erro',
+        message: 'Erro ao enviar email de recuperação',
+        buttons: [{ text: 'OK' }]
+      });
     } finally {
       setIsLoading(false);
     }
@@ -159,42 +159,42 @@ const useSettingsScreen = () => {
 
   const deleteAccount = async () => {
     setIsLoading(true);
-    
+
     try {
       logger.debug('Attempting to delete account');
-      
+
       const response = await api.delete(`/users/${user._id}`);
 
       if (response.data.success) {
         logger.info('Account deleted successfully');
-        Alert.alert(
-          "Conta Eliminada",
-          "A sua conta foi eliminada com sucesso.",
-          [
-            {
-              text: "OK",
-              onPress: async () => {
-                await logout();
-              }
+        showAlert({
+          type: 'success',
+          title: 'Conta Eliminada',
+          message: 'A sua conta foi eliminada com sucesso.',
+          buttons: [{
+            text: 'OK',
+            onPress: async () => {
+              await logout();
             }
-          ]
-        );
+          }]
+        });
       } else {
         throw new Error(response.data.message || 'Erro ao eliminar conta');
       }
     } catch (error) {
-      logger.error('Account deletion failed', { 
+      logger.error('Account deletion failed', {
         error: error.message,
-        userId: user._id 
+        userId: user._id
       });
-      
+
       const errorMessage = error.response?.data?.message || error.message || 'Erro ao eliminar conta';
-      w
-      Alert.alert(
-        "Erro",
-        errorMessage,
-        [{ text: "OK", style: "default" }]
-      );
+
+      showAlert({
+        type: 'error',
+        title: 'Erro',
+        message: errorMessage,
+        buttons: [{ text: 'OK' }]
+      });
     } finally {
       setIsLoading(false);
     }

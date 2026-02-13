@@ -5,18 +5,15 @@ import { scale } from "react-native-size-matters";
 import CardSpots from "../cards/cardSpots";
 
 const PlaceSearch = ({favPlaces, handleMapSearchBarPress, handleAddFavouriteButtonPress}) => {
-  const renderSpotsItem = ({ item }) => {
-    return item.place.name === "Adicionar Favorito" ? (
+  const renderSpotsItem = ({ item, index }) => {
+    const isAddFavorite = item.place.name === "Adicionar Favorito";
+    return (
       <CardSpots
         title={item.place.name}
         description={item.place.description}
-        onPress={handleAddFavouriteButtonPress}
-      />
-    ) : (
-      <CardSpots
-        title={item.place.name}
-        description={item.place.description}
-        onPress={null}
+        onPress={isAddFavorite ? handleAddFavouriteButtonPress : null}
+        index={index}
+        isAddFavorite={isAddFavorite}
       />
     );
   };
