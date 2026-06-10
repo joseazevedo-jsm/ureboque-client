@@ -39,6 +39,17 @@ export const colors = {
   // Overlays
   overlay: 'rgba(0, 0, 0, 0.5)',
   glass: 'rgba(255, 255, 255, 0.9)',
+
+  // Location inputs (origin/destination bubbles — design-intentional)
+  originBubble: '#E0F2FE',
+  destinationBubble: '#FEE2E2',
+  destinationPin: '#FF005E',
+  mapOptionBubble: '#F0FDF4',
+  mapOptionIcon: '#16A34A',
+
+  // Error shades (used in driver search warning states)
+  errorSurface: '#FEF2F2',
+  errorBorder: '#FCA5A5',
 };
 
 
@@ -289,6 +300,25 @@ export const componentStyles = {
   },
 };
 
+// Animation constants — shared across all animated components
+export const animations = {
+  spring: {
+    press:   { damping: 20, stiffness: 400 },
+    release: { damping: 15, stiffness: 300 },
+    enter:   { damping: 28, stiffness: 180 }, // no overshoot, smooth deceleration
+  },
+  stagger: {
+    list: 55,   // ms delay per list item
+    form: 70,   // ms delay per form field
+    fast: 35,   // ms delay for search results
+  },
+  duration: {
+    fast:   200,
+    normal: 320,
+    slow:   450,
+  },
+};
+
 // Export all for convenience
 export default {
   colors,
@@ -300,4 +330,5 @@ export default {
   keyboardConfig,
   interactions,
   componentStyles,
+  animations,
 };

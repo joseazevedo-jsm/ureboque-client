@@ -1,12 +1,13 @@
-import { createStackNavigator } from "@react-navigation/stack";
+import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 import LoginScreen from "../screens/LoginScreen";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { UserContext } from "../context/UserContext";
 import { useContext, useRef } from "react";
 import HomeMenu from "./HomeMenu";
 import Logger from '../utils/Logger';
 import sentryService from '../services/SentryService';
+import { animations, colors } from '../theme';
 
 // Registration screens
 import RegistrationWelcomeScreen from "../screens/RegistrationWelcomeScreen";
@@ -15,6 +16,32 @@ import PersonalInfoScreen from "../screens/PersonalInfoScreen";
 import RegistrationSuccessScreen from "../screens/RegistrationSuccessScreen";
 
 const Stack = createStackNavigator();
+
+const springTransition = {
+  animation: 'spring',
+  config: { ...animations.spring.release, mass: 0.8, overshootClamping: false },
+};
+
+const horizontalSpring = {
+  gestureEnabled: true,
+  cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+  transitionSpec: { open: springTransition, close: springTransition },
+};
+
+const verticalSpring = {
+  gestureEnabled: true,
+  cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+  transitionSpec: { open: springTransition, close: springTransition },
+};
+
+const fadeTransition = {
+  gestureEnabled: false,
+  cardStyleInterpolator: CardStyleInterpolators.forFadeFromBottomAndroid,
+  transitionSpec: {
+    open: { animation: 'timing', config: { duration: animations.duration.slow } },
+    close: { animation: 'timing', config: { duration: animations.duration.normal } },
+  },
+};
 
 const AppNav = () => {
   const { isLoading, userToken } = useContext(UserContext);
@@ -84,7 +111,16 @@ const AppNav = () => {
     return route.name;
   };
 
-  // No loading screen needed - AppLoadingContext ensures everything is ready
+  // Show a neutral loading screen while the auth token is being read from storage.
+  // AppLoadingContext handles the splash, but this prevents a brief flash of the
+  // wrong screen if the token is still undefined.
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer 
@@ -114,45 +150,53 @@ const AppNav = () => {
         });
       }}
     >
-      <Stack.Navigator>
+      <Stack.Navigator screenOptions={{ headerShown: false, ...horizontalSpring }}>
         {userToken === null ? (
           <>
             <Stack.Screen
               name="Login"
               component={LoginScreen}
-              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="RegistrationWelcome"
               component={RegistrationWelcomeScreen}
-              options={{ headerShown: false }}
+              options={verticalSpring}
             />
             <Stack.Screen
               name="PasswordCreation"
               component={PasswordCreationScreen}
-              options={{ headerShown: false }}
+              options={verticalSpring}
             />
             <Stack.Screen
               name="PersonalInfo"
               component={PersonalInfoScreen}
-              options={{ headerShown: false }}
+              options={verticalSpring}
             />
             <Stack.Screen
               name="RegistrationSuccess"
               component={RegistrationSuccessScreen}
-              options={{ headerShown: false }}
+              options={verticalSpring}
             />
           </>
         ) : (
           <Stack.Screen
             name="HomeMenu"
             component={HomeMenu}
-            options={{ headerShown: false }}
+            options={fadeTransition}
           />
         )}
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+});
 
 export default AppNav;

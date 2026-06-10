@@ -4,138 +4,28 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
 import RouteItem from "./routeItem";
 import { colors, shadows, spacing, borderRadius } from "../../theme";
+import {
+  getStatusInfo,
+  formatServiceDate,
+  formatPrice,
+  formatCarDetails,
+  getOriginDestination,
+} from "../../utils/serviceFormatters";
 
 const ServiceHistoryItem = memo(({ service, onPress }) => {
   // Handle nested service structure: { car: {...}, service: {...} }
   const serviceData = service.service || service;
   const carData = service.car;
   
-  const getStatusInfo = (status) => {
-    switch (status) {
-      case 'completed':
-        return {
-          text: 'Concluído',
-          color: colors.success,
-          bgColor: colors.successLight,
-          icon: 'check-circle'
-        };
-      case 'cancelled':
-        return {
-          text: 'Cancelado',
-          color: colors.error,
-          bgColor: colors.errorLight,
-          icon: 'cancel'
-        };
-      case 'requested':
-        return {
-          text: 'Solicitado',
-          color: colors.warning,
-          bgColor: '#FFF3E0',
-          icon: 'schedule'
-        };
-      default:
-        return {
-          text: status,
-          color: colors.textSecondary,
-          bgColor: colors.background,
-          icon: 'help'
-        };
-    }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const isSameDate = (d1, d2) => 
-      d1.getDate() === d2.getDate() && 
-      d1.getMonth() === d2.getMonth() && 
-      d1.getFullYear() === d2.getFullYear();
-
-    if (isSameDate(date, today)) {
-      return `Hoje às ${date.toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      })}`;
-    } else if (isSameDate(date, yesterday)) {
-      return `Ontem às ${date.toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      })}`;
-    } else {
-      return date.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-  };
-
-  const getOriginDestination = (locations) => {
-    // Handle case where locations is [Array] placeholder or not an array
-    if (!locations || !Array.isArray(locations) || locations.length === 0) {
-      return { origin: "Localização não definida", destination: "Destino não definido" };
-    }
-
-    if (locations.length === 1) {
-      return { 
-        origin: locations[0]?.address || locations[0]?.name || "Localização não definida", 
-        destination: "Destino não definido" 
-      };
-    }
-
-    return {
-      origin: locations[0]?.address || locations[0]?.name || "Origem não definida",
-      destination: locations[locations.length - 1]?.address || locations[locations.length - 1]?.name || "Destino não definido"
-    };
-  };
-
-  const formatCarDetails = (carData) => {
-    if (!carData) {
-      return 'Veículo não especificado';
-    }
-    
-    const { brand, model, color, licensePlate } = carData;
-    const parts = [];
-    
-    if (brand) parts.push(brand);
-    if (model) parts.push(model);
-    if (color) parts.push(color);
-    if (licensePlate) parts.push(licensePlate);
-    
-    return parts.length > 0 ? parts.join(' ') : 'Veículo não especificado';
-  };
-
-  const formatPrice = (payment) => {
-    // Handle case where payment is [Object] placeholder or doesn't have valid amount
-    if (!payment || typeof payment !== 'object' || (!payment.amount && !payment.value)) {
-      return null;
-    }
-    
-    const amount = payment.amount || payment.value;
-    if (!amount || typeof amount !== 'number') {
-      return null;
-    }
-    
-    return `${amount.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'AOA'
-    })}`;
-  };
-
   const statusInfo = getStatusInfo(serviceData.status);
   const { origin, destination } = getOriginDestination(serviceData.locations);
-  const price = formatPrice(serviceData.payment);
+  const price = formatPrice(serviceData.payment, null);
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.header}>
         <View style={styles.leftSection}>
-          <Text style={styles.dateText}>{formatDate(serviceData.createdAt)}</Text>
+          <Text style={styles.dateText}>{formatServiceDate(serviceData.createdAt)}</Text>
           <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
             <Icon 
               name={statusInfo.icon} 

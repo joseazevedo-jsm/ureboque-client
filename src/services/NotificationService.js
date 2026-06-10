@@ -13,6 +13,7 @@ Notifications.setNotificationHandler({
 
 class NotificationService {
   constructor() {
+    this.componentName = 'NotificationService';
     this.permissionGranted = false;
   }
 
@@ -21,7 +22,7 @@ class NotificationService {
     try {
       // Check if the native module is available
       if (!Notifications.getPermissionsAsync) {
-        console.warn('Expo notifications module not available - native module may need to be rebuilt');
+        Logger.warn(this.componentName, 'Expo notifications module not available - native module may need to be rebuilt');
         this.permissionGranted = false;
         return false;
       }
@@ -98,9 +99,9 @@ class NotificationService {
     }
 
     const title = 'Ureboque';
-    const body = messageCount === 1 
-      ? 'Voce recebeu uma nova mensagem do motorista '
-      : `You have ${messageCount} new messages from your driver`;
+    const body = messageCount === 1
+      ? 'Recebeu uma nova mensagem do motorista'
+      : `Recebeu ${messageCount} novas mensagens do motorista`;
     
     await this.scheduleNotification({
       title,

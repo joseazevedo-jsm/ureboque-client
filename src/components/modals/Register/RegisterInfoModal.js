@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ActivityIndicator,
   Modal,
   StyleSheet,
   Text,
@@ -18,6 +19,7 @@ const RegisterInfoModal = ({
   onChangeEmail,
   onCreateUser,
   errors,
+  isCreating = false,
 }) => {
   return (
     <Modal visible={visible} animationType="slide">
@@ -25,7 +27,7 @@ const RegisterInfoModal = ({
         <View>
           <Text style={styles.title}>CADASTRO</Text>
           <View style={styles.inputInfo}>
-            <Text style={{ fontSize: scale(16), alignSelf: "center", color: "#64748B", textAlign: "center", lineHeight: scale(24) }}>
+            <Text style={{ fontSize: scale(16), alignSelf: "center", color: colors.textSecondary, textAlign: "center", lineHeight: scale(24) }}>
               Introduza as suas informações pessoais para concluir o cadastro
             </Text>
             <View style={styles.input}>
@@ -33,16 +35,22 @@ const RegisterInfoModal = ({
                 placeholder="Nome"
                 style={styles.inputBox}
                 onChangeText={onChangeName}
+                accessibilityLabel="Campo de nome"
+                accessibilityRole="text"
               />
               <TextInput
                 placeholder="Sobrenome"
                 style={styles.inputBox}
                 onChangeText={onChangeSurname}
+                accessibilityLabel="Campo de sobrenome"
+                accessibilityRole="text"
               />
               <TextInput
                 placeholder="Email"
                 style={styles.inputBox}
                 onChangeText={onChangeEmail}
+                accessibilityLabel="Campo de email"
+                accessibilityRole="text"
               />
             </View>
             {errors.length > 0 && (
@@ -57,8 +65,9 @@ const RegisterInfoModal = ({
           </View>
         </View>
 
-        <View style={styles.bottom}>
+        <View style={[styles.bottom, isCreating && styles.bottomDisabled]}>
           <TouchableOpacity
+            disabled={isCreating}
             onPress={() => {
               onCreateUser(phone).then((user) => {
                 if (user) {
@@ -67,7 +76,11 @@ const RegisterInfoModal = ({
               });
             }}
           >
-            <Text style={styles.save}>AVANÇAR</Text>
+            {isCreating ? (
+              <ActivityIndicator size="small" color={colors.surface} style={styles.loader} />
+            ) : (
+              <Text style={styles.save}>AVANÇAR</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -115,10 +128,18 @@ const styles = StyleSheet.create({
     marginBottom: scale(30),
     ...shadows.primaryGlow,
   },
+  bottomDisabled: {
+    backgroundColor: colors.textDisabled,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  loader: {
+    paddingVertical: scale(16),
+  },
   save: {
     fontSize: scale(18),
     fontWeight: "700",
-    color: "#FFF",
+    color: colors.surface,
     paddingVertical: scale(16),
     letterSpacing: 0.5,
   },

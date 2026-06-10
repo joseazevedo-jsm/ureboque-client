@@ -20,6 +20,7 @@ import RegisterPassModal from "../components/modals/Register/RegisterPassModal";
 import { useLogger } from "../hooks/useLogger";
 import KeyboardAvoidingWrapper from "../components/common/KeyboardAvoidingWrapper";
 import { colors, spacing, shadows, borderRadius } from "../theme";
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 const LoginScreen = () => {
   const logger = useLogger('LoginScreen', { 
@@ -37,23 +38,12 @@ const LoginScreen = () => {
   
   const { models, operations } = useLoginScreen();
 
-  // const verifyPhoneNumber = () => {
-  //   // const sent = operations.handleOnConfirmNumber();
-  //   // console.log(sent);
-  //   // if(models.codeOTP){
-  //   navigation.navigate("OTP", {
-  //     number: `+${models.callingCode} ${models.number}`,
-
-  //   });
-  //   // }
-  // };
-
   return (
     <>
       <KeyboardAvoidingWrapper style={styles.container}>
         <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
           <View style={styles.content}>
-              <View style={styles.logo}>
+              <Animated.View style={styles.logo} entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}>
                 <Image
                   source={require("../../resources/icons/UREB_LOGO.png")}
                   resizeMode="cover"
@@ -62,15 +52,15 @@ const LoginScreen = () => {
                   source={require("../../resources/icons/UREB_TEXT.png")}
                   resizeMode="cover"
                 />
-              </View>
-              
-              <View style={styles.initsess}>
+              </Animated.View>
+
+              <Animated.View style={styles.initsess} entering={FadeInDown.delay(80).springify().damping(28).stiffness(180)}>
                 <View style={styles.divider} />
                 <Text style={styles.text}>Iniciar sessão</Text>
                 <View style={styles.divider} />
-              </View>
+              </Animated.View>
               
-              <View style={styles.formContainer}>
+              <Animated.View style={styles.formContainer} entering={FadeInDown.delay(160).springify().damping(28).stiffness(180)}>
                 <View style={styles.phoneDiv}>
                   {!passwordState ? (
                     <Text style={styles.instructionText}>
@@ -149,9 +139,9 @@ const LoginScreen = () => {
                     </TouchableOpacity>
                   )}
                 </View>
-              </View>
-              
-              <View style={styles.bottom}>
+              </Animated.View>
+
+              <Animated.View style={styles.bottom} entering={FadeInDown.delay(240).springify().damping(28).stiffness(180)}>
                 <Text style={styles.disclaimerText}>
                   Ao tocar em Avançar, dou o meu consentimento para o
                   processamento de minhas informações pessoais de acordo com os
@@ -184,7 +174,7 @@ const LoginScreen = () => {
                     </View>
                   </TouchableOpacity>
                 )}
-              </View>
+              </Animated.View>
             </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingWrapper>
@@ -194,6 +184,7 @@ const LoginScreen = () => {
         code={models.codeOTP}
         number={`+ ${models.callingCode} ${models.number}`}
         onClose={operations.handleOTPModalClose}
+        onResend={operations.handleOnConfirmNumber}
         onChangeLoginState={operations.onChangeLoginState}
         modalRegVisible={models.modalRegisterVisible}
       />

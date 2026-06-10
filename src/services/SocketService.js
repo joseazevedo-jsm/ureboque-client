@@ -15,9 +15,17 @@ class SocketService {
       throw new Error('Authentication token required for socket connection');
     }
 
+    // Tear down any previous socket before creating a new one to prevent
+    // orphaned connections and duplicate event listeners.
+    if (this.socket) {
+      this.socket.removeAllListeners();
+      this.socket.disconnect();
+      this.socket = null;
+    }
+
     const socketUrl = process.env.EXPO_PUBLIC_SOCKET_URL;
     Logger.info('SocketService', 'Attempting socket connection', { socketUrl });
-    
+
     this.socket = io(socketUrl, {
       auth: {
         token: userToken

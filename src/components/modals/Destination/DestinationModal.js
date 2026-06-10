@@ -15,7 +15,8 @@ import {
 import { scale } from "react-native-size-matters";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useDestinationModal } from "./components/useDestinationModal";
-import { colors, spacing, shadows, borderRadius } from "../../../theme";
+import { colors, spacing, shadows, borderRadius, animations } from "../../../theme";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 const DestinationModal = ({
   visible,
@@ -46,7 +47,7 @@ const DestinationModal = ({
             {/* Header */}
             <View style={styles.header}>
               <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
-                <Icon name="close" size={scale(24)} color="#1E293B" />
+                <Icon name="close" size={scale(24)} color={colors.textPrimary} />
               </TouchableOpacity>
               <Text style={styles.headerTitle}>PARA ONDE VAMOS?</Text>
               <View style={{ width: scale(40) }} />
@@ -60,8 +61,8 @@ const DestinationModal = ({
                 onPress={operations.handleOriginFocus}
                 activeOpacity={0.7}
               >
-                <View style={[styles.iconBubble, { backgroundColor: '#E0F2FE' }]}>
-                  <Icon name="my-location" size={scale(20)} color="#0089FF" />
+                <View style={[styles.iconBubble, { backgroundColor: colors.originBubble }]}>
+                  <Icon name="my-location" size={scale(20)} color={colors.primary} />
                 </View>
                 <View style={styles.textInputContainer}>
                   <Text style={styles.label}>De onde?</Text>
@@ -69,7 +70,7 @@ const DestinationModal = ({
                     style={styles.textInput}
                     placeholder={origin || "De onde vamos sair?"}
                     value={models.originInputValue}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.textMuted}
                     onChangeText={operations.handleOriginChange}
                     onFocus={() => {
                       operations.handleOriginFocus();
@@ -89,15 +90,15 @@ const DestinationModal = ({
                 onPress={operations.handleDestinationFocus}
                 activeOpacity={0.7}
               >
-                <View style={[styles.iconBubble, { backgroundColor: '#FEE2E2' }]}>
-                  <Icon name="place" size={scale(20)} color="#EF4444" />
+                <View style={[styles.iconBubble, { backgroundColor: colors.destinationBubble }]}>
+                  <Icon name="place" size={scale(20)} color={colors.error} />
                 </View>
                 <View style={styles.textInputContainer}>
                   <Text style={styles.label}>Para onde?</Text>
                   <TextInput
                     style={styles.textInput}
                     placeholder={destination || "Para onde está indo?"}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.textMuted}
                     value={models.destinationInputValue}
                     onChangeText={operations.handleDestinationChange}
                     onFocus={() => {
@@ -112,11 +113,11 @@ const DestinationModal = ({
 
             {/* Drag on Map Option */}
             <TouchableOpacity style={styles.mapOption} onPress={onMarkerDragPress}>
-              <View style={[styles.iconBubble, { backgroundColor: '#F0FDF4' }]}>
-                <Icon name="map" size={scale(20)} color="#16A34A" />
+              <View style={[styles.iconBubble, { backgroundColor: colors.mapOptionBubble }]}>
+                <Icon name="map" size={scale(20)} color={colors.mapOptionIcon} />
               </View>
               <Text style={styles.mapOptionText}>Definir localização no mapa</Text>
-              <Icon name="chevron-right" size={scale(20)} color="#CBD5E1" />
+              <Icon name="chevron-right" size={scale(20)} color={colors.textDisabled} />
             </TouchableOpacity>
 
             <View style={styles.divider} />
@@ -130,31 +131,32 @@ const DestinationModal = ({
                 maxToRenderPerBatch={5}
                 enableEmptySections={true}
                 renderItem={({ item, index }) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.suggestionItem}
-                    onPress={() => {
-                      onPlaceItemPress(item, models.activeInput);
-                      if (models.activeInput === 'origin') {
-                        operations.handleDestinationFocus();
-                      }
-                    }}
-                  >
-                    <View style={[styles.iconBubble, { backgroundColor: '#F1F5F9' }]}>
-                      <Icon
-                        name={item.place_id === -1 ? "map" : item.place_id === 0 ? "my-location" : "place"}
-                        size={scale(20)}
-                        color="#64748B"
-                      />
-                    </View>
-                    <View style={styles.suggestionText}>
-                      <Text style={styles.suggestionTitle} numberOfLines={1}>{item.name}</Text>
-                      {item.formatted_address && (
-                        <Text style={styles.suggestionAddress} numberOfLines={1}>{item.formatted_address}</Text>
-                      )}
-                    </View>
-                    <Icon name="chevron-right" size={scale(20)} color="#CBD5E1" />
-                  </TouchableOpacity>
+                  <Animated.View entering={FadeInDown.delay(index * animations.stagger.fast).springify().damping(28).stiffness(180)}>
+                    <TouchableOpacity
+                      style={styles.suggestionItem}
+                      onPress={() => {
+                        onPlaceItemPress(item, models.activeInput);
+                        if (models.activeInput === 'origin') {
+                          operations.handleDestinationFocus();
+                        }
+                      }}
+                    >
+                      <View style={[styles.iconBubble, { backgroundColor: colors.background }]}>
+                        <Icon
+                          name={item.place_id === -1 ? "map" : item.place_id === 0 ? "my-location" : "place"}
+                          size={scale(20)}
+                          color={colors.textSecondary}
+                        />
+                      </View>
+                      <View style={styles.suggestionText}>
+                        <Text style={styles.suggestionTitle} numberOfLines={1}>{item.name}</Text>
+                        {item.formatted_address && (
+                          <Text style={styles.suggestionAddress} numberOfLines={1}>{item.formatted_address}</Text>
+                        )}
+                      </View>
+                      <Icon name="chevron-right" size={scale(20)} color={colors.textDisabled} />
+                    </TouchableOpacity>
+                  </Animated.View>
                 )}
                 keyboardShouldPersistTaps="always"
                 showsVerticalScrollIndicator={false}
@@ -189,7 +191,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: scale(16),
     fontWeight: '800',
-    color: '#1E293B',
+    color: colors.textPrimary,
     letterSpacing: 0.5,
   },
   inputsGroup: {
@@ -204,46 +206,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: scale(10),
-    borderRadius: scale(14),
-    backgroundColor: '#F8FAFC',
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.background,
   },
   inputRowActive: {
-    backgroundColor: '#E0F2FE',
+    backgroundColor: colors.originBubble,
     borderWidth: 1.5,
-    borderColor: '#0089FF',
+    borderColor: colors.primary,
   },
   textInputContainer: {
     flex: 1,
-    marginLeft: scale(16),
+    marginLeft: spacing.lg,
   },
   label: {
     fontSize: scale(11),
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '600',
     marginBottom: scale(2),
     textTransform: 'uppercase',
   },
   textInput: {
     fontSize: scale(16),
-    color: '#1E293B',
+    color: colors.textPrimary,
     fontWeight: '600',
     paddingVertical: scale(4),
   },
   activeInput: {
-    color: '#1E293B',
+    color: colors.textPrimary,
   },
   iconBubble: {
     width: scale(40),
     height: scale(40),
-    borderRadius: scale(16),
+    borderRadius: borderRadius.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   connectorLine: {
     width: 2,
     height: scale(20),
-    backgroundColor: '#E2E8F0', // Slate 200
-    marginLeft: scale(30), // Center with bubble
+    backgroundColor: colors.borderLight,
+    marginLeft: scale(30),
     marginVertical: scale(4),
   },
   mapOption: {
@@ -259,46 +261,46 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: scale(15),
     fontWeight: '600',
-    color: '#1E293B',
-    marginLeft: scale(16),
+    color: colors.textPrimary,
+    marginLeft: spacing.lg,
   },
   divider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
-    marginVertical: scale(12),
-    marginHorizontal: scale(20),
+    backgroundColor: colors.borderLight,
+    marginVertical: spacing.md,
+    marginHorizontal: spacing.xl,
   },
   listContainer: {
     flex: 1,
-    paddingHorizontal: scale(20),
+    paddingHorizontal: spacing.xl,
   },
   sectionTitle: {
     fontSize: scale(14),
     fontWeight: '700',
-    color: '#64748B',
-    marginBottom: scale(12),
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
     marginLeft: scale(4),
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: scale(12),
-    borderRadius: scale(12),
-    marginBottom: scale(8),
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.sm,
   },
   suggestionText: {
     flex: 1,
-    marginLeft: scale(12),
+    marginLeft: spacing.md,
   },
   suggestionTitle: {
     fontSize: scale(14),
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.textPrimary,
   },
   suggestionAddress: {
     fontSize: scale(12),
-    color: '#64748B',
+    color: colors.textSecondary,
     marginTop: scale(2),
   },
 });

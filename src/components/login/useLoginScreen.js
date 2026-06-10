@@ -95,6 +95,12 @@ export const useLoginScreen = () => {
       }
     } catch (error) {
       logger.error('Error sending OTP', error);
+      showAlert({
+        type: 'error',
+        title: 'Erro ao enviar código',
+        message: 'Não foi possível enviar o código SMS. Verifique o número e tente novamente.',
+        buttons: [{ text: 'OK' }],
+      });
     }
   };
 
@@ -191,17 +197,21 @@ export const useLoginScreen = () => {
         }
       } catch (error) {
         logger.error('Error checking user existence', error);
-        // If 404 or user not found, start registration flow
         if (error.response?.status === 404) {
           logger.info('User not found (404), starting registration flow');
           navigation.navigate("RegistrationWelcome", {
             phone: fullPhoneNumber
           });
         } else {
-          // For other errors, fallback to registration
-          logger.warn('Unexpected error, defaulting to registration flow');
-          navigation.navigate("RegistrationWelcome", {
-            phone: fullPhoneNumber
+          logger.warn('Network or server error during user check', error);
+          const isNetworkError = !error.response;
+          showAlert({
+            type: 'error',
+            title: 'Erro de ligação',
+            message: isNetworkError
+              ? 'Não foi possível ligar ao servidor. Verifique a sua internet e tente novamente.'
+              : 'Ocorreu um erro inesperado. Tente novamente.',
+            buttons: [{ text: 'OK' }],
           });
         }
       }

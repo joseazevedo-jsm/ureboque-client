@@ -50,12 +50,7 @@ const AddressModal = ({
     closeModal();
   };
 
-  // useEffect(() => {
-  //   console.log("coords", coords);
-  //   if (coords) {
-  //     operations.addCoords(coords);
-  //   }
-  // }, [coords])
+
 
   const renderFlatListItem = ({ item }) => {
     return (
@@ -179,7 +174,6 @@ const AddressModal = ({
               onGoHomePress()
               closeModal()
             } catch (error) {
-              console.log("Save error:", error)
               showAlert({
                 type: 'error',
                 title: 'Erro',

@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   },
   selectedQuestionCard: {
     borderColor: colors.primary,
-    backgroundColor: "#F0F9FF",
+    backgroundColor: colors.primaryLight,
   },
   questionText: {
     flex: 1,

@@ -24,6 +24,10 @@ export const UserDataProvider = ({ children }) => {
   const [serviceStatus, setServiceStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [servicesLoading, setServicesLoading] = useState(false);
+  const [servicesPage, setServicesPage] = useState(1);
+  const [servicesHasMore, setServicesHasMore] = useState(false);
+
+  const SERVICES_PAGE_LIMIT = 20;
 
   const fetchUserById = async (userId) => {
     const timer = logger.startTimer('fetch_user_by_id');
@@ -213,49 +217,57 @@ export const UserDataProvider = ({ children }) => {
     }
   };
 
-  const fetchUserServices = async (userId, refreshing = false) => {
+  const fetchUserServices = async (userId, { page = 1, refreshing = false } = {}) => {
+    const url = `/service/allMonthlyClient/${userId}`;
     const timer = logger.startTimer('fetch_user_services');
-    logger.logApiRequest('GET', `/service/allMonthlyClient/${userId}`);
+    logger.logApiRequest('GET', url);
 
     try {
-      if (!refreshing) {
-        setServicesLoading(true);
-      }
+      setServicesLoading(true);
 
-      const response = await api.get(`service/allMonthlyClient/${userId}`);
+      const response = await api.get(`service/allMonthlyClient/${userId}`, {
+        params: { page, limit: SERVICES_PAGE_LIMIT },
+      });
 
-      logger.logApiResponse('GET', `/service/allMonthlyClient/${userId}`, response.status, response.data, timer.end());
+      logger.logApiResponse('GET', url, response.status, response.data, timer.end());
+
       if (response.data) {
-        const servicesData = response.data;
+        const servicesData = Array.isArray(response.data) ? response.data : response.data.services ?? [];
+        const hasMore = servicesData.length >= SERVICES_PAGE_LIMIT;
 
-        setServices(servicesData);
+        setServices((prev) => (page === 1 || refreshing ? servicesData : [...prev, ...servicesData]));
+        setServicesPage(page);
+        setServicesHasMore(hasMore);
 
-        logger.info('User services loaded successfully', {
-          servicesCount: servicesData.length,
-          userId
-        });
+        logger.info('User services loaded', { page, count: servicesData.length, hasMore, userId });
 
-        const lastService = servicesData[0];
-
-        if (lastService.service.status && lastService.service.driver && !lastService.service.review.rating) setServiceStatus(lastService);
-
-        logger.info('App state determined', { currentState: lastService.service });
+        if (page === 1 || refreshing) {
+          const lastService = servicesData[0];
+          if (lastService?.service?.status && lastService?.service?.driver && !lastService?.service?.review?.rating) {
+            setServiceStatus(lastService);
+          }
+        }
       } else {
-        logger.warn('No services data in response', { response: response.data });
-        setServices([]);
+        logger.warn('No services data in response');
+        if (page === 1 || refreshing) setServices([]);
+        setServicesHasMore(false);
       }
-
     } catch (error) {
       ErrorService.handleAPIError(error, false, 'UserDataContext');
-      logger.logError(error, { operation: 'fetchUserServices', userId });
-      setServices([]);
+      logger.logError(error, { operation: 'fetchUserServices', userId, page });
+      if (page === 1 || refreshing) setServices([]);
+      setServicesHasMore(false);
     } finally {
       setServicesLoading(false);
     }
   };
 
+  const loadMoreServices = async (userId) => {
+    if (!servicesHasMore || servicesLoading) return;
+    await fetchUserServices(userId, { page: servicesPage + 1 });
+  };
+
   const getAppStatus = async (userId) => {
-    // Now this function focuses only on fetching services
     await fetchUserServices(userId);
   };
 
@@ -283,9 +295,12 @@ export const UserDataProvider = ({ children }) => {
     setServiceStatus,
     isLoading,
     servicesLoading,
+    servicesPage,
+    servicesHasMore,
     fetchUserById,
     fetchPrices,
     fetchUserServices,
+    loadMoreServices,
     updateUser,
     saveUserFavouriteAddress,
     removeUserFavouriteAddress,

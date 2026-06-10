@@ -84,7 +84,7 @@ class ErrorBoundary extends React.Component {
         level: 'error',
       });
     } catch (sentryError) {
-      console.error('Failed to send error boundary crash to Sentry:', sentryError);
+      Logger.error('ErrorBoundary', 'Failed to send crash to Sentry', { error: sentryError.message });
     }
 
     // Log component hierarchy for debugging
@@ -129,7 +129,7 @@ class ErrorBoundary extends React.Component {
       // Set tag to track recovery success/failure
       Sentry.setTag('error_recovery_attempt', newRetryCount.toString());
     } catch (sentryError) {
-      console.error('Failed to track error recovery in Sentry:', sentryError);
+      Logger.error('ErrorBoundary', 'Failed to track recovery in Sentry', { error: sentryError.message });
     }
     
     this.setState({ 

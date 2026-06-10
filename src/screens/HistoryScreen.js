@@ -16,6 +16,8 @@ import ServiceHistoryItem from "../components/cards/serviceHistoryItem";
 import ServiceDetailModal from "../components/modals/serviceDetailModal";
 import useHistoryScreen from "../components/history/useHistoryScreen";
 import { useLogger } from "../hooks/useLogger";
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { animations, colors, spacing, borderRadius, shadows } from '../theme';
 
 const HistoryScreen = () => {
   const logger = useLogger('HistoryScreen', {
@@ -29,17 +31,6 @@ const HistoryScreen = () => {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
-
-  // Enhanced debug logging
-  console.log('📱 HistoryScreen rendered:', {
-    servicesCount: models?.services?.length || 0,
-    isLoading: models?.isLoading,
-    hasModels: !!models,
-    services: models?.services ? 'exists' : 'null',
-    activeFilter,
-    searchText: searchText ? 'has_search' : 'no_search',
-    error: models?.error
-  });
 
   logger.debug('HistoryScreen rendered', {
     servicesCount: models?.services?.length || 0,
@@ -68,12 +59,7 @@ const HistoryScreen = () => {
   const getFilteredServices = () => {
     let filtered = models.services || [];
 
-    console.log('🔍 Filtering services:', {
-      totalServices: filtered.length,
-      activeFilter,
-      searchText,
-      firstService: filtered[0] // Log first service for debugging
-    });
+    logger.debug('Filtering services', { totalServices: filtered.length, activeFilter, searchText: searchText ? 'set' : 'empty' });
 
     // Apply status filter - handle nested structure
     if (activeFilter !== 'all') {
@@ -82,7 +68,7 @@ const HistoryScreen = () => {
         const serviceData = serviceItem.service || serviceItem;
         return serviceData.status === activeFilter;
       });
-      console.log(`📊 Status filter '${activeFilter}': ${beforeFilter} -> ${filtered.length} services`);
+      logger.debug('Status filter applied', { filter: activeFilter, before: beforeFilter, after: filtered.length });
     }
 
     // Apply search filter - handle nested structure
@@ -122,27 +108,18 @@ const HistoryScreen = () => {
 
           const matches = carMatch || driverMatch || locationMatch || idMatch;
 
-          if (matches) {
-            console.log('🔍 Service matches search:', {
-              id: serviceData._id,
-              carMatch,
-              driverMatch,
-              locationMatch,
-              idMatch
-            });
-          }
 
           return matches;
         } catch (error) {
-          console.error('❌ Search filter error for service:', serviceItem, error);
+          logger.error('Search filter error', error);
           return true; // Include service if search fails
         }
       });
 
-      console.log(`🔍 Search filter '${searchText}': ${beforeSearch} -> ${filtered.length} services`);
+      logger.debug('Search filter applied', { before: beforeSearch, after: filtered.length });
     }
 
-    console.log('✅ Final filtered services:', filtered.length);
+    logger.debug('Final filtered services', { count: filtered.length });
     return filtered;
   };
 
@@ -153,6 +130,9 @@ const HistoryScreen = () => {
         activeFilter === filter && styles.activeFilterButton
       ]}
       onPress={() => handleFilterPress(filter)}
+      accessibilityLabel={`Filtrar por ${label}`}
+      accessibilityRole="button"
+      accessibilityState={{ selected: activeFilter === filter }}
     >
       <Text style={[
         styles.filterText,
@@ -163,16 +143,18 @@ const HistoryScreen = () => {
     </TouchableOpacity>
   );
 
-  const renderServiceItem = ({ item }) => (
-    <ServiceHistoryItem
-      service={item}
-      onPress={() => handleServicePress(item)}
-    />
+  const renderServiceItem = ({ item, index }) => (
+    <Animated.View entering={FadeInDown.delay(index * animations.stagger.list).springify().damping(28).stiffness(180)}>
+      <ServiceHistoryItem
+        service={item}
+        onPress={() => handleServicePress(item)}
+      />
+    </Animated.View>
   );
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Icon name="history" size={scale(80)} color="#ccc" />
+      <Icon name="history" size={scale(80)} color={colors.legacyBorder} />
       <Text style={styles.emptyTitle}>Nenhum histórico encontrado</Text>
       <Text style={styles.emptySubtitle}>
         {activeFilter === 'all'
@@ -187,26 +169,28 @@ const HistoryScreen = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.headerContainer}>
+      <Animated.View style={styles.headerContainer} entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => {
             logger.logUserInteraction('menu_button_pressed', { from: 'HistoryScreen' });
             navigation.openDrawer();
           }}
+          activeOpacity={0.7}
         >
-          <Icon name="menu" size={scale(25)} color="#0089FF" />
+          <Icon name="menu" size={scale(22)} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerText}>HISTÓRICO</Text>
-      </View>
+        <View style={styles.backButton} pointerEvents="none" />
+      </Animated.View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Icon name="search" size={scale(20)} color="#666" style={styles.searchIcon} />
+      <Animated.View style={styles.searchContainer} entering={FadeInDown.delay(80).springify().damping(28).stiffness(180)}>
+        <Icon name="search" size={scale(20)} color={colors.textMuted} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar por destino ou motorista"
-          placeholderTextColor="#666"
+          placeholderTextColor={colors.textSecondary}
           value={searchText}
           onChangeText={(text) => {
             setSearchText(text);
@@ -222,14 +206,16 @@ const HistoryScreen = () => {
               setSearchText('');
               logger.logUserInteraction('search_cleared', {});
             }}
+            accessibilityLabel="Limpar pesquisa"
+            accessibilityRole="button"
           >
-            <Icon name="clear" size={scale(20)} color="#666" />
+            <Icon name="clear" size={scale(20)} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
-      </View>
+      </Animated.View>
 
       {/* Filter Buttons */}
-      <View>
+      <Animated.View entering={FadeInDown.delay(140).springify().damping(28).stiffness(180)}>
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -251,22 +237,22 @@ const HistoryScreen = () => {
           }}
           style={{ maxHeight: scale(50) }}
         />
-      </View>
+      </Animated.View>
 
       {/* Services List */}
       {models.isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0089FF" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Carregando histórico...</Text>
         </View>
       ) : models.error ? (
         <View style={styles.errorContainer}>
-          <Icon name="error-outline" size={scale(60)} color="#ff6b6b" />
+          <Icon name="error-outline" size={scale(60)} color={colors.error} />
           <Text style={styles.errorText}>{models.error}</Text>
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => {
-              console.log('🔄 Retry button pressed');
+              logger.logUserInteraction('retry_button_pressed', {});
               operations.handleRetry();
             }}
           >
@@ -284,8 +270,8 @@ const HistoryScreen = () => {
             <RefreshControl
               refreshing={models.isRefreshing}
               onRefresh={operations.handleRefresh}
-              colors={["#0089FF"]}
-              tintColor="#0089FF"
+              colors={[colors.primary]}
+              tintColor={colors.primary}
             />
           }
           ListEmptyComponent={renderEmptyState}
@@ -311,97 +297,88 @@ const HistoryScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC", // Slate 50
+    backgroundColor: colors.background,
   },
   headerContainer: {
-    paddingTop: scale(60), // More breathing room
-    paddingBottom: scale(20),
-    paddingHorizontal: scale(24),
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingTop: spacing.headerHeight,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.xxl,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   backButton: {
-    padding: scale(8),
-    borderRadius: scale(20),
-    backgroundColor: '#F1F5F9', // Slate 100
+    width: scale(40),
+    height: scale(40),
+    borderRadius: borderRadius.xxl,
+    backgroundColor: colors.surface,
+    justifyContent: "center",
+    alignItems: "center",
+    ...shadows.sm,
   },
   headerText: {
-    fontSize: scale(20),
+    fontSize: scale(17),
     fontWeight: "800",
-    color: "#1E293B", // Slate 900
-    letterSpacing: -0.5,
-    flex: 1,
-    textAlign: 'center',
-    marginRight: scale(40), // Balance back button
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: scale(20),
-    marginVertical: scale(20),
-    backgroundColor: "#fff",
-    borderRadius: scale(16),
-    paddingHorizontal: scale(16),
-    height: scale(52),
+    marginHorizontal: spacing.xxl,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.lg,
+    height: scale(50),
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    borderColor: colors.borderLight,
+    ...shadows.sm,
   },
   searchIcon: {
-    marginRight: scale(12),
+    marginRight: spacing.md,
   },
   searchInput: {
     flex: 1,
     fontSize: scale(15),
-    color: "#1E293B",
-    height: '100%',
+    color: colors.textPrimary,
+    height: "100%",
   },
   clearSearch: {
-    padding: scale(8),
+    padding: spacing.sm,
   },
   filterContainer: {
     flexDirection: "row",
-    marginBottom: scale(20),
-    paddingHorizontal: scale(20),
-    gap: scale(8), // Native gap support
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.xxl,
+    gap: spacing.sm,
   },
   filterButton: {
-    paddingVertical: scale(8),
-    paddingHorizontal: scale(16),
-    borderRadius: scale(20),
-    backgroundColor: "#fff",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: colors.borderLight,
     alignItems: "center",
+    ...shadows.sm,
   },
   activeFilterButton: {
-    backgroundColor: "#0089FF",
-    borderColor: "#0089FF",
-    shadowColor: "#0089FF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    ...shadows.primaryGlow,
   },
   filterText: {
     fontSize: scale(13),
-    color: "#64748B",
+    color: colors.textSecondary,
     fontWeight: "600",
   },
   activeFilterText: {
-    color: "#fff",
+    color: colors.surface,
     fontWeight: "700",
   },
   listContainer: {
-    paddingHorizontal: scale(20),
+    paddingHorizontal: spacing.xxl,
     paddingBottom: scale(40),
   },
   loadingContainer: {
@@ -410,10 +387,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    marginTop: scale(16),
+    marginTop: spacing.lg,
     fontSize: scale(15),
-    color: "#64748B",
-    fontWeight: '500',
+    color: colors.textSecondary,
+    fontWeight: "500",
   },
   errorContainer: {
     flex: 1,
@@ -423,26 +400,22 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: scale(15),
-    color: "#EF4444",
+    color: colors.error,
     textAlign: "center",
-    marginTop: scale(16),
+    marginTop: spacing.lg,
     marginHorizontal: scale(40),
     lineHeight: scale(22),
   },
   retryButton: {
-    backgroundColor: "#0089FF",
-    paddingVertical: scale(14),
-    paddingHorizontal: scale(32),
-    borderRadius: scale(12),
-    marginTop: scale(24),
-    shadowColor: "#0089FF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xxxl,
+    borderRadius: borderRadius.xl,
+    marginTop: spacing.xxl,
+    ...shadows.primaryGlow,
   },
   retryButtonText: {
-    color: "#fff",
+    color: colors.surface,
     fontSize: scale(16),
     fontWeight: "700",
   },
@@ -455,14 +428,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: scale(18),
     fontWeight: "700",
-    color: "#1E293B",
-    marginTop: scale(24),
+    color: colors.textPrimary,
+    marginTop: spacing.xxl,
   },
   emptySubtitle: {
     fontSize: scale(14),
-    color: "#94A3B8",
+    color: colors.textMuted,
     textAlign: "center",
-    marginTop: scale(8),
+    marginTop: spacing.sm,
     marginHorizontal: scale(40),
     lineHeight: scale(20),
   },

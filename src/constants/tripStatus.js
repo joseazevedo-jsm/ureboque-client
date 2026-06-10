@@ -1,0 +1,5 @@
+export const TRIP_STATUS = {
+  DRIVER_EN_ROUTE: 0,
+  DRIVER_ARRIVED: 1,
+  IN_PROGRESS: 2,
+};

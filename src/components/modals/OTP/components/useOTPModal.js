@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 
-export const useOTPModal = (OTPChange) => {
+export const useOTPModal = (OTPChange, onResend) => {
   const [otp, setOtp] = useState(["", "", "", ""]);
   const inputRefs = useRef([]);
 
@@ -36,6 +36,11 @@ export const useOTPModal = (OTPChange) => {
     setOtp(["", "", "", ""]);
   };
 
+  const handleResend = () => {
+    resetOtp();
+    onResend?.();
+  };
+
   return {
     models: {
       otp,
@@ -45,6 +50,7 @@ export const useOTPModal = (OTPChange) => {
       handleOtpChange,
       handleKeyPress,
       resetOtp,
+      handleResend,
     },
   };
 };

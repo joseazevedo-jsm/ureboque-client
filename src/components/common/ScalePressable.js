@@ -6,6 +6,7 @@ import Animated, {
     withSpring
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { animations } from '../../theme';
 
 export const ScalePressable = ({
     children,
@@ -19,13 +20,13 @@ export const ScalePressable = ({
 
     const handlePressIn = () => {
         if (disabled) return;
-        scale.value = withSpring(scaleTo);
-        Haptics.impactAsync(hapticFeedback).catch(() => { }); // Catch in case haptics fail or on web
+        scale.value = withSpring(scaleTo, animations.spring.press);
+        Haptics.impactAsync(hapticFeedback).catch(() => { });
     };
 
     const handlePressOut = () => {
         if (disabled) return;
-        scale.value = withSpring(1);
+        scale.value = withSpring(1, animations.spring.release);
     };
 
     const animatedStyle = useAnimatedStyle(() => ({

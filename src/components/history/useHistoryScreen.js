@@ -9,7 +9,7 @@ const useHistoryScreen = () => {
     logProps: true
   });
 
-  const { user, services, servicesLoading, fetchUserServices } = useUserData();
+  const { user, services, servicesLoading, servicesHasMore, fetchUserServices, loadMoreServices } = useUserData();
   const { userToken } = useAuth();
 
   // Get count of services by status
@@ -27,8 +27,6 @@ const useHistoryScreen = () => {
 
   // Refresh services from UserDataContext
   const refreshServices = async () => {
-    console.log('🔄 Refreshing services from UserDataContext');
-    
     const userId = user?._id || user?.id;
     
     if (!userId || !userToken) {
@@ -41,7 +39,7 @@ const useHistoryScreen = () => {
       
       logger.info('Refreshing service history from context', { userId });
       
-      await fetchUserServices(userId, true); // true = refreshing mode
+      await fetchUserServices(userId, { refreshing: true });
       
       logger.info('Service history refreshed successfully');
       
@@ -114,7 +112,7 @@ const useHistoryScreen = () => {
     // Only fetch if we have user data but no services yet and not currently loading
     if (userId && userToken && services.length === 0 && !servicesLoading) {
       logger.info('Fetching initial services data');
-      refreshServices();
+      fetchUserServices(userId);
     } else if (!userId || !userToken) {
       setState(prev => ({ 
         ...prev, 
@@ -148,6 +146,12 @@ const useHistoryScreen = () => {
     return services.length > 0 ? services[0] : null;
   };
 
+  const handleLoadMore = async () => {
+    const userId = user?._id || user?.id;
+    if (!userId || !userToken) return;
+    await loadMoreServices(userId);
+  };
+
   const models = {
     services: services || [],
     isLoading: servicesLoading,
@@ -156,12 +160,14 @@ const useHistoryScreen = () => {
     hasServices: hasServices(),
     hasCompletedServices: hasCompletedServices(),
     mostRecentService: getMostRecentService(),
-    statusCounts: getStatusCounts(services || [])
+    statusCounts: getStatusCounts(services || []),
+    hasMore: servicesHasMore,
   };
 
   const operations = {
     handleRefresh,
     handleRetry,
+    handleLoadMore,
     getServicesByStatus,
     getServicesCount
   };

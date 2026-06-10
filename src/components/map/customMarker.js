@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { scale } from 'react-native-size-matters';
+import { colors, borderRadius } from '../../theme';
 
 const CustomMarker = ({ title, time, color }) => {
   return (
@@ -17,7 +18,7 @@ const CustomMarker = ({ title, time, color }) => {
         </View>
       ) : (
         <View style={[styles.uniformContainer, { backgroundColor: color }]}>
-          <Text style={[styles.title, {color:"#fff"}]}>{title}</Text>
+          <Text style={[styles.title, { color: colors.surface }]}>{title}</Text>
         </View>
       )}
 
@@ -41,50 +42,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: scale(20),
-    marginBottom: scale(5), // Space between the info container and the pin
+    borderRadius: borderRadius.xxl,
+    marginBottom: scale(5),
     overflow: 'hidden',
   },
   uniformContainer: {
     paddingVertical: scale(5),
     paddingHorizontal: scale(10),
-    borderRadius: scale(20),
+    borderRadius: borderRadius.xxl,
     marginBottom: scale(5),
     overflow: "hidden",
   },
   leftContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     paddingVertical: scale(5),
     paddingHorizontal: scale(10),
-    borderTopLeftRadius: scale(20),
-    borderBottomLeftRadius: scale(20),
+    borderTopLeftRadius: borderRadius.xxl,
+    borderBottomLeftRadius: borderRadius.xxl,
   },
   rightContainer: {
     paddingVertical: scale(5),
     paddingHorizontal: scale(10),
-    borderTopRightRadius: scale(20),
-    borderBottomRightRadius: scale(20),
+    borderTopRightRadius: borderRadius.xxl,
+    borderBottomRightRadius: borderRadius.xxl,
   },
   title: {
-    color: '#000',
+    color: colors.textPrimary,
     fontSize: scale(12),
     fontWeight: 'bold',
   },
   time: {
-    color: '#fff',
+    color: colors.surface,
     fontSize: scale(10),
   },
   pin: {
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    width: scale(4), // Adjust width for a bigger outer circle
-    height: scale(36), // Adjust height for the pin shape
+    width: scale(4),
+    height: scale(36),
   },
   pinOuterCircle: {
     width: scale(20),
     height: scale(20),
-    borderRadius: scale(10), // Makes the circle round
+    borderRadius: scale(10),
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
@@ -93,8 +94,8 @@ const styles = StyleSheet.create({
   pinInnerCircle: {
     width: scale(10),
     height: scale(10),
-    backgroundColor: '#fff',
-    borderRadius: scale(65),
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.full,
   },
 });
 

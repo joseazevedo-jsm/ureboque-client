@@ -11,22 +11,30 @@ import {
 import { scale } from "react-native-size-matters";
 import { useOTPModal } from "./components/useOTPModal";
 import { colors, spacing, shadows, borderRadius } from "../../../theme";
+import Animated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 const OTPModal = ({
   visible,
   OTPChange,
   number,
   isLoading,
-  onClose
+  onClose,
+  onResend,
+  hasError = false,
 }) => {
-  const {models, operations} = useOTPModal(OTPChange)
+  const {models, operations} = useOTPModal(OTPChange, onResend)
+  const shakeX = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeX.value }] }));
 
-  
   useEffect(() => {
     if (visible) {
-      // Clear OTP fields when modal opens to ensure fresh start
       operations.resetOtp();
-      // Auto-focus on the first input after a small delay
       setTimeout(() => {
         if (models.inputRefs.current[0]) {
           models.inputRefs.current[0].focus();
@@ -34,6 +42,18 @@ const OTPModal = ({
       }, 100);
     }
   }, [visible]);
+
+  useEffect(() => {
+    if (hasError) {
+      shakeX.value = withSequence(
+        withTiming(-8, { duration: 50 }),
+        withTiming(8, { duration: 50 }),
+        withTiming(-6, { duration: 50 }),
+        withTiming(6, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
+    }
+  }, [hasError]);
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -46,26 +66,32 @@ const OTPModal = ({
           
           {isLoading && (
             <View style={styles.verifyingContainer}>
-              <ActivityIndicator size="small" color="#0089FF" />
+              <ActivityIndicator size="small" color={colors.primary} />
               <Text style={styles.verifyingText}>Verificando código...</Text>
             </View>
           )}
 
-          <View style={styles.otpInputs}>
+          <Animated.View style={[styles.otpInputs, shakeStyle]}>
             {models.otp.map((digit, index) => (
-              <TextInput
+              <Animated.View
                 key={index}
-                ref={(ref) => (models.inputRefs.current[index] = ref)}
-                style={[styles.otpInput, isLoading && styles.otpInputDisabled]}
-                keyboardType="numeric"
-                maxLength={1}
-                value={digit}
-                onChangeText={(text) => operations.handleOtpChange(text, index)}
-                onKeyPress={(e) => operations.handleKeyPress(e, index)}
-                editable={!isLoading}
-              />
+                entering={FadeInDown.delay(index * 60).springify().damping(28).stiffness(180)}
+              >
+                <TextInput
+                  ref={(ref) => (models.inputRefs.current[index] = ref)}
+                  style={[styles.otpInput, isLoading && styles.otpInputDisabled]}
+                  keyboardType="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChangeText={(text) => operations.handleOtpChange(text, index)}
+                  onKeyPress={(e) => operations.handleKeyPress(e, index)}
+                  editable={!isLoading}
+                  accessibilityLabel={`Dígito ${index + 1} do código`}
+                  accessibilityRole="text"
+                />
+              </Animated.View>
             ))}
-          </View>
+          </Animated.View>
 
           <TouchableOpacity
             style={styles.resendButton}

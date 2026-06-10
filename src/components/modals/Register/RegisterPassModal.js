@@ -10,7 +10,7 @@ import { TextInput } from "react-native-gesture-handler";
 import { scale } from "react-native-size-matters";
 import RegisterInfoModal from "./RegisterInfoModal";
 import { useRegisterModal } from "./components/useRegisterModal";
-import { colors, borderRadius, shadows } from "../../../theme";
+import { colors, borderRadius, shadows, spacing, typography } from "../../../theme";
 const RegisterPassModal = ({ visible, changeLoginState, phone }) => {
   const { models, operations } = useRegisterModal();
 
@@ -20,7 +20,7 @@ const RegisterPassModal = ({ visible, changeLoginState, phone }) => {
         <View>
           <Text style={styles.title}>NOVA SENHA</Text>
           <View style={styles.inputInfo}>
-            <Text style={{ fontSize: scale(16), alignSelf: "center", color: "#64748B", textAlign: "center", lineHeight: scale(24) }}>
+            <Text style={{ fontSize: scale(16), alignSelf: "center", color: colors.textSecondary, textAlign: "center", lineHeight: scale(24) }}>
               Introduza uma nova senha para a sua conta!
             </Text>
             <View style={styles.input}>
@@ -29,12 +29,16 @@ const RegisterPassModal = ({ visible, changeLoginState, phone }) => {
                 placeholder="Nova senha"
                 style={styles.inputBox}
                 onChangeText={operations.onPasswordTextChange}
+                accessibilityLabel="Campo de nova senha"
+                accessibilityRole="text"
               />
               <TextInput
                 secureTextEntry
                 placeholder="Confirme a senha"
                 style={styles.inputBox}
                 onChangeText={operations.onConfirmPasswordTextChange}
+                accessibilityLabel="Campo de confirmar senha"
+                accessibilityRole="text"
               />
             </View>
             {models.errors.length > 0 && (
@@ -68,6 +72,7 @@ const RegisterPassModal = ({ visible, changeLoginState, phone }) => {
         onChangeEmail={operations.onEmailTextChange}
         onCreateUser={operations.handleCreateUser}
         errors={models.errorsUser}
+        isCreating={models.isCreating}
       />
     </Modal>
   );
@@ -77,40 +82,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "space-between",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.background,
   },
   title: {
-    fontSize: scale(40),
-    fontWeight: "800",
-    color: "#1E293B",
+    ...typography.h1,
     textAlign: "center",
-    paddingHorizontal: scale(10),
+    paddingHorizontal: spacing.sm,
     paddingTop: scale(80),
   },
   inputInfo: {
-    marginHorizontal: scale(20),
+    marginHorizontal: spacing.xl,
     paddingVertical: scale(50),
   },
   input: {},
   inputBox: {
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: scale(14),
+    borderRadius: borderRadius.lg,
     fontSize: scale(15),
     paddingVertical: scale(14),
-    paddingHorizontal: scale(16),
-    marginTop: scale(15),
-    backgroundColor: "#fff",
-    color: "#1E293B",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
+    ...shadows.sm,
   },
   bottom: {
     backgroundColor: colors.primary,
-    marginHorizontal: scale(20),
+    marginHorizontal: spacing.xl,
     alignItems: "center",
     borderRadius: borderRadius.xl,
     marginBottom: scale(30),
@@ -119,25 +118,25 @@ const styles = StyleSheet.create({
   save: {
     fontSize: scale(18),
     fontWeight: "700",
-    color: "#FFF",
-    paddingVertical: scale(16),
+    color: colors.surface,
+    paddingVertical: spacing.lg,
     letterSpacing: 0.5,
   },
   errorContainer: {
-    marginTop: scale(15),
-    backgroundColor: "#FFF5F5",
-    padding: scale(12),
-    borderRadius: scale(12),
+    marginTop: spacing.lg,
+    backgroundColor: colors.errorLight,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
   },
   error: {
     fontSize: scale(14),
-    color: "#1E293B",
+    color: colors.textPrimary,
     fontWeight: "600",
   },
   errorItem: {
     fontSize: scale(14),
-    paddingHorizontal: scale(5),
-    color: "#F44336",
+    paddingHorizontal: spacing.sm,
+    color: colors.error,
     marginTop: scale(4),
   }
 });

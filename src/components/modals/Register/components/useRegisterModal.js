@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
 import { useLogger } from '../../../../hooks/useLogger';
+import { useAlert } from '../../../../context/AlertContext';
 import api from "../../../../services/APIService";
 
 export const useRegisterModal = (OTPChange) => {
   const logger = useLogger('useRegisterModal');
+  const { showAlert } = useAlert();
   
   const inputRef1 = useRef(null);
   const inputRef2 = useRef(null);
@@ -21,6 +23,7 @@ export const useRegisterModal = (OTPChange) => {
 
   const [errors, setErrors] = useState([]);
   const [errorsUser, setErrorsUser] = useState([]);
+  const [isCreating, setIsCreating] = useState(false);
 
   const [otp, setOtp] = useState(["", "", "", ""]);
   const inputRefs = useRef([]);
@@ -62,7 +65,7 @@ export const useRegisterModal = (OTPChange) => {
     { key: "name", value: name, message: "Nome é obrigatório" },
     { key: "surname", value: surname, message: "Sobrenome é obrigatório" },
     { key: "email", value: email, message: "Email é obrigatório" },
-    { key: "email", value: email.includes("@"), message: "Email inválido" },
+    { key: "email", value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), message: "Email inválido" },
   ];
 
   const onPasswordTextChange = (input) => {
@@ -103,6 +106,7 @@ export const useRegisterModal = (OTPChange) => {
 
   const handleCreateUser = async (phone) => {
     try {
+      setIsCreating(true);
       if (validateRegistrationUser()) {
         logger.debug("User registration data", { password: "***", name, email, surname, phone });
         const result = await api.post("/users/register", {
@@ -125,6 +129,19 @@ export const useRegisterModal = (OTPChange) => {
       }
     } catch (error) {
       logger.error("Registration failed", error.message);
+      const isNetworkError = !error.response;
+      showAlert({
+        type: 'error',
+        title: 'Erro no cadastro',
+        message: isNetworkError
+          ? 'Não foi possível conectar ao servidor. Verifique a sua internet e tente novamente.'
+          : error.response?.status === 409
+            ? 'Este email ou telefone já está em uso.'
+            : 'Ocorreu um erro ao criar a conta. Tente novamente.',
+        buttons: [{ text: 'OK' }],
+      });
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -207,16 +224,12 @@ export const useRegisterModal = (OTPChange) => {
     }
   };
 
-   // CHANGE TO INDIVIDUAL PACKAGES
-  const handleResend = () => {
-    resendOTP(); // Call the function passed from the parent component
-  };
-
   return {
     models: {
       modalRegisterInfoVisible,
       errors,
       errorsUser,
+      isCreating,
       inputRef1,
       inputRef2,
       inputRef3,
@@ -232,8 +245,6 @@ export const useRegisterModal = (OTPChange) => {
       onEmailTextChange,
       onSurnameTextChange,
       handleCreateUser,
-      handleOTPInputChange,
-      handleResend,
       handleOtpChange,
     },
   };

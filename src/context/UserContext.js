@@ -37,7 +37,6 @@ const LegacyUserProvider = ({ children }) => {
     user: userData.user,
     setUser: userData.setUser,
     fetchUserById: userData.fetchUserById,
-    fetchUsers: () => {}, // Legacy function kept for compatibility
     updateUser: userData.updateUser,
     saveUserFavouriteAddress: userData.saveUserFavouriteAddress,
     removeUserFavouriteAddress: userData.removeUserFavouriteAddress,
@@ -45,7 +44,6 @@ const LegacyUserProvider = ({ children }) => {
     activateDiscount: userData.activateDiscount,
     removeDiscount: userData.removeDiscount,
     userToken: auth.userToken,
-    setUserToken: () => {}, // Deprecated - use auth.login instead
     login: legacyLogin,
     logout: legacyLogout,
     isLoading: auth.isLoading || userData.isLoading,

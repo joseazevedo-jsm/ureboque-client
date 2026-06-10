@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import SocketService from '../services/SocketService';
 import { useAuth } from './AuthContext';
 import { useLogger } from '../hooks/useLogger';
@@ -19,8 +19,14 @@ export const SocketProvider = ({ children }) => {
   const { userToken, isAuthenticated } = useAuth();
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const isConnectingRef = useRef(false);
 
   const connectSocket = async (token) => {
+    if (isConnectingRef.current) {
+      logger.warn('Socket connection already in progress, skipping duplicate call');
+      return;
+    }
+    isConnectingRef.current = true;
     const timer = logger.startTimer('socket_connection');
     logger.info('Attempting socket connection');
     
@@ -59,10 +65,12 @@ export const SocketProvider = ({ children }) => {
           hasToken: !!token
         }
       }, { socket_operation: 'connect' });
-      
+
       logger.logError(error, { operation: 'socket_connection', duration: timer.end() });
       setIsConnected(false);
       logger.logStateChange('isConnected', null, false, 'connection_failed');
+    } finally {
+      isConnectingRef.current = false;
     }
   };
 

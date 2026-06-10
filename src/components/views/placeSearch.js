@@ -3,6 +3,7 @@ import { View, StyleSheet, Text, TouchableOpacity, FlatList } from "react-native
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
 import CardSpots from "../cards/cardSpots";
+import { colors, spacing, borderRadius } from "../../theme";
 
 const PlaceSearch = ({favPlaces, handleMapSearchBarPress, handleAddFavouriteButtonPress}) => {
   const renderSpotsItem = ({ item, index }) => {
@@ -21,7 +22,7 @@ const PlaceSearch = ({favPlaces, handleMapSearchBarPress, handleAddFavouriteButt
   return (
     <>
       <View style={styles.svgContainer}>
-        <Icon name="my-location" size={scale(18)} color="#0089FF" />
+        <Icon name="my-location" size={scale(18)} color={colors.primary} />
         <TouchableOpacity
           style={{marginLeft: scale(10) }}
           onPress={handleMapSearchBarPress}
@@ -35,7 +36,7 @@ const PlaceSearch = ({favPlaces, handleMapSearchBarPress, handleAddFavouriteButt
         renderItem={renderSpotsItem}
         keyExtractor={(item) => item._id.toString()}
         horizontal={true}
-        contentContainerStyle={{ marginHorizontal: scale(15) }}
+        contentContainerStyle={{ marginHorizontal: spacing.lg }}
       />
     </>
   );
@@ -45,15 +46,15 @@ const styles = StyleSheet.create({
   svgContainer: {
     width: scale(318),
     height: scale(50),
-    borderRadius: scale(7),
+    borderRadius: borderRadius.sm,
     borderWidth: scale(4),
-    borderColor: "#0089ff",
+    borderColor: colors.primary,
     overflow: "hidden",
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: scale(15),
-    paddingHorizontal: scale(16),
-    marginVertical: scale(10),
+    marginHorizontal: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    marginVertical: spacing.sm,
   },
 });
 

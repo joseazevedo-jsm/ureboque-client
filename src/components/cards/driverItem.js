@@ -3,6 +3,7 @@ import { View, TouchableOpacity, StyleSheet, Text, Image } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
 import { colors, shadows, spacing, borderRadius } from "../../theme";
+import { TRIP_STATUS } from "../../constants/tripStatus";
 
 const imgDef =
   "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
@@ -17,13 +18,13 @@ const DriverItem = ({
 }) => {
   return (
     <View>
-      <View style={{ alignItems: "center" }}>
-        <View style={{ alignItems: "center" }}>
-          {status === 0 ? (
+      <View style={styles.infoCenter}>
+        <View style={styles.infoCenter}>
+          {status === TRIP_STATUS.DRIVER_EN_ROUTE ? (
             <Text style={styles.mainText}>
               Chegando em ~{`${Math.floor(tripDuration)} minutos`}
             </Text>
-          ) : status === 1 ? (
+          ) : status === TRIP_STATUS.DRIVER_ARRIVED ? (
             <Text style={styles.mainText}>
               Seu reboque está esperando por você
             </Text>
@@ -33,71 +34,26 @@ const DriverItem = ({
             </Text>
           )}
         </View>
-        <View style={{ flexDirection: "row" }}>
-          <Text
-            style={{
-              color: colors.textPrimary,
-              fontSize: scale(12),
-              fontWeight: "bold",
-            }}
-          >
-            {driver.car.name}
-          </Text>
-          <View
-            style={{
-              marginLeft: spacing.xs,
-              backgroundColor: colors.borderLight,
-              borderRadius: borderRadius.sm,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: scale(10),
-                color: colors.textPrimary,
-                fontWeight: "bold",
-                padding: scale(3),
-              }}
-            >
-              {driver.car.licensePlate}
-            </Text>
+        <View style={styles.carInfoRow}>
+          <Text style={styles.carName}>{driver?.car?.name ?? ''}</Text>
+          <View style={styles.plateBadge}>
+            <Text style={styles.plateText}>{driver?.car?.licensePlate ?? ''}</Text>
           </View>
         </View>
       </View>
       <View>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            paddingTop: spacing.xl,
-          }}
-        >
+        <View style={styles.actionsRow}>
           <TouchableOpacity onPress={onCallDriver}>
             <View style={styles.circle}>
               <Icon name="add-call" size={scale(15)} color={colors.surface} />
             </View>
           </TouchableOpacity>
-          <View style={{ alignItems: "center" }}>
+          <View style={styles.driverAvatarContainer}>
             <Image
-              source={{
-                uri: driver?.photo || imgDef,
-              }}
-              style={{
-                width: scale(75),
-                height: scale(75),
-                borderRadius: scale(45),
-                borderWidth: 3,
-                borderColor: colors.primary,
-              }}
+              source={{ uri: driver?.photo || imgDef }}
+              style={styles.driverPhoto}
             />
-            <Text
-              style={{
-                fontSize: scale(14),
-                marginTop: spacing.xs,
-                color: colors.textMuted,
-              }}
-            >
-              {driver.name}
-            </Text>
+            <Text style={styles.driverName}>{driver.name}</Text>
           </View>
           <TouchableOpacity onPress={onMessageDriver}>
             <View style={styles.circle}>
@@ -116,6 +72,48 @@ const DriverItem = ({
 };
 
 const styles = StyleSheet.create({
+  infoCenter: {
+    alignItems: "center",
+  },
+  carInfoRow: {
+    flexDirection: "row",
+  },
+  carName: {
+    color: colors.textPrimary,
+    fontSize: scale(12),
+    fontWeight: "bold",
+  },
+  plateBadge: {
+    marginLeft: spacing.xs,
+    backgroundColor: colors.borderLight,
+    borderRadius: borderRadius.sm,
+  },
+  plateText: {
+    fontSize: scale(10),
+    color: colors.textPrimary,
+    fontWeight: "bold",
+    padding: scale(3),
+  },
+  actionsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingTop: spacing.xl,
+  },
+  driverAvatarContainer: {
+    alignItems: "center",
+  },
+  driverPhoto: {
+    width: scale(75),
+    height: scale(75),
+    borderRadius: scale(45),
+    borderWidth: 3,
+    borderColor: colors.primary,
+  },
+  driverName: {
+    fontSize: scale(14),
+    marginTop: spacing.xs,
+    color: colors.textMuted,
+  },
   mainText: {
     color: colors.textPrimary,
     fontSize: scale(18),

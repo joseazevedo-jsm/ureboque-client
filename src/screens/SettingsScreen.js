@@ -1,4 +1,5 @@
 import React from "react";
+import { version as appVersion } from '../../package.json';
 import {
   View,
   Text,
@@ -12,198 +13,199 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import useSettingsScreen from "../components/settings/useSettingsScreen";
 import { useLogger } from "../hooks/useLogger";
 import { useAlert } from "../context/AlertContext";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { colors, spacing, borderRadius, shadows, typography } from "../theme";
 
 const SettingsScreen = () => {
-  const logger = useLogger('SettingsScreen', { 
+  const logger = useLogger("SettingsScreen", {
     enableLifecycleLogging: true,
-    logProps: true 
+    logProps: true,
   });
-  
+
   const navigation = useNavigation();
   const { models, operations } = useSettingsScreen();
   const { showAlert } = useAlert();
-  
-  logger.debug('SettingsScreen rendered', {
-    hasUser: !!models?.user,
-    userName: models?.user?.name
-  });
 
-  const SettingItem = ({ icon, title, subtitle, onPress, showArrow = true, danger = false }) => (
-    <TouchableOpacity style={styles.settingItem} onPress={onPress}>
-      <View style={styles.settingIcon}>
-        <Icon name={icon} size={scale(24)} color={danger ? "#E53E3E" : "#4A5568"} />
+  const SettingItem = ({
+    icon,
+    title,
+    subtitle,
+    onPress,
+    showArrow = true,
+    danger = false,
+    last = false,
+    disabled = false,
+  }) => (
+    <TouchableOpacity
+      style={[styles.settingItem, last && styles.settingItemLast, disabled && styles.settingItemDisabled]}
+      onPress={disabled ? undefined : onPress}
+      activeOpacity={disabled ? 1 : 0.7}
+      disabled={disabled}
+    >
+      <View style={[styles.settingIconWrap, danger && styles.settingIconWrapDanger]}>
+        <Icon
+          name={icon}
+          size={scale(20)}
+          color={danger ? colors.error : colors.primary}
+        />
       </View>
       <View style={styles.settingContent}>
-        <Text style={[styles.settingTitle, danger && styles.dangerText]}>{title}</Text>
-        {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+        <Text style={[styles.settingTitle, danger && styles.dangerText]}>
+          {title}
+        </Text>
+        {subtitle && (
+          <Text style={styles.settingSubtitle}>{subtitle}</Text>
+        )}
       </View>
-      {showArrow && (
-        <Icon name="arrow-forward-ios" size={scale(16)} color="#A0AEC0" />
+      {showArrow && !disabled && (
+        <Icon name="chevron-right" size={scale(18)} color={colors.textMuted} />
       )}
     </TouchableOpacity>
   );
 
-  const SettingSection = ({ title, children }) => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContent}>
-        {children}
-      </View>
-    </View>
+  const SettingSection = ({ title, children, delay = 0 }) => (
+    <Animated.View
+      entering={FadeInDown.delay(delay).springify().damping(28).stiffness(180)}
+      style={styles.section}
+    >
+      {title ? <Text style={styles.sectionTitle}>{title}</Text> : null}
+      <View style={styles.sectionCard}>{children}</View>
+    </Animated.View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.headerContainer}>
+      <Animated.View
+        style={styles.header}
+        entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}
+      >
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => {
-            logger.logUserInteraction('back_button_pressed', { from: 'SettingsScreen' });
-            logger.logNavigation('SettingsScreen', 'previous', { action: 'back' });
-            navigation.goBack();
-          }}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          <Icon name="arrow-back" size={scale(25)} color="#0089FF" />
+          <Icon name="arrow-back" size={scale(22)} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerText}>DEFINIÇÕES</Text>
-      </View>
+        <Text style={styles.headerTitle}>DEFINIÇÕES</Text>
+        <View style={styles.headerSpacer} />
+      </Animated.View>
 
-      <ScrollView 
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.contentContainer}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Security Section */}
-        <SettingSection title="Segurança">
+        <SettingSection title="Segurança" delay={60}>
           <SettingItem
             icon="lock"
             title="Alterar Senha"
             subtitle="Mude a sua senha de acesso"
-            onPress={() => {
-              logger.logUserInteraction('change_password_pressed', { from: 'SettingsScreen' });
-              operations.handleChangePassword();
-            }}
+            onPress={() => operations.handleChangePassword()}
           />
           <SettingItem
             icon="security"
             title="Autenticação de Dois Fatores"
-            subtitle="Proteja a sua conta com 2FA"
-            onPress={() => {
-              logger.logUserInteraction('two_factor_pressed', { from: 'SettingsScreen' });
-              showAlert({ type: 'info', title: '2FA', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
-            }}
+            subtitle="Em breve"
+            last
+            disabled
           />
         </SettingSection>
 
-        {/* Account Section */}
-        <SettingSection title="Conta">
+        <SettingSection title="Conta" delay={130}>
           <SettingItem
             icon="person"
             title="Informações Pessoais"
             subtitle="Gerir os seus dados pessoais"
-            onPress={() => {
-              logger.logUserInteraction('personal_info_pressed', { from: 'SettingsScreen' });
-              navigation.goBack(); // Go back to ProfileScreen
-            }}
+            onPress={() => navigation.goBack()}
           />
           <SettingItem
-            icon="privacy_tip"
+            icon="privacy-tip"
             title="Privacidade"
-            subtitle="Controle a privacidade da sua conta"
-            onPress={() => {
-              logger.logUserInteraction('privacy_pressed', { from: 'SettingsScreen' });
-              showAlert({ type: 'info', title: 'Privacidade', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
-            }}
+            subtitle="Em breve"
+            last
+            disabled
           />
         </SettingSection>
 
-        {/* Notifications Section */}
-        <SettingSection title="Notificações">
+        <SettingSection title="Notificações" delay={200}>
           <SettingItem
             icon="notifications"
             title="Notificações Push"
-            subtitle="Gerir notificações do aplicativo"
-            onPress={() => {
-              logger.logUserInteraction('push_notifications_pressed', { from: 'SettingsScreen' });
-              showAlert({ type: 'info', title: 'Notificações', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
-            }}
+            subtitle="Em breve"
+            disabled
           />
           <SettingItem
             icon="email"
             title="Notificações por Email"
-            subtitle="Receber notificações por email"
-            onPress={() => {
-              logger.logUserInteraction('email_notifications_pressed', { from: 'SettingsScreen' });
-              showAlert({ type: 'info', title: 'Email', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
-            }}
+            subtitle="Em breve"
+            last
+            disabled
           />
         </SettingSection>
 
-        {/* Preferences Section */}
-        <SettingSection title="Preferências">
+        <SettingSection title="Preferências" delay={270}>
           <SettingItem
             icon="language"
             title="Idioma"
-            subtitle="Português"
-            onPress={() => {
-              logger.logUserInteraction('language_pressed', { from: 'SettingsScreen' });
-              showAlert({ type: 'info', title: 'Idioma', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
-            }}
+            subtitle="Em breve"
+            disabled
           />
           <SettingItem
             icon="palette"
             title="Tema"
-            subtitle="Claro"
-            onPress={() => {
-              logger.logUserInteraction('theme_pressed', { from: 'SettingsScreen' });
-              showAlert({ type: 'info', title: 'Tema', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
-            }}
+            subtitle="Em breve"
+            last
+            disabled
           />
         </SettingSection>
 
-        {/* About Section */}
-        <SettingSection title="Sobre">
+        <SettingSection title="Sobre" delay={340}>
           <SettingItem
             icon="info"
             title="Versão do App"
-            subtitle="1.0.0"
-            onPress={() => {
-              logger.logUserInteraction('app_version_pressed', { from: 'SettingsScreen' });
-            }}
+            subtitle={appVersion}
             showArrow={false}
+            onPress={() => {}}
           />
           <SettingItem
             icon="description"
             title="Termos de Serviço"
-            onPress={() => {
-              logger.logUserInteraction('terms_pressed', { from: 'SettingsScreen' });
-              showAlert({ type: 'info', title: 'Termos', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
-            }}
+            subtitle="Em breve"
+            onPress={() => {}}
           />
           <SettingItem
             icon="policy"
             title="Política de Privacidade"
-            onPress={() => {
-              logger.logUserInteraction('privacy_policy_pressed', { from: 'SettingsScreen' });
-              showAlert({ type: 'info', title: 'Política', message: 'Funcionalidade em desenvolvimento', buttons: [{ text: 'OK' }] });
-            }}
+            subtitle="Em breve"
+            last
+            onPress={() => {}}
           />
         </SettingSection>
 
-        {/* Logout Section */}
-        <SettingSection title="">
-          <SettingItem
-            icon="logout"
-            title="Terminar Sessão"
-            onPress={() => {
-              logger.logUserInteraction('logout_pressed', { from: 'SettingsScreen' });
-              operations.handleLogout();
-            }}
-            showArrow={false}
-            danger={true}
-          />
-        </SettingSection>
+        <Animated.View
+          entering={FadeInDown.delay(410).springify().damping(28).stiffness(180)}
+        >
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={() =>
+              showAlert({
+                type: 'warning',
+                title: 'Terminar Sessão',
+                message: 'Tem a certeza que deseja terminar sessão?',
+                buttons: [
+                  { text: 'Cancelar' },
+                  { text: 'Terminar', onPress: () => operations.handleLogout() },
+                ],
+              })
+            }
+            activeOpacity={0.8}
+          >
+            <Icon name="logout" size={scale(20)} color={colors.error} />
+            <Text style={styles.logoutText}>Terminar Sessão</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        <View style={styles.bottomPadding} />
       </ScrollView>
     </View>
   );
@@ -212,90 +214,116 @@ const SettingsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFE',
+    backgroundColor: colors.background,
   },
-  headerContainer: {
-    height: scale(80),
+  header: {
+    paddingTop: spacing.headerHeight,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.xxl,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: scale(20),
-    paddingTop: scale(30),
-    backgroundColor: "#fff",
+    justifyContent: "space-between",
   },
   backButton: {
-    padding: scale(5),
-  },
-  headerText: {
-    fontWeight: "bold",
-    fontSize: scale(18),
-    color: "#0089FF",
-    marginLeft: scale(80),
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: scale(20),
-    paddingVertical: scale(20),
-    paddingBottom: scale(40),
-  },
-  section: {
-    marginBottom: scale(30),
-  },
-  sectionTitle: {
-    fontSize: scale(14),
-    fontWeight: '600',
-    color: '#4A5568',
-    marginBottom: scale(12),
-    marginLeft: scale(4),
-    letterSpacing: scale(0.5),
-    textTransform: 'uppercase',
-  },
-  sectionContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: scale(12),
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: scale(2),
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: scale(8),
-    elevation: 3,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: scale(16),
-    paddingHorizontal: scale(16),
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#E2E8F0',
-  },
-  settingIcon: {
     width: scale(40),
     height: scale(40),
-    borderRadius: scale(20),
-    backgroundColor: '#F7FAFC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: scale(12),
+    borderRadius: borderRadius.xxl,
+    backgroundColor: colors.surface,
+    justifyContent: "center",
+    alignItems: "center",
+    ...shadows.sm,
+  },
+  headerTitle: {
+    ...typography.h3,
+    fontSize: scale(17),
+    letterSpacing: 0.8,
+  },
+  headerSpacer: {
+    width: scale(40),
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.sm,
+  },
+  section: {
+    marginBottom: spacing.xxl,
+  },
+  sectionTitle: {
+    ...typography.sectionTitle,
+    marginBottom: spacing.md,
+    marginLeft: spacing.xs,
+  },
+  sectionCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    overflow: "hidden",
+    ...shadows.sm,
+  },
+  settingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: scale(14),
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  settingItemLast: {
+    borderBottomWidth: 0,
+  },
+  settingItemDisabled: {
+    opacity: 0.45,
+  },
+  settingIconWrap: {
+    width: scale(36),
+    height: scale(36),
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: spacing.md,
+  },
+  settingIconWrapDanger: {
+    backgroundColor: colors.errorLight,
   },
   settingContent: {
     flex: 1,
   },
   settingTitle: {
-    fontSize: scale(16),
-    fontWeight: '500',
-    color: '#2D3748',
-    marginBottom: scale(2),
+    fontSize: scale(15),
+    fontWeight: "600",
+    color: colors.textPrimary,
   },
   settingSubtitle: {
     fontSize: scale(12),
-    color: '#718096',
-    lineHeight: scale(16),
+    color: colors.textMuted,
+    marginTop: scale(2),
   },
   dangerText: {
-    color: '#E53E3E',
+    color: colors.error,
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.errorLight,
+    borderRadius: borderRadius.xl,
+    paddingVertical: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.errorBorder,
+    gap: spacing.sm,
+  },
+  logoutText: {
+    fontSize: scale(15),
+    fontWeight: "700",
+    color: colors.error,
+  },
+  bottomPadding: {
+    height: scale(40),
   },
 });
 

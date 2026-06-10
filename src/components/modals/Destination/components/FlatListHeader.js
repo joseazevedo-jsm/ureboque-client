@@ -6,6 +6,7 @@ import { Picker } from "react-native";
 import { useState } from "react";
 import { Dropdown } from "react-native-element-dropdown";
 import { useLogger } from "../../../../hooks/useLogger";
+import { colors } from "../../../../theme";
 
 const FlatListHeader = ({
   destinationValue,
@@ -28,7 +29,7 @@ const FlatListHeader = ({
           <View style={{ width: "100%" }}>
             <View>
               <View style={styles.input}>
-                <Icon name="my-location" size={scale(25)} color="#0089ff" />
+                <Icon name="my-location" size={scale(25)} color=colors.primary />
                 <TextInput
                   style={{
                     marginLeft: scale(5),
@@ -40,7 +41,7 @@ const FlatListHeader = ({
                       ? inputOrigin
                       : "Localização atual"
                   }
-                  placeholderTextColor={"#000"}
+                  placeholderTextColor={colors.textPrimary}
                   onChangeText={onDestinationTextChange}
                   onFocus={() => {
                     onFocus(0);
@@ -49,7 +50,7 @@ const FlatListHeader = ({
                 />
               </View>
               <View style={styles.inputy}>
-                <Icon name="location-on" size={scale(25)} color="#0089ff" />
+                <Icon name="location-on" size={scale(25)} color=colors.primary />
                 <TextInput
                   ref={inputRef}
                   style={{
@@ -60,7 +61,7 @@ const FlatListHeader = ({
                   placeholder={
                     inputDestination ? inputDestination : "Para onde está indo"
                   }
-                  placeholderTextColor={"#000"}
+                  placeholderTextColor={colors.textPrimary}
                   onChangeText={onDestinationTextChange}
                   onFocus={() => {
                     onInputTextChange(onFocus);
@@ -79,7 +80,7 @@ const FlatListHeader = ({
 };
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
   },
   container: {
     flexDirection: "row",
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
   },
   inputBox: {
     borderRadius: scale(7),
-    borderColor: "#0089ff",
+    borderColor: colors.primary,
     borderWidth: scale(4),
     width: "100%",
     flexDirection: "row",
@@ -98,26 +99,26 @@ const styles = StyleSheet.create({
   input: {
     minHeight: scale(30),
     padding: scale(7),
-    borderColor: "#0089ff",
+    borderColor: colors.primary,
     borderBottomWidth: scale(2),
     flexDirection: "row",
   },
   inputy: {
     minHeight: scale(30),
     padding: scale(7),
-    borderColor: "#0089ff",
+    borderColor: colors.primary,
     borderTopWidth: scale(2),
     flexDirection: "row",
   },
   divider: {
-    borderBottomColor: "#ccc",
+    borderBottomColor: colors.legacyBorder,
     borderBottomWidth: 1,
     marginVertical: scale(5),
   },
   dropdown: {
     minHeight: scale(30),
     borderRadius: scale(7),
-    borderColor: "#0089ff",
+    borderColor: colors.primary,
     borderWidth: scale(4),
     width: Dimensions.get("window").width - scale(50),
     padding: scale(7),

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Modal } from "react-native";
+import { Modal, Platform, KeyboardAvoidingView } from "react-native";
 import {
   View,
   Text,
@@ -20,7 +20,7 @@ const imgDef = "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile
 const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnreadMessageCount, onCallDriver }) => {
   const { models, operations } = useChatModal(idService, setUnreadMessageCount);
 
-  const handeBackButtonPress = () => {
+  const handleBackButtonPress = () => {
     closeModal();
   };
 
@@ -34,23 +34,23 @@ const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnre
       const timestamp = parseInt(objectId.substring(0, 8), 16) * 1000;
       return new Date(timestamp).toISOString();
     } catch (error) {
-      console.warn('Failed to extract timestamp from ObjectId:', objectId);
       return null;
     }
   };
 
   const renderItem = ({ item, index }) => {
-    // Try to get timestamp from various possible locations
+    if (!item?.message) return null;
+
     const timestamp =
       item.message?.createdAt ||
       item.createdAt ||
       item.message?.timestamp ||
-      extractTimestampFromObjectId(item._id); // Fallback to MongoDB ObjectId timestamp
+      extractTimestampFromObjectId(item._id);
 
     return (
       <ChatItem
-        text={item.message.message}
-        isSender={item.message.sender === models.user.id}
+        text={item.message.message ?? ''}
+        isSender={item.message.sender === models.user?.id}
         timestamp={timestamp}
       />
     );
@@ -58,11 +58,14 @@ const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnre
 
   return (
     <Modal onRequestClose={closeModal} visible={visible} animationType="slide">
-      <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={styles.topBar}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={handeBackButtonPress}
+            onPress={handleBackButtonPress}
           >
             <Icon name="arrow-back" size={scale(26)} color={colors.primary} />
           </TouchableOpacity>
@@ -103,12 +106,15 @@ const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnre
           />
           <TouchableOpacity
             style={styles.sendButton}
-            onPress={operations.sendMessage}
+            onPress={() => {
+              if (!models.newMessage.trim()) return;
+              operations.sendMessage();
+            }}
           >
             <Icon name="send" size={scale(22)} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

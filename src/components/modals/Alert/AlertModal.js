@@ -10,6 +10,7 @@ import { BlurView } from 'expo-blur';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { scale } from 'react-native-size-matters';
 import { colors, spacing, borderRadius, typography, shadows } from '../../../theme';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 
 const TYPE_CONFIG = {
   error: { icon: 'error-outline', color: colors.error, bg: colors.errorLight },
@@ -62,7 +63,7 @@ const AlertModal = ({ visible, type = 'info', title, message, buttons = [], onDi
       onRequestClose={() => onDismiss()}
     >
       <BlurView tint="dark" intensity={40} style={styles.overlay}>
-        <View style={styles.card}>
+        <Animated.View entering={ZoomIn.springify().damping(28).stiffness(180)} style={styles.card}>
           <View style={[styles.iconCircle, { backgroundColor: config.bg }]}>
             <Icon name={config.icon} size={scale(32)} color={config.color} />
           </View>
@@ -73,7 +74,7 @@ const AlertModal = ({ visible, type = 'info', title, message, buttons = [], onDi
           <View style={[styles.buttonRow, buttons.length === 1 && styles.buttonRowSingle]}>
             {buttons.map(renderButton)}
           </View>
-        </View>
+        </Animated.View>
       </BlurView>
     </Modal>
   );

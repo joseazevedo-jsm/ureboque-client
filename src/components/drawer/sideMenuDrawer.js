@@ -15,6 +15,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import { UserContext } from "../../context/UserContext";
 import { useTripState } from "../../context/TripStateContext";
 import { useAlert } from "../../context/AlertContext";
+import { colors } from "../../theme";
 
 // Import custom icons
 import ProfileIcon from "../../../resources/icons/side_bar/profile.png";
@@ -43,7 +44,7 @@ const DrawerMenuItem = ({ label, iconSource, iconName, onPress }) => (
     onPress={onPress}
     icon={() =>
       iconName ? (
-        <Icon name={iconName} size={scale(22)} color="#fff" style={{ opacity: 0.9 }} />
+        <Icon name={iconName} size={scale(22)} color={colors.surface} style={{ opacity: 0.9 }} />
       ) : (
         <Image
           source={iconSource}
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
   drawerContent: {
     paddingTop: scale(20),
     paddingHorizontal: scale(10),
-    backgroundColor: '#0089FF',
+    backgroundColor: colors.primary,
     flex: 1,
   },
   userProfileContainer: {
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    color: "#fff",
+    color: colors.surface,
     fontSize: scale(18),
     fontWeight: "700",
     marginBottom: scale(4),
@@ -203,7 +204,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   drawerItemLabel: {
-    color: "#fff",
+    color: colors.surface,
     fontSize: scale(15),
     fontWeight: "600",
     marginLeft: scale(-10), // Adjust alignment with icon
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
   drawerItemIcon: {
     width: scale(22),
     height: scale(22),
-    tintColor: "#fff",
+    tintColor: colors.surface,
     opacity: 0.9,
   },
 });

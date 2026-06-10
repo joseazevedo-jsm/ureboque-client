@@ -12,8 +12,10 @@ import { scale } from "react-native-size-matters";
 import Icon from "react-native-vector-icons/MaterialIcons";
 
 import { useConfirmationModal } from "./components/useConfirmationModal";
+import { useAlert } from "../../../context/AlertContext";
 import StarRating from "../../cards/starRating";
 import { colors, shadows, borderRadius, spacing, typography } from "../../../theme";
+import Animated, { FadeInUp } from "react-native-reanimated";
 
 const imgDef =
   "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
@@ -26,8 +28,19 @@ const ConfirmationModal = ({
   service,
 }) => {
   const { models, operations } = useConfirmationModal(service, closeModal);
+  const { showAlert } = useAlert();
+
   const handeBackButtonPress = () => {
     closeModal();
+  };
+
+  const handleProblemPress = () => {
+    showAlert({
+      type: 'warning',
+      title: 'Reportar Problema',
+      message: 'Para reportar um problema com esta viagem, contacte o nosso suporte através do email suporte@ureboque.com ou pelo número de apoio ao cliente.',
+      buttons: [{ text: 'Fechar' }],
+    });
   };
 
   return (
@@ -36,7 +49,7 @@ const ConfirmationModal = ({
 
         <View style={styles.overlay}>
         <TouchableOpacity style={styles.goback} onPress={handeBackButtonPress}>
-          <Icon name="close" size={scale(25)} color="#fff" />
+          <Icon name="close" size={scale(25)} color={colors.surface} />
         </TouchableOpacity>
           <View style={{ marginTop: scale(35), alignItems: "center" }}>
             <Text style={styles.billTitle}>
@@ -51,7 +64,7 @@ const ConfirmationModal = ({
           </View>
         </View>
 
-        <View style={styles.profile}>
+        <Animated.View entering={FadeInUp.delay(200).springify().damping(28).stiffness(180)} style={styles.profile}>
           <View style={{ alignItems: "center" }}>
             <View style={styles.driverPhotoContainer}>
               <Image
@@ -71,9 +84,14 @@ const ConfirmationModal = ({
           </Text>
 
           <StarRating rating={models.rating} onRate={operations.handleRate} />
-        </View>
+        </Animated.View>
         <View style={styles.bottomContainer}>
-          <TouchableOpacity style={styles.problemButton}>
+          <TouchableOpacity
+            style={styles.problemButton}
+            onPress={handleProblemPress}
+            accessibilityLabel="Reportar um problema com esta viagem"
+            accessibilityRole="button"
+          >
             <Text style={styles.problemButtonText}>
               Algum problema?
             </Text>
@@ -139,7 +157,7 @@ const styles = StyleSheet.create({
   },
   billAmount: {
     fontSize: scale(32),
-    color: "#fff",
+    color: colors.surface,
     fontWeight: "800",
     letterSpacing: 0.5,
   },
@@ -198,7 +216,7 @@ const styles = StyleSheet.create({
     ...shadows.primaryGlow,
   },
   confirmButtonText: {
-    color: "#fff",
+    color: colors.surface,
     fontSize: scale(16),
     fontWeight: "700",
     letterSpacing: 0.5,

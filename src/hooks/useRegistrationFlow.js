@@ -245,10 +245,22 @@ export const useRegistrationFlow = (initialPhone = '', initialPassword = '', sho
       return false;
     } catch (error) {
       logger.error('Registration failed', error);
+      const status = error.response?.status;
+      const serverMessage = error.response?.data?.message || error.response?.data?.error;
+
+      let message = 'Ocorreu um erro ao criar a sua conta. Tente novamente.';
+      if (status === 409 || serverMessage?.toLowerCase().includes('already')) {
+        message = 'Este número de telefone já está registado. Tente fazer login.';
+      } else if (status === 400 && serverMessage) {
+        message = serverMessage;
+      } else if (!error.response) {
+        message = 'Sem conexão com o servidor. Verifique a sua ligação à internet.';
+      }
+
       showAlert?.({
         type: 'error',
         title: 'Erro no cadastro',
-        message: 'Ocorreu um erro ao criar a sua conta. Tente novamente.',
+        message,
         buttons: [{ text: 'OK' }]
       });
       return false;

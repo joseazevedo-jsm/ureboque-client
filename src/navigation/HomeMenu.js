@@ -2,6 +2,7 @@ import React from "react";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import SideMenuDrawer from "../components/drawer/sideMenuDrawer";
 import { scale } from "react-native-size-matters";
+import { colors } from "../theme";
 import MapScreen from "../screens/MapScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import PromotionScreen from "../screens/PromotionScreen";
@@ -34,9 +35,9 @@ const HomeMenu = () => {
 
 const drawerScreenOptions = {
   headerShown: false,
-  drawerActiveBackgroundColor: "#fff",
-  drawerActiveTintColor: "black",
-  drawerInactiveTintColor: "#333",
+  drawerActiveBackgroundColor: colors.surface,
+  drawerActiveTintColor: colors.textPrimary,
+  drawerInactiveTintColor: colors.textSecondary,
   drawerLabelStyle: {
     marginLeft: -25,
     fontSize: 15,

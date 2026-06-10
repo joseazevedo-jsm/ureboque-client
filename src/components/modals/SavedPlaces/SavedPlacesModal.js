@@ -30,8 +30,6 @@ const SavedPlacesModal = ({
   };
 
   const renderFlatListItem = ({ item }) => {
-    //console.log(item.place.name);
-
     if (item.place.name === "Adicionar Casa" && !item.place.coordinates) {
       return (
         <PlaceSavedItem

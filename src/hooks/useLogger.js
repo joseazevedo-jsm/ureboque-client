@@ -9,9 +9,12 @@ import Logger from '../utils/Logger';
 /**
  * Hook for component-specific logging
  * @param {string} componentName - Name of the component using the logger
+ * @param {object} [options] - Optional config (e.g. { enableLifecycleLogging: true })
  * @returns {object} - Logger methods scoped to the component
  */
-export const useLogger = (componentName) => {
+export const useLogger = (componentName, options = {}) => {
+  const { enableLifecycleLogging = false } = options;
+
   // Create component-scoped logger methods
   const componentLogger = useMemo(() => ({
     debug: (message, data) => {
@@ -69,8 +72,14 @@ export const useLogger = (componentName) => {
     
     logError: (error, context) => {
       Logger.error(componentName, 'Operation error', { error, ...context });
-    }
-  }), [componentName]);
+    },
+
+    lifecycle: (event, data) => {
+      if (enableLifecycleLogging) {
+        Logger.debug(componentName, `[lifecycle] ${event}`, data);
+      }
+    },
+  }), [componentName, enableLifecycleLogging]);
 
   return componentLogger;
 };

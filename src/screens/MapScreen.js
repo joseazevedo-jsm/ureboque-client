@@ -11,7 +11,8 @@ import MapView, { Circle, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import { LinearGradient } from "expo-linear-gradient";
 import { ScalePressable } from "../components/common/ScalePressable";
 import { BlurView } from "expo-blur";
-import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, FadeInRight, FadeInUp, useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
+import { colors, spacing, shadows, animations } from '../theme';
 import { useMapScreen } from "../components/map/useMapScreen";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
@@ -44,6 +45,7 @@ import PaymentOptions from "../components/map/paymentOptions";
 import CustomMarker from "../components/map/customMarker";
 import { KeyboardAvoidingView } from "react-native";
 import { useLogger } from "../hooks/useLogger";
+import { TRIP_STATUS } from "../constants/tripStatus";
 
 // Memoized car icon mapping for performance
 const carIconMap = {
@@ -93,6 +95,24 @@ const MapScreen = memo(() => {
   const logger = useLogger('MapScreen');
   const { models, operations } = useMapScreen();
 
+  // Dynamic recenter button — always 20pt above the active sheet's minimum snap
+  const buttonBottom = useSharedValue(scale(300));
+  useEffect(() => {
+    const snapMap = {
+      initial:        scale(280),
+      carType:        scale(270),
+      userCarInfo:    scale(320),
+      payment:        scale(320),
+      rideSearch:     scale(270),
+      tripStarted:    scale(310),
+      driverArriving: scale(310),
+      tripEnding:     scale(310),
+    };
+    const target = snapMap[models.activeBottomSheet] ?? scale(280);
+    buttonBottom.value = withSpring(target + spacing.xl, animations.spring.enter);
+  }, [models.activeBottomSheet]);
+  const recenterAnimatedStyle = useAnimatedStyle(() => ({ bottom: buttonBottom.value }));
+
   logger.debug('MapScreen rendered', {
     activeBottomSheet: models.activeBottomSheet,
     hasDestination: !!models.destination,
@@ -128,7 +148,7 @@ const MapScreen = memo(() => {
                   : 0
                 : null
             }
-            color={index === 0 ? "#0089FF" : "#FF005E"}
+            color={index === 0 ? colors.primary : colors.destinationPin}
           />
         </Marker>
       );
@@ -272,7 +292,7 @@ const MapScreen = memo(() => {
             {models.currentRoute && models.currentRoute.length > 0 && (
               <Polyline
                 coordinates={models.currentRoute}
-                strokeColor="#0089FF"
+                strokeColor={colors.primary}
                 strokeWidth={scale(7)}
                 lineJoin="round"
                 lineCap="round"
@@ -287,8 +307,9 @@ const MapScreen = memo(() => {
 
 
       {models.isRouteVisible && !models.service ? (
-        <TouchableOpacity style={styles.details} onPress={operations.handleBackButtonPress}>
-          <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
+        <TouchableOpacity style={styles.details} onPress={operations.handleBackButtonPress} activeOpacity={0.8}>
+          <BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
+          <Icon name="arrow-back" size={scale(24)} color={colors.textPrimary} />
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
@@ -301,16 +322,15 @@ const MapScreen = memo(() => {
             tint="systemMaterialLight"
             style={StyleSheet.absoluteFill}
           />
-          <Icon name="menu" size={scale(24)} color="#1E293B" />
+          <Icon name="menu" size={scale(24)} color={colors.textPrimary} />
         </TouchableOpacity>
       )}
 
 
       {models.detailsInfo && (
-        <TouchableOpacity onPress={operations.handleBackDetailsButtonPress}>
-          <View style={styles.backDetails}>
-            <Icon name="arrow-back" size={scale(30)} color="#0089FF" />
-          </View>
+        <TouchableOpacity style={styles.backDetails} onPress={operations.handleBackDetailsButtonPress} activeOpacity={0.8}>
+          <BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
+          <Icon name="arrow-back" size={scale(24)} color={colors.textPrimary} />
         </TouchableOpacity>
       )}
 
@@ -330,18 +350,18 @@ const MapScreen = memo(() => {
         >
           <CustomMarker
             title={models.markerCity || "Carregando..."}
-            color={models.inputLocationObject === 0 ? "#0089FF" : "#FF005E"}
+            color={models.inputLocationObject === 0 ? colors.primary : colors.destinationPin}
           />
         </View>
       )}
 
       {models.isRouteVisible && (
-        <TouchableOpacity
-          style={styles.recenterButton}
-          onPress={operations.handleRecenterMap}
-        >
-          <Icon name="my-location" size={scale(24)} color="#0089FF" />
-        </TouchableOpacity>
+        <Animated.View entering={FadeIn.duration(200)} style={[styles.recenterButtonWrapper, recenterAnimatedStyle]}>
+          <ScalePressable onPress={operations.handleRecenterMap} style={styles.recenterButton}>
+            <BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
+            <Icon name="my-location" size={scale(24)} color={colors.primary} />
+          </ScalePressable>
+        </Animated.View>
       )}
 
       <BottomSheetModalProvider>
@@ -372,11 +392,11 @@ const MapScreen = memo(() => {
                   style={styles.floatingPill}
                 >
                   <View style={styles.pillIconBubble}>
-                    <Icon name="search" size={scale(20)} color="#0089FF" />
+                    <Icon name="search" size={scale(20)} color={colors.primary} />
                   </View>
                   <Text style={styles.pillPlaceholder}>Para onde vamos?</Text>
                   <View style={styles.pillAction}>
-                    <Icon name="arrow-forward" size={scale(16)} color="#94A3B8" />
+                    <Icon name="arrow-forward" size={scale(16)} color={colors.textMuted} />
                   </View>
                 </LinearGradient>
               </ScalePressable>
@@ -409,22 +429,24 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <Text
-            style={{
-              fontSize: scale(18),
-              alignSelf: "center",
-              color: "#0089FF",
-              fontWeight: "900",
-              marginBottom: scale(10),
-            }}
-          >
-            SELECIONE O TIPO DE CARRO
-          </Text>
-          <FlatList
-            data={models.prices}
-            renderItem={renderCarTypesItem}
-            keyExtractor={(item) => item._id.toString()}
-          />
+          <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
+            <Text
+              style={{
+                fontSize: scale(18),
+                alignSelf: "center",
+                color: colors.primary,
+                fontWeight: "900",
+                marginBottom: scale(10),
+              }}
+            >
+              SELECIONE O TIPO DE CARRO
+            </Text>
+            <FlatList
+              data={models.prices}
+              renderItem={renderCarTypesItem}
+              keyExtractor={(item) => item._id.toString()}
+            />
+          </Animated.View>
         </BottomSheetModal>
 
         <BottomSheetModal
@@ -440,15 +462,17 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <UserCarInfo
-            handleBrandInputValueChange={operations.handleBrandInputValueChange}
-            handleColorInputValueChange={operations.handleColorInputValueChange}
-            handleLicenseInputValueChange={
-              operations.handleLicenseInputValueChange
-            }
-            handleModelInputValueChange={operations.handleModelInputValueChange}
-            handleConfirmButtonPress={operations.handleConfirmButtonPress}
-          />
+          <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
+            <UserCarInfo
+              handleBrandInputValueChange={operations.handleBrandInputValueChange}
+              handleColorInputValueChange={operations.handleColorInputValueChange}
+              handleLicenseInputValueChange={
+                operations.handleLicenseInputValueChange
+              }
+              handleModelInputValueChange={operations.handleModelInputValueChange}
+              handleConfirmButtonPress={operations.handleConfirmButtonPress}
+            />
+          </Animated.View>
         </BottomSheetModal>
 
         <BottomSheetModal
@@ -464,7 +488,9 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <PaymentOptions handleConfirmPaymentPress={operations.handleConfirmPaymentPress} models={models} />
+          <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
+            <PaymentOptions handleConfirmPaymentPress={operations.handleConfirmPaymentPress} models={models} />
+          </Animated.View>
         </BottomSheetModal>
         <BottomSheetModal
           ref={models.rideSearchSheetRef}
@@ -479,15 +505,21 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <DriverSearch
-            destination={models.destinationCity}
-            origin={models.originCity}
-            timer={models.timer}
-            formatTime={operations.formatTime}
-            accepted={models.driverConnected}
-            onCancelSearch={operations.handleCancelSearch}
-            calculateProgress={operations.calculateProgress}
-          />
+          <Animated.View
+            key={models.activeBottomSheet}
+            style={{ flex: 1 }}
+            entering={FadeIn.duration(240)}
+          >
+            <DriverSearch
+              destination={models.destinationCity}
+              origin={models.originCity}
+              timer={models.timer}
+              formatTime={operations.formatTime}
+              accepted={models.driverConnected}
+              onCancelSearch={operations.handleCancelSearch}
+              calculateProgress={operations.calculateProgress}
+            />
+          </Animated.View>
         </BottomSheetModal>
 
         <BottomSheetModal
@@ -503,19 +535,25 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <DriverStatus
-            status={0}
-            driver={models?.driver}
-            origin={models.originCity}
-            destination={models.destinationCity}
-            tripDuration={models.tripDuration}
-            onCancelTrip={operations.handlePreCancelButtonPress}
-            onDetailsTrip={operations.handleDetailsForm}
-            onMessageDriver={operations.handleMessageDriver}
-            onCallDriver={operations.handleCallDriver}
-            bttmSheetRef={models.tripStartedSheetRef}
-            unreadMessageCount={models.unreadMessageCount}
-          />
+          <Animated.View
+            key={models.activeBottomSheet}
+            style={{ flex: 1 }}
+            entering={FadeIn.duration(240)}
+          >
+            <DriverStatus
+              status={TRIP_STATUS.DRIVER_EN_ROUTE}
+              driver={models?.driver}
+              origin={models.originCity}
+              destination={models.destinationCity}
+              tripDuration={models.tripDuration}
+              onCancelTrip={operations.handlePreCancelButtonPress}
+              onDetailsTrip={operations.handleDetailsForm}
+              onMessageDriver={operations.handleMessageDriver}
+              onCallDriver={operations.handleCallDriver}
+              bttmSheetRef={models.tripStartedSheetRef}
+              unreadMessageCount={models.unreadMessageCount}
+            />
+          </Animated.View>
         </BottomSheetModal>
 
         <BottomSheetModal
@@ -531,19 +569,25 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <DriverStatus
-            status={1}
-            driver={models?.driver}
-            origin={models.originCity}
-            destination={models.destinationCity}
-            tripDuration={models.tripDuration}
-            onCancelTrip={operations.handleCancelTrip}
-            onDetailsTrip={operations.handleDetailsForm}
-            onMessageDriver={operations.handleMessageDriver}
-            onCallDriver={operations.handleCallDriver}
-            bttmSheetRef={models.driverArrivingSheetRef}
-            unreadMessageCount={models.unreadMessageCount}
-          />
+          <Animated.View
+            key={models.activeBottomSheet}
+            style={{ flex: 1 }}
+            entering={FadeIn.duration(240)}
+          >
+            <DriverStatus
+              status={TRIP_STATUS.DRIVER_ARRIVED}
+              driver={models?.driver}
+              origin={models.originCity}
+              destination={models.destinationCity}
+              tripDuration={models.tripDuration}
+              onCancelTrip={operations.handleCancelTrip}
+              onDetailsTrip={operations.handleDetailsForm}
+              onMessageDriver={operations.handleMessageDriver}
+              onCallDriver={operations.handleCallDriver}
+              bttmSheetRef={models.driverArrivingSheetRef}
+              unreadMessageCount={models.unreadMessageCount}
+            />
+          </Animated.View>
         </BottomSheetModal>
 
         <BottomSheetModal
@@ -559,19 +603,25 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <DriverStatus
-            status={2}
-            driver={models?.driver}
-            origin={models.originCity}
-            destination={models.destinationCity}
-            tripDuration={models.tripDuration}
-            onCancelTrip={operations.handleCancelTrip}
-            onDetailsTrip={operations.handleDetailsForm}
-            onMessageDriver={operations.handleMessageDriver}
-            onCallDriver={operations.handleCallDriver}
-            bttmSheetRef={models.driverArrivingSheetRef}
-            unreadMessageCount={models.unreadMessageCount}
-          />
+          <Animated.View
+            key={models.activeBottomSheet}
+            style={{ flex: 1 }}
+            entering={FadeIn.duration(240)}
+          >
+            <DriverStatus
+              status={TRIP_STATUS.IN_PROGRESS}
+              driver={models?.driver}
+              origin={models.originCity}
+              destination={models.destinationCity}
+              tripDuration={models.tripDuration}
+              onCancelTrip={operations.handleCancelTrip}
+              onDetailsTrip={operations.handleDetailsForm}
+              onMessageDriver={operations.handleMessageDriver}
+              onCallDriver={operations.handleCallDriver}
+              bttmSheetRef={models.driverArrivingSheetRef}
+              unreadMessageCount={models.unreadMessageCount}
+            />
+          </Animated.View>
         </BottomSheetModal>
 
         <BottomSheetModal
@@ -586,18 +636,20 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          {models.driver && models.service && (
-            <DetailsItem
-              origin={models.originCity}
-              destination={models.destinationCity}
-              driver={models?.driver}
-              clientCar={`${models.brand} | ${models.model} | ${models.color} | ${models.license}`}
-              paymentMethod={models?.service?.payment?.method}
-              paymentPrice={models.ridePrice}
-              type={models?.service?.type_car}
-              onBackPress={operations.handleBackDetailsButtonPress}
-            />
-          )}
+          <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
+            {models.driver && models.service && (
+              <DetailsItem
+                origin={models.originCity}
+                destination={models.destinationCity}
+                driver={models?.driver}
+                clientCar={`${models.brand} | ${models.model} | ${models.color} | ${models.license}`}
+                paymentMethod={models?.service?.payment?.method}
+                paymentPrice={models.ridePrice}
+                type={models?.service?.type_car}
+                onBackPress={operations.handleBackDetailsButtonPress}
+              />
+            )}
+          </Animated.View>
         </BottomSheetModal>
 
         <BottomSheetModal
@@ -635,7 +687,7 @@ const MapScreen = memo(() => {
                 style={styles.secondaryButton}
                 onPress={operations.handleReturnToSearchFromDragMarker}
               >
-                <Icon name="search" size={scale(18)} color="#64748B" />
+                <Icon name="search" size={scale(18)} color={colors.textSecondary} />
                 <Text style={styles.secondaryButtonText}>
                   Voltar
                 </Text>
@@ -742,28 +794,43 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.5)',
   },
-  recenterButton: {
+  details: {
+    width: scale(48),
+    height: scale(48),
     position: 'absolute',
-    bottom: scale(330),
-    right: scale(20),
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(15),
-    backgroundColor: '#fff',
+    borderRadius: scale(24),
+    top: scale(44),
+    left: scale(20),
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: scale(2), height: scale(2) },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 5,
+    overflow: 'hidden',
+    ...shadows.md,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  recenterButtonWrapper: {
+    position: 'absolute',
+    right: spacing.xl,
+  },
+  recenterButton: {
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(24),
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    ...shadows.md,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
   },
   svgContainer: {
     width: scale(318),
     height: scale(50),
     borderRadius: scale(7),
     borderWidth: scale(4),
-    borderColor: "#0089ff",
+    borderColor: colors.primary,
     overflow: "hidden",
     flexDirection: "row",
     alignItems: "center",
@@ -772,17 +839,19 @@ const styles = StyleSheet.create({
     marginVertical: scale(10),
   },
   backDetails: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(20),
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: scale(2), height: scale(2) },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 5,
+    width: scale(48),
+    height: scale(48),
+    position: 'absolute',
+    borderRadius: scale(24),
+    top: scale(44),
+    left: scale(20),
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    ...shadows.md,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
   },
   containerInputs: {
     justifyContent: "center",
@@ -799,7 +868,7 @@ const styles = StyleSheet.create({
     height: scale(50),
     borderRadius: scale(7),
     borderWidth: scale(4),
-    borderColor: "#0089ff",
+    borderColor: colors.primary,
     overflow: "hidden",
     marginHorizontal: scale(10),
     paddingHorizontal: scale(10),
@@ -808,7 +877,7 @@ const styles = StyleSheet.create({
     width: scale(310),
     height: scale(50),
     borderRadius: scale(7),
-    backgroundColor: "#0089ff",
+    backgroundColor: colors.primary,
     marginHorizontal: scale(20),
     justifyContent: "center",
     alignItems: "center",
@@ -828,9 +897,9 @@ const styles = StyleSheet.create({
     width: scale(35),
     height: scale(35),
     borderRadius: scale(75),
-    borderColor: "#0089ff",
+    borderColor: colors.primary,
     borderWidth: scale(2),
-    backgroundColor: "#0089ff",
+    backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
@@ -877,7 +946,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: scale(16),
-    color: "#1E293B",
+    color: colors.textPrimary,
     fontWeight: "800",
     marginTop: scale(15),
     marginBottom: scale(20),
@@ -885,7 +954,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     borderRadius: scale(16),
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.background,
     padding: scale(16),
     marginBottom: scale(20),
     flexDirection: "row",
@@ -895,7 +964,7 @@ const styles = StyleSheet.create({
     borderRadius: scale(16),
     padding: scale(2), // serves as border width
     elevation: 4,
-    shadowColor: "#0089FF",
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -918,7 +987,7 @@ const styles = StyleSheet.create({
   floatingPillContainer: {
     marginHorizontal: scale(24), // Wider margins for "floating" look
     marginBottom: scale(28),
-    shadowColor: "#0089FF",
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 }, // Softer shadow
     shadowOpacity: 0.12,
     shadowRadius: 16,
@@ -1010,7 +1079,7 @@ const styles = StyleSheet.create({
   searchText: {
     fontSize: scale(15),
     fontWeight: '600',
-    color: "#1E293B",
+    color: colors.textPrimary,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -1040,10 +1109,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: scale(8),
-    backgroundColor: "#0089FF",
+    backgroundColor: colors.primary,
     borderRadius: scale(14),
     height: scale(48),
-    shadowColor: "#0089FF",
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

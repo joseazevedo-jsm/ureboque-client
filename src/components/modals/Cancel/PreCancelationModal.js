@@ -4,6 +4,7 @@ import { scale } from "react-native-size-matters";
 import { BlurView } from "expo-blur";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { colors, spacing, borderRadius, shadows, typography } from "../../../theme";
+import Animated, { FadeInUp } from "react-native-reanimated";
 
 const PreCancelationModal = ({ visible, closeModal, onPressCancel }) => {
   return (
@@ -15,7 +16,7 @@ const PreCancelationModal = ({ visible, closeModal, onPressCancel }) => {
       statusBarTranslucent
     >
       <BlurView style={styles.overlay} tint="dark" intensity={40}>
-        <View style={styles.card}>
+        <Animated.View entering={FadeInUp.springify().damping(28).stiffness(180)} style={styles.card}>
           <View style={styles.iconCircle}>
             <Icon name="warning-amber" size={scale(32)} color={colors.warning} />
           </View>
@@ -48,7 +49,7 @@ const PreCancelationModal = ({ visible, closeModal, onPressCancel }) => {
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </BlurView>
     </Modal>
   );

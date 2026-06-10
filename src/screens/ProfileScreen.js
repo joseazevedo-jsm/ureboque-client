@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ActivityIndicator,
   View,
   Image,
   Text,
@@ -16,6 +17,7 @@ import { extractCountryCode, extractPhoneNumber } from "../utils/phoneUtils";
 import OTPModal from "../components/modals/OTP/OTPModal";
 import KeyboardAvoidingWrapper from "../components/common/KeyboardAvoidingWrapper";
 import { colors, spacing, shadows, borderRadius } from "../theme";
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAlert } from "../context/AlertContext";
 
 // Import your images
@@ -43,7 +45,7 @@ const ProfileScreen = () => {
   return (
     <KeyboardAvoidingWrapper style={styles.container}>
       {/* Header */}
-      <View style={styles.headerContainer}>
+      <Animated.View style={styles.headerContainer} entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => {
@@ -51,18 +53,18 @@ const ProfileScreen = () => {
             navigation.openDrawer();
           }}
         >
-          <Icon name="menu" size={scale(25)} color="#0089FF" />
+          <Icon name="menu" size={scale(22)} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerText}>PERFIL</Text>
 
         <View style={{
           paddingHorizontal: spacing.lg,
         }} />
-      </View>
+      </Animated.View>
 
       <View style={styles.contentContainer}>
         {/* Profile Image Section */}
-        <View style={styles.profileSection}>
+        <Animated.View style={styles.profileSection} entering={FadeInDown.delay(80).springify().damping(28).stiffness(180)}>
           <View style={styles.profileImageContainer}>
             <TouchableOpacity onPress={() => {
               logger.logUserInteraction('profile_image_picker_opened', { hasCurrentImage: !!models?.image || !!models?.user?.photo });
@@ -70,27 +72,27 @@ const ProfileScreen = () => {
             }}>
               <Image
                 source={{
-                  uri: models?.image ? models?.image : models?.user?.photo,
+                  uri: models?.image || models?.user?.photo || 'https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png',
                 }}
                 style={styles.profileImage}
               />
               <View style={styles.editIconContainer}>
-                <Icon name="edit" size={scale(16)} color="#FFF" />
+                <Icon name="edit" size={scale(16)} color={colors.surface} />
               </View>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Personal Information Section */}
-        <View style={styles.formSection}>
+        <Animated.View style={styles.formSection} entering={FadeInDown.delay(160).springify().damping(28).stiffness(180)}>
           <Text style={styles.sectionTitle}>Informações Pessoais</Text>
 
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Nome</Text>
             <TextInput
               style={styles.textInput}
-              placeholder={models?.user?.name.split(" ", 2)[0]}
-              placeholderTextColor="#A0AEC0"
+              value={models?.name ?? models?.user?.name?.split(" ", 2)[0] ?? ''}
+              placeholderTextColor={colors.textMuted}
               onChangeText={operations.handleNameChange}
             />
           </View>
@@ -99,8 +101,8 @@ const ProfileScreen = () => {
             <Text style={styles.inputLabel}>Sobrenome</Text>
             <TextInput
               style={styles.textInput}
-              placeholder={models?.user?.name.split(" ", 2)[1]}
-              placeholderTextColor="#A0AEC0"
+              value={models?.surname ?? models?.user?.name?.split(" ", 2)[1] ?? ''}
+              placeholderTextColor={colors.textMuted}
               onChangeText={operations.handleSurnameChange}
             />
           </View>
@@ -112,7 +114,7 @@ const ProfileScreen = () => {
                 <TextInput
                   style={styles.textInput}
                   value={`+${extractCountryCode(models?.user?.phone)}`}
-                  placeholderTextColor="#A0AEC0"
+                  placeholderTextColor={colors.textMuted}
                   editable={false}
                 />
               </View>
@@ -126,7 +128,7 @@ const ProfileScreen = () => {
                   <TextInput
                     style={styles.textInputInContainer}
                     placeholder={extractPhoneNumber(models?.user?.phone)}
-                    placeholderTextColor="#A0AEC0"
+                    placeholderTextColor={colors.textMuted}
                     value={models?.phoneNumberInput}
                     onChangeText={operations.handlePhoneNumberChange}
                     keyboardType="numeric"
@@ -142,8 +144,8 @@ const ProfileScreen = () => {
               <Image source={emailIcon} style={styles.icon_small} resizeMode="contain" />
               <TextInput
                 style={styles.textInputInContainer}
-                placeholder={models?.user?.email}
-                placeholderTextColor="#A0AEC0"
+                value={models?.email}
+                placeholderTextColor={colors.textMuted}
                 onChangeText={operations.handleEmailChange}
               />
             </View>
@@ -154,14 +156,16 @@ const ProfileScreen = () => {
             onPress={() => operations.handleSaveChanges(navigation)}
             disabled={models?.isSaving || !models?.hasChanges}
           >
-            <Text style={styles.saveButtonText}>
-              {models?.isSaving ? 'Salvando...' : 'Salvar alterações'}
-            </Text>
+            {models?.isSaving ? (
+              <ActivityIndicator size="small" color={colors.surface} />
+            ) : (
+              <Text style={styles.saveButtonText}>Salvar alterações</Text>
+            )}
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
         {/* Settings Section */}
-        <View style={styles.actionSection}>
+        <Animated.View style={styles.actionSection} entering={FadeInDown.delay(240).springify().damping(28).stiffness(180)}>
           <TouchableOpacity
             style={styles.actionItem}
             onPress={() => {
@@ -174,7 +178,7 @@ const ProfileScreen = () => {
             <Text style={styles.actionText}>Definições</Text>
             <Icon name="arrow-forward-ios" size={scale(16)} style={styles.actionArrow} />
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </View>
 
       {/* OTP Modal for Phone Number Verification */}

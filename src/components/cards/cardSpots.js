@@ -9,7 +9,7 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { colors, spacing, shadows, fontWeights } from "../../theme";
+import { colors, spacing, shadows, fontWeights, animations } from "../../theme";
 
 const CARD_WIDTH = scale(148);
 const CARD_HEIGHT = scale(78);
@@ -36,14 +36,14 @@ const CardSpots = memo(
     }, []);
 
     const handlePressIn = useCallback(() => {
-      cardScale.value = withSpring(0.97, { damping: 20, stiffness: 400 });
-      cardTranslateY.value = withSpring(2, { damping: 20, stiffness: 400 });
+      cardScale.value = withSpring(0.97, animations.spring.press);
+      cardTranslateY.value = withSpring(2, animations.spring.press);
       runOnJS(triggerHaptic)();
     }, []);
 
     const handlePressOut = useCallback(() => {
-      cardScale.value = withSpring(1, { damping: 15, stiffness: 300 });
-      cardTranslateY.value = withSpring(0, { damping: 15, stiffness: 300 });
+      cardScale.value = withSpring(1, animations.spring.release);
+      cardTranslateY.value = withSpring(0, animations.spring.release);
     }, []);
 
     const handlePress = useCallback(() => {
@@ -61,7 +61,7 @@ const CardSpots = memo(
 
     return (
       <Animated.View
-        entering={FadeInRight.delay(index * 40).springify().damping(15)}
+        entering={FadeInRight.delay(index * animations.stagger.list).springify().damping(28).stiffness(180)}
       >
         <TouchableOpacity
           activeOpacity={1}
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   cardContainer: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: scale(14),
     marginRight: spacing.md,
     marginBottom: scale(6),
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     ...shadows.md,
   },
   addCardContainer: {
-    backgroundColor: "#F0F9FF",
+    backgroundColor: colors.primaryLight,
     borderColor: colors.primary,
   },
   truckWatermark: {
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: scale(14),
     fontWeight: "700",
-    color: "#0F172A",
+    color: colors.textPrimary,
     letterSpacing: -0.2,
     textShadowColor: "rgba(255,255,255,0.9)",
     textShadowOffset: { width: 0, height: 0 },

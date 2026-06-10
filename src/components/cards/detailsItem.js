@@ -80,7 +80,7 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
             <Text style={styles.secondaryText}>Eu não consigo falar em portug...</Text>
           </View>
           <TouchableOpacity style={styles.actionButton}>
-            <Icon name="near-me" size={scale(20)} color="#fff" />
+            <Icon name="near-me" size={scale(20)} color={colors.surface} />
           </TouchableOpacity>
         </View>
 

@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     marginBottom: scale(4),
   },
   senderMessageText: {
-    color: "#FFFFFF",
+    color: colors.surface,
   },
   receiverMessageText: {
     color: colors.textPrimary,

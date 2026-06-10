@@ -4,6 +4,7 @@ import { scale } from "react-native-size-matters";
 import ProgressBar from "react-native-progress-bar-horizontal";
 import RouteItem from "../cards/routeItem";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { colors, spacing, borderRadius } from "../../theme";
 
 const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCancelSearch, calculateProgress }) => {
   return (
@@ -23,8 +24,8 @@ const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCanc
         <ProgressBar
           progress={calculateProgress ? calculateProgress() : (1 - timer / 180)}
           borderWidth={0}
-          fillColor="#0089FF"
-          unfilledColor="rgba(0,0,0,0.05)"
+          fillColor={colors.primary}
+          unfilledColor={colors.border}
           height={scale(4)}
           borderColor="transparent"
           duration={100}
@@ -55,7 +56,7 @@ const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCanc
 
       <TouchableOpacity onPress={() => onCancelSearch()} style={styles.cancelButton}>
         <View style={styles.cancelIconContainer}>
-          <Icon name="close" size={scale(16)} color="#DC2626" />
+          <Icon name="close" size={scale(16)} color={colors.error} />
         </View>
         <Text style={styles.cancelText}>Cancelar Viagem</Text>
       </TouchableOpacity>
@@ -65,66 +66,66 @@ const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCanc
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: scale(20),
-    paddingBottom: scale(20),
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xl,
   },
   header: {
     width: '100%',
-    marginBottom: scale(16),
+    marginBottom: spacing.lg,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: 'center',
-    marginBottom: scale(12),
+    marginBottom: spacing.md,
   },
   mainText: {
     fontSize: scale(18),
     fontWeight: "800",
-    color: "#1E293B",
+    color: colors.textPrimary,
     letterSpacing: 0.5,
   },
   timerText: {
     fontSize: scale(18),
     fontWeight: "800",
-    color: "#0089FF",
+    color: colors.primary,
     fontVariant: ['tabular-nums'],
   },
   descriptionContainer: {
-    marginTop: scale(16),
+    marginTop: spacing.lg,
   },
   descriptionText: {
     fontSize: scale(14),
-    color: "#64748B",
+    color: colors.textSecondary,
     lineHeight: scale(20),
     fontWeight: "500",
   },
   routeContainer: {
-    paddingVertical: scale(16),
+    paddingVertical: spacing.lg,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    marginVertical: scale(8),
+    borderColor: colors.border,
+    marginVertical: spacing.sm,
   },
   spacer: {
-    height: scale(20),
+    height: spacing.xl,
   },
   cancelButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEF2F2', // Light Red Background
+    backgroundColor: colors.errorSurface,
     paddingVertical: scale(14),
-    borderRadius: scale(12),
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: colors.errorBorder,
   },
   cancelIconContainer: {
-    marginRight: scale(8),
+    marginRight: spacing.sm,
   },
   cancelText: {
     fontSize: scale(15),
-    color: "#DC2626",
+    color: colors.error,
     fontWeight: "700",
   },
 });

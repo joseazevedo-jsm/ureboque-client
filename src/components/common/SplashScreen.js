@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, Image } from 'react-native';
+import { colors } from '../../theme';
 
 const SplashScreen = () => {
   return (
     <View style={{
       flex: 1,
-      backgroundColor: '#0089FF',
+      backgroundColor: colors.primary,
       justifyContent: 'center',
       alignItems: 'center'
     }}>
@@ -15,54 +16,47 @@ const SplashScreen = () => {
         alignItems: 'center',
         paddingHorizontal: 40
       }}>
-        {/* Main Logo Section */}
         <View style={{
           alignItems: 'center',
           marginBottom: 60
         }}>
-          {/* Ureboque Logo */}
-          <Image 
-            source={require('../../../resources/icons/UREB_LOGO.png')} 
+          <Image
+            source={require('../../../resources/icons/UREB_LOGO.png')}
             style={{
               width: 100,
               height: 100,
               marginBottom: 20,
-              tintColor: '#FFFFFF' // Make logo white for blue background
+              tintColor: colors.surface,
             }}
             resizeMode="contain"
           />
-          
-          {/* Ureboque Text Logo */}
-          <Image 
-            source={require('../../../resources/icons/UREB_TEXT.png')} 
+          <Image
+            source={require('../../../resources/icons/UREB_TEXT.png')}
             style={{
               width: 200,
               height: 50,
-              tintColor: '#FFFFFF' // Make text white for blue background
+              tintColor: colors.surface,
             }}
             resizeMode="contain"
           />
         </View>
-        
-     
-        {/* Tagline */}
+
         <Text style={{
           fontSize: 16,
-          color: '#E6F3FF',
+          color: colors.primaryLight,
           textAlign: 'center',
           lineHeight: 24,
           fontWeight: '300'
         }}>Serviço de Reboque Rápido e Confiável</Text>
       </View>
-      
-      {/* Footer */}
+
       <View style={{
         paddingBottom: 40,
         paddingHorizontal: 20
       }}>
         <Text style={{
           fontSize: 12,
-          color: '#B3D9FF',
+          color: colors.primaryLight,
           textAlign: 'center',
           fontWeight: '300'
         }}>© 2025 Ureboque</Text>
