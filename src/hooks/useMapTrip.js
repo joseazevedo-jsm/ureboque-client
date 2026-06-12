@@ -335,7 +335,7 @@ export const useMapTrip = ({
         socket.emit('chooseBestDriver', {
           idService: resp.data._id,
           userLocation: [markers[0].longitude, markers[0].latitude],
-          user: user._id,
+          idUser: user.id,
         });
       }
       return resp.data;

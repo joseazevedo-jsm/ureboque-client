@@ -26,7 +26,7 @@ export const useMapDrivers = ({ userLocation, tripService }) => {
       const nearbyDrivers = resp.data.map((d) => ({
         latitude: d.location.latitude,
         longitude: d.location.longitude,
-        color: d.driver.car.color,
+        color: d.driver?.car?.color,
       }));
       setCarsAround(nearbyDrivers);
     } catch (error) {
