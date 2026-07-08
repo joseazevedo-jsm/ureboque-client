@@ -193,7 +193,7 @@ const PasswordCreationScreen = () => {
             styles.continueButtonText,
             passwordValidationRules.every(rule => rule.rule) ? styles.continueButtonTextActive : styles.continueButtonTextInactive
           ]}>
-            CONTINUAR
+            Continuar
           </Text>
         </TouchableOpacity>
       </View>

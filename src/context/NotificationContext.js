@@ -3,6 +3,7 @@ import NotificationService from '../services/NotificationService';
 import { useLogger } from '../hooks/useLogger';
 import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { navigate } from '../services/NavigationService';
 
 const NotificationContext = createContext();
 
@@ -41,8 +42,9 @@ export const NotificationProvider = ({ children }) => {
         const data = response.notification.request.content.data;
         if (data?.type === 'driver_message') {
           logger.info('User tapped driver message notification', { data });
-          // Navigation to chat would be handled by the main navigation system
-          // You can add navigation logic here if needed
+        } else {
+          logger.info('User tapped notification, navigating to Notifications screen', { data });
+          navigate('Notificacoes');
         }
       });
     } catch (error) {

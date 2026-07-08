@@ -7,6 +7,7 @@ import { useContext, useRef } from "react";
 import HomeMenu from "./HomeMenu";
 import Logger from '../utils/Logger';
 import sentryService from '../services/SentryService';
+import { navigationRef } from '../services/NavigationService';
 import { animations, colors } from '../theme';
 
 // Registration screens
@@ -45,7 +46,6 @@ const fadeTransition = {
 
 const AppNav = () => {
   const { isLoading, userToken } = useContext(UserContext);
-  const navigationRef = useRef();
   const routeNameRef = useRef();
 
   // Navigation state change handler

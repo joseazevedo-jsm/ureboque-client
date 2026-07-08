@@ -1,82 +1,99 @@
 import * as Sentry from '@sentry/react-native';
 
-// Sentry utility functions for common operations
+const REDACTED = '[REDACTED]';
+const SENSITIVE_KEY_PATTERN = /(password|pass|token|authorization|jwt|secret|otp|code|phone|email|mail|latitude|longitude|location|coordinates|address|card|payment|message|chat|name|surname|photo|image|document|license)/i;
+const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const BEARER_PATTERN = /Bearer\s+[A-Za-z0-9._~+/=-]+/gi;
+const LONG_TOKEN_PATTERN = /\b[A-Za-z0-9_-]{24,}\b/g;
+const PHONE_PATTERN = /(\+?\d[\d\s().-]{7,}\d)/g;
+
+const redactString = (value) => (
+  value
+    .slice(0, 500)
+    .replace(EMAIL_PATTERN, REDACTED)
+    .replace(BEARER_PATTERN, REDACTED)
+    .replace(PHONE_PATTERN, REDACTED)
+    .replace(LONG_TOKEN_PATTERN, REDACTED)
+);
+
+const sanitize = (value, depth = 0) => {
+  if (value === null || value === undefined) return value;
+  if (depth > 4) return '[MAX_DEPTH]';
+  if (typeof value === 'string') return redactString(value);
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value.slice(0, 20).map((item) => sanitize(item, depth + 1));
+  if (typeof value === 'object') {
+    return Object.entries(value).slice(0, 30).reduce((acc, [key, childValue]) => {
+      acc[key] = SENSITIVE_KEY_PATTERN.test(key) ? REDACTED : sanitize(childValue, depth + 1);
+      return acc;
+    }, {});
+  }
+  return String(value);
+};
+
 export const sentryService = {
-  // Set user context
   setUser: (user) => {
     if (user) {
-      Sentry.setUser({
-        id: user.id || user.userId,
-        email: user.email,
-        username: user.name || user.username,
-        // Add any other user properties you want to track
-      });
+      Sentry.setUser({ id: user.id || user.userId });
     } else {
       Sentry.setUser(null);
     }
   },
 
-  // Set user location context
   setLocation: (location) => {
     if (location) {
       Sentry.setContext('location', {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        accuracy: location.accuracy,
+        available: true,
+        hasAccuracy: !!location.accuracy,
         timestamp: location.timestamp,
       });
     }
   },
 
-  // Add breadcrumb for user actions
   addUserAction: (action, data = {}) => {
     Sentry.addBreadcrumb({
       category: 'user',
-      message: action,
-      data: data,
+      message: sanitize(action),
+      data: sanitize(data),
       level: 'info',
     });
   },
 
-  // Add breadcrumb for navigation
   addNavigation: (from, to, data = {}) => {
     Sentry.addBreadcrumb({
       category: 'navigation',
-      message: `${from} → ${to}`,
-      data: data,
+      message: `${sanitize(from)} -> ${sanitize(to)}`,
+      data: sanitize(data),
       level: 'info',
     });
   },
 
-  // Add breadcrumb for API calls
   addApiCall: (method, url, statusCode, data = {}) => {
     Sentry.addBreadcrumb({
       category: 'api',
-      message: `${method} ${url}`,
+      message: `${method} ${sanitize(url)}`,
       data: {
-        ...data,
+        ...sanitize(data),
         statusCode,
-        url,
+        url: sanitize(url),
         method,
       },
       level: statusCode >= 400 ? 'error' : 'info',
     });
   },
 
-  // Add breadcrumb for socket events
   addSocketEvent: (event, data = {}) => {
     Sentry.addBreadcrumb({
       category: 'socket',
-      message: `Socket: ${event}`,
-      data: data,
+      message: `Socket: ${sanitize(event)}`,
+      data: sanitize(data),
       level: 'info',
     });
   },
 
-  // Capture error with context
   captureError: (error, context = {}, tags = {}) => {
     Sentry.captureException(error, {
-      contexts: context,
+      contexts: sanitize(context),
       tags: {
         ...tags,
         environment: __DEV__ ? 'development' : 'production',
@@ -84,11 +101,10 @@ export const sentryService = {
     });
   },
 
-  // Capture message with context
   captureMessage: (message, level = 'info', context = {}, tags = {}) => {
-    Sentry.captureMessage(message, level, {
-      contexts: context,
-      data: context,
+    Sentry.captureMessage(sanitize(message), level, {
+      contexts: sanitize(context),
+      data: sanitize(context),
       tags: {
         ...tags,
         environment: __DEV__ ? 'development' : 'production',
@@ -96,19 +112,16 @@ export const sentryService = {
     });
   },
 
-  // Set tag
   setTag: (key, value) => {
-    Sentry.setTag(key, value);
+    Sentry.setTag(key, sanitize(value));
   },
 
-  // Set context
   setContext: (name, context) => {
-    Sentry.setContext(name, context);
+    Sentry.setContext(name, sanitize(context));
   },
 
-  // Set extra data
   setExtra: (key, value) => {
-    Sentry.setExtra(key, value);
+    Sentry.setExtra(key, sanitize(value));
   },
 };
 

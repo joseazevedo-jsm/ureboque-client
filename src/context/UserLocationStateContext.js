@@ -14,17 +14,10 @@ export const UserLocationStateContextProvider = ({ children }) => {
       const previousLocation = userLocation;
       
       logger.info('User location updated', {
-        previousLocation: previousLocation ? {
-          latitude: previousLocation.latitude,
-          longitude: previousLocation.longitude,
-          accuracy: previousLocation.accuracy
-        } : null,
-        newLocation: location ? {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          accuracy: location.accuracy,
-          timestamp: location.timestamp
-        } : null,
+        hadPreviousLocation: !!previousLocation,
+        hasNewLocation: !!location,
+        accuracy: location?.accuracy,
+        timestamp: location?.timestamp,
         type: 'location_update'
       });
       

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,160 +6,116 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Animated,
-  Vibration,
   ActivityIndicator,
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { usePromotionScreen } from "../components/promotion/usePromotionScreen";
 import DiscountItem from "../components/cards/discountItem";
 import { useLogger } from "../hooks/useLogger";
 import KeyboardAvoidingWrapper from "../components/common/KeyboardAvoidingWrapper";
 import { colors, spacing, shadows, borderRadius } from "../theme";
 
+const BENEFITS = [
+  { icon: "flash-on", label: "Ativação\nImediata", bg: colors.primaryLight, color: colors.primary },
+  { icon: "savings", label: "Poupe nas\nViagens", bg: colors.successLight, color: colors.success },
+  { icon: "autorenew", label: "Aplicação\nAutomática", bg: colors.warningLight, color: colors.warning },
+];
+
+const STEPS = [
+  { icon: "keyboard", title: "Insira o código", desc: "Digite o código promocional no campo abaixo" },
+  { icon: "touch-app", title: "Ative", desc: "Toque no botão para aplicar o desconto" },
+  { icon: "directions-car", title: "Viaje com desconto", desc: "O desconto é aplicado automaticamente na próxima viagem" },
+];
+
 const PromotionScreen = () => {
-  const logger = useLogger('PromotionScreen', { enableLifecycleLogging: true });
+  const logger = useLogger("PromotionScreen");
   const { models, operations } = usePromotionScreen();
   const navigation = useNavigation();
 
-  // Animation states
   const [isActivating, setIsActivating] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const buttonScale = useRef(new Animated.Value(1)).current;
-  const inputScale = useRef(new Animated.Value(1)).current;
 
-  logger.debug('PromotionScreen rendered', {
-    hasActivePromo: !!(models.user?.discount?.active),
-    promoCode: models.user?.discount?.code,
-    discountsCount: models.discounts?.length || 0
-  });
-
-  const isPromoActive = models.user?.discount && models.user?.discount.active;
-
-  // Entrance animation
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+  const isPromoActive = models.user?.discount?.active;
 
   const handleActivateCode = async () => {
-    if (models.code.trim() === '') return;
-
+    if (!models.code.trim()) return;
     setIsActivating(true);
-    Vibration.vibrate([0, 100]);
-
-    // Button press animation
-    Animated.sequence([
-      Animated.timing(buttonScale, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonScale, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
     try {
       const result = await operations.handleActivateCode();
-
       if (result?.success) {
-        // Success animation
         setSuccessVisible(true);
-        Vibration.vibrate([0, 50, 50, 50]);
-
-        setTimeout(() => {
-          setSuccessVisible(false);
-        }, 3000);
+        setTimeout(() => setSuccessVisible(false), 3000);
       }
     } catch (error) {
-      logger.error('Error activating code', error);
-      Vibration.vibrate([0, 200]);
+      logger.error("Error activating code", error);
     } finally {
       setIsActivating(false);
     }
   };
 
-  const handleInputFocus = () => {
-    setInputFocused(true);
-    Animated.timing(inputScale, {
-      toValue: 1.02,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handleInputBlur = () => {
-    setInputFocused(false);
-    Animated.timing(inputScale, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  };
-
   return (
     <KeyboardAvoidingWrapper style={styles.container}>
       <ScrollView
-        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
-        <View style={styles.header}>
+        <Animated.View
+          style={styles.header}
+          entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}
+        >
           <TouchableOpacity
-            style={styles.backButton}
+            style={styles.menuButton}
             onPress={() => navigation.openDrawer()}
-            accessibilityLabel="Abrir menu"
-            accessibilityRole="button"
+            activeOpacity={0.7}
           >
-            <Icon name="menu" size={scale(24)} color="#0089FF" />
+            <Icon name="menu" size={scale(22)} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>PROMOÇÕES</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+          <View style={styles.menuButton} pointerEvents="none" />
+        </Animated.View>
 
-        {/* Hero Section */}
+        {/* Hero Card */}
         <Animated.View
-          style={[
-            styles.heroSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }
-          ]}
+          style={styles.heroCard}
+          entering={FadeInDown.delay(60).springify().damping(28).stiffness(180)}
         >
-          <View style={styles.iconContainer}>
-            <Icon name="local-offer" size={scale(60)} color="#0089FF" />
+          <View style={styles.heroIconCircle}>
+            <Icon name="local-offer" size={scale(32)} color={colors.surface} />
           </View>
-          <Text style={styles.heroTitle}>CÓDIGOS PROMOCIONAIS</Text>
+          <Text style={styles.heroTitle}>Códigos Promocionais</Text>
           <Text style={styles.heroSubtitle}>
-            Insira seu código promocional e economize nas suas viagens
+            Insira o seu código e economize{"\n"}em cada viagem com o Ureboque
           </Text>
+        </Animated.View>
+
+        {/* Benefit Tiles */}
+        <Animated.View
+          style={styles.benefitsRow}
+          entering={FadeInDown.delay(120).springify().damping(28).stiffness(180)}
+        >
+          {BENEFITS.map((b, i) => (
+            <View key={i} style={styles.benefitTile}>
+              <View style={[styles.benefitIcon, { backgroundColor: b.bg }]}>
+                <Icon name={b.icon} size={scale(22)} color={b.color} />
+              </View>
+              <Text style={styles.benefitLabel}>{b.label}</Text>
+            </View>
+          ))}
         </Animated.View>
 
         {/* Active Promotion */}
         {isPromoActive && (
-          <Animated.View style={[styles.activePromoSection, { opacity: fadeAnim }]}>
+          <Animated.View
+            style={styles.activePromo}
+            entering={FadeInDown.delay(180).springify().damping(28).stiffness(180)}
+          >
             <View style={styles.activePromoHeader}>
-              <Icon name="check-circle" size={scale(24)} color="#4CAF50" />
+              <Icon name="check-circle" size={scale(20)} color={colors.success} />
               <Text style={styles.activePromoTitle}>Promoção Ativa</Text>
             </View>
             <DiscountItem
@@ -169,120 +125,107 @@ const PromotionScreen = () => {
           </Animated.View>
         )}
 
-        {/* Input Section */}
+        {/* Input */}
         <Animated.View
-          style={[
-            styles.inputSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: inputScale }]
-            }
-          ]}
+          style={styles.inputSection}
+          entering={FadeInDown.delay(200).springify().damping(28).stiffness(180)}
         >
-          <Text style={styles.inputLabel}>Código Promocional:</Text>
-          <View style={[
-            styles.inputContainer,
-            inputFocused && styles.inputContainerFocused,
-            models.codeError && styles.inputContainerError
-          ]}>
+          <Text style={styles.sectionLabel}>Código Promocional</Text>
+          <View
+            style={[
+              styles.inputContainer,
+              inputFocused && styles.inputFocused,
+              models.codeError && styles.inputError,
+            ]}
+          >
             <Icon
               name="confirmation-number"
               size={scale(20)}
-              color={inputFocused ? "#0089FF" : "#6B6969"}
-              style={styles.inputIcon}
+              color={inputFocused ? colors.primary : colors.textMuted}
+              style={{ marginRight: spacing.md }}
             />
             <TextInput
               style={styles.textInput}
-              placeholder="Inserir código promocional"
-              placeholderTextColor="#999"
+              placeholder="Ex: UBER30OFF"
+              placeholderTextColor={colors.textMuted}
               value={models.code}
               onChangeText={operations.onCodeTextChange}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
               editable={!isPromoActive}
               autoCapitalize="characters"
-              accessibilityLabel="Campo de código promocional"
             />
           </View>
 
-          {models.codeError && (
-            <Animated.View style={styles.errorContainer}>
-              <Icon name="error" size={scale(16)} color="#f44336" />
+          {models.codeError ? (
+            <View style={styles.feedbackRow}>
+              <Icon name="error" size={scale(14)} color={colors.error} />
               <Text style={styles.errorText}>{models.codeError}</Text>
-            </Animated.View>
-          )}
-
-          {successVisible && (
-            <Animated.View style={[styles.successContainer, { opacity: fadeAnim }]}>
-              <Icon name="check-circle" size={scale(16)} color="#4CAF50" />
+            </View>
+          ) : successVisible ? (
+            <View style={styles.feedbackRow}>
+              <Icon name="check-circle" size={scale(14)} color={colors.success} />
               <Text style={styles.successText}>Código aplicado com sucesso!</Text>
-            </Animated.View>
-          )}
+            </View>
+          ) : null}
         </Animated.View>
 
-        {/* Action Button */}
-        <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+        {/* Activate Button */}
+        <Animated.View
+          style={styles.buttonWrapper}
+          entering={FadeInDown.delay(240).springify().damping(28).stiffness(180)}
+        >
           <TouchableOpacity
             style={[
               styles.actionButton,
-              isPromoActive && styles.disabledButton,
-              (isActivating || models.code.trim() === '') && styles.disabledButton
+              (isPromoActive || isActivating || !models.code.trim()) &&
+                styles.actionButtonDisabled,
             ]}
             onPress={handleActivateCode}
-            disabled={isPromoActive || isActivating || models.code.trim() === ''}
-            accessibilityLabel="Ativar código promocional"
-            accessibilityRole="button"
+            disabled={isPromoActive || isActivating || !models.code.trim()}
+            activeOpacity={0.8}
           >
             {isActivating ? (
-              <>
-                <ActivityIndicator size="small" color="#fff" style={styles.buttonIcon} />
-                <Text style={styles.buttonText}>ATIVANDO...</Text>
-              </>
+              <ActivityIndicator size="small" color={colors.surface} />
             ) : (
               <>
-                <Icon name="add-circle" size={scale(20)} color="#fff" style={styles.buttonIcon} />
-                <Text style={styles.buttonText}>
-                  {isPromoActive ? 'PROMOÇÃO ATIVA' : 'ATIVAR CÓDIGO'}
+                <Icon
+                  name={isPromoActive ? "check-circle" : "add-circle"}
+                  size={scale(20)}
+                  color={colors.surface}
+                  style={{ marginRight: spacing.sm }}
+                />
+                <Text style={styles.actionButtonText}>
+                  {isPromoActive ? "PROMOÇÃO ATIVA" : "ATIVAR CÓDIGO"}
                 </Text>
               </>
             )}
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Info Section */}
-        <View style={styles.infoSection}>
-          <View style={styles.infoCard}>
-            <View style={styles.infoIconContainer}>
-              <Icon name="help-outline" size={scale(28)} color="#0089FF" />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Como usar:</Text>
-              <View style={styles.stepsList}>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>1</Text>
-                  </View>
-                  <Text style={styles.stepText}>Digite o código promocional no campo acima</Text>
+        {/* How it works */}
+        <Animated.View
+          style={styles.stepsSection}
+          entering={FadeInDown.delay(300).springify().damping(28).stiffness(180)}
+        >
+          <Text style={styles.sectionLabel}>Como funciona</Text>
+          {STEPS.map((step, i) => (
+            <View key={i} style={styles.stepCard}>
+              <View style={styles.stepLeft}>
+                <View style={styles.stepIconCircle}>
+                  <Icon name={step.icon} size={scale(20)} color={colors.primary} />
                 </View>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>2</Text>
-                  </View>
-                  <Text style={styles.stepText}>Toque em "ATIVAR CÓDIGO" para aplicar</Text>
-                </View>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>3</Text>
-                  </View>
-                  <Text style={styles.stepText}>O desconto será aplicado automaticamente na próxima viagem</Text>
-                </View>
+                {i < STEPS.length - 1 && <View style={styles.stepConnector} />}
+              </View>
+              <View style={styles.stepContent}>
+                <Text style={styles.stepTitle}>{step.title}</Text>
+                <Text style={styles.stepDesc}>{step.desc}</Text>
               </View>
             </View>
-          </View>
-        </View>
+          ))}
+        </Animated.View>
 
-        {/* Footer Space */}
-        <View style={styles.footerSpace} />
+        <View style={{ height: scale(40) }} />
       </ScrollView>
     </KeyboardAvoidingWrapper>
   );
@@ -293,230 +236,233 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  scrollView: {
-    flex: 1,
-  },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: spacing.xxl,
     paddingTop: spacing.headerHeight,
     paddingBottom: spacing.xl,
-    backgroundColor: "transparent",
+    paddingHorizontal: spacing.xxl,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  backButton: {
-    padding: spacing.sm,
+  menuButton: {
+    width: scale(40),
+    height: scale(40),
     borderRadius: borderRadius.xxl,
     backgroundColor: colors.surface,
+    justifyContent: "center",
+    alignItems: "center",
     ...shadows.sm,
   },
   headerTitle: {
-    fontSize: scale(18),
+    fontSize: scale(17),
     fontWeight: "800",
     color: colors.textPrimary,
-    textAlign: "center",
     letterSpacing: 0.5,
   },
-  headerSpacer: {
-    width: scale(40),
-  },
-  heroSection: {
-    paddingHorizontal: spacing.xxl,
-    paddingVertical: scale(30),
+  heroCard: {
+    marginHorizontal: spacing.xxl,
+    marginBottom: spacing.xxl,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xxl,
     alignItems: "center",
-    marginBottom: spacing.sm,
+    ...shadows.primaryGlow,
   },
-  iconContainer: {
-    width: scale(100),
-    height: scale(100),
+  heroIconCircle: {
+    width: scale(64),
+    height: scale(64),
     borderRadius: borderRadius.full,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: spacing.xl,
-    ...shadows.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
   },
   heroTitle: {
-    fontSize: scale(22),
+    fontSize: scale(20),
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: colors.surface,
     marginBottom: spacing.sm,
     textAlign: "center",
   },
   heroSubtitle: {
-    fontSize: scale(15),
+    fontSize: scale(13),
+    color: "rgba(255,255,255,0.85)",
+    textAlign: "center",
+    lineHeight: scale(19),
+  },
+  benefitsRow: {
+    flexDirection: "row",
+    marginHorizontal: spacing.xxl,
+    marginBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+  benefitTile: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.md,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...shadows.sm,
+  },
+  benefitIcon: {
+    width: scale(44),
+    height: scale(44),
+    borderRadius: borderRadius.md,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  benefitLabel: {
+    fontSize: scale(11),
+    fontWeight: "600",
     color: colors.textSecondary,
     textAlign: "center",
-    lineHeight: scale(22),
-    paddingHorizontal: spacing.xl,
+    lineHeight: scale(15),
   },
-  activePromoSection: {
+  activePromo: {
     backgroundColor: colors.surface,
     marginHorizontal: spacing.xxl,
     borderRadius: borderRadius.xl,
     padding: spacing.xl,
-    marginBottom: spacing.xxl,
-    ...shadows.successGlow,
+    marginBottom: spacing.xl,
     borderLeftWidth: scale(4),
     borderLeftColor: colors.success,
+    ...shadows.sm,
   },
   activePromoHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: spacing.md,
+    gap: spacing.sm,
   },
   activePromoTitle: {
-    fontSize: scale(16),
+    fontSize: scale(15),
     fontWeight: "700",
     color: colors.success,
-    marginLeft: spacing.sm,
   },
   inputSection: {
     marginHorizontal: spacing.xxl,
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
   },
-  inputLabel: {
+  sectionLabel: {
     fontSize: scale(13),
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: spacing.md,
     marginLeft: spacing.xs,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs,
     backgroundColor: colors.surface,
     ...shadows.sm,
   },
-  inputContainerFocused: {
+  inputFocused: {
     borderColor: colors.primary,
-    backgroundColor: colors.surface,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.1,
   },
-  inputContainerError: {
+  inputError: {
     borderColor: colors.error,
     backgroundColor: colors.errorLight,
-  },
-  inputIcon: {
-    marginRight: spacing.md,
   },
   textInput: {
     flex: 1,
     fontSize: scale(16),
+    fontWeight: "600",
     color: colors.textPrimary,
-    fontWeight: '600',
     paddingVertical: spacing.md,
+    letterSpacing: 1,
   },
-  errorContainer: {
+  feedbackRow: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: spacing.sm,
-    paddingHorizontal: spacing.xs,
+    gap: spacing.xs,
+    paddingLeft: spacing.xs,
   },
   errorText: {
     fontSize: scale(13),
     color: colors.error,
-    marginLeft: spacing.sm,
-    flex: 1,
-    fontWeight: '500',
-  },
-  successContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.xs,
+    fontWeight: "500",
   },
   successText: {
-    fontSize: scale(14),
+    fontSize: scale(13),
     color: colors.success,
-    marginLeft: spacing.sm,
     fontWeight: "600",
+  },
+  buttonWrapper: {
+    marginHorizontal: spacing.xxl,
+    marginBottom: spacing.xxxl,
   },
   actionButton: {
     flexDirection: "row",
     backgroundColor: colors.primary,
     borderRadius: borderRadius.xl,
     paddingVertical: spacing.lg,
-    paddingHorizontal: scale(30),
-    marginHorizontal: spacing.xxl,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: scale(30),
     ...shadows.primaryGlow,
   },
-  disabledButton: {
+  actionButtonDisabled: {
     backgroundColor: colors.textDisabled,
     shadowOpacity: 0,
     elevation: 0,
   },
-  buttonIcon: {
-    marginRight: spacing.sm,
-  },
-  buttonText: {
+  actionButtonText: {
     color: colors.surface,
-    fontSize: scale(16),
+    fontSize: scale(15),
     fontWeight: "700",
     letterSpacing: 0.5,
   },
-  infoSection: {
-    paddingHorizontal: spacing.xxl,
-    marginBottom: scale(40),
+  stepsSection: {
+    marginHorizontal: spacing.xxl,
   },
-  infoCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.xl,
-    padding: spacing.xxl,
-    ...shadows.sm,
-  },
-  infoIconContainer: {
-    marginBottom: spacing.lg,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: scale(16),
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginBottom: spacing.lg,
-  },
-  stepsList: {
-    gap: spacing.lg,
-  },
-  stepItem: {
+  stepCard: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    marginBottom: 0,
   },
-  stepNumber: {
-    width: scale(24),
-    height: scale(24),
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background,
+  stepLeft: {
+    alignItems: "center",
+    marginRight: spacing.lg,
+  },
+  stepIconCircle: {
+    width: scale(44),
+    height: scale(44),
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primaryLight,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: spacing.md,
-    marginTop: scale(2),
   },
-  stepNumberText: {
-    fontSize: scale(12),
-    fontWeight: "700",
-    color: colors.primary,
+  stepConnector: {
+    width: scale(2),
+    height: scale(32),
+    backgroundColor: colors.borderLight,
+    marginVertical: scale(4),
   },
-  stepText: {
-    fontSize: scale(14),
-    color: colors.textSecondary,
-    lineHeight: scale(20),
+  stepContent: {
     flex: 1,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xl,
   },
-  footerSpace: {
-    height: scale(40),
+  stepTitle: {
+    fontSize: scale(14),
+    fontWeight: "700",
+    color: colors.textPrimary,
+    marginBottom: scale(3),
+  },
+  stepDesc: {
+    fontSize: scale(13),
+    color: colors.textSecondary,
+    lineHeight: scale(18),
   },
 });
 

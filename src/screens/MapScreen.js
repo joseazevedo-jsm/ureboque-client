@@ -1,18 +1,20 @@
-import React, { useEffect, memo, useMemo, useCallback } from "react";
+import React, { useEffect, memo, useMemo, useCallback, useRef } from "react";
 import {
   Image,
   Modal,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Circle, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
+import MapView, { Circle, Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import { LinearGradient } from "expo-linear-gradient";
 import { ScalePressable } from "../components/common/ScalePressable";
 import { BlurView } from "expo-blur";
-import Animated, { FadeIn, FadeInDown, FadeInRight, FadeInUp, useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, FadeInRight, FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withTiming } from "react-native-reanimated";
 import { colors, spacing, shadows, animations } from '../theme';
+import { getPlaceIcon, ICON_ADD } from '../assets/icons';
 import { useMapScreen } from "../components/map/useMapScreen";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
@@ -24,7 +26,6 @@ import {
 import { Platform } from "react-native";
 import CardSpots from "../components/cards/cardSpots";
 import DestinationModal from "../components/modals/Destination/DestinationModal";
-import { Marker } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import { FlatList } from "react-native-gesture-handler";
 import CarTypes from "../components/cards/carTypes";
@@ -57,6 +58,10 @@ const carIconMap = {
 };
 
 const defaultIcon = require("../../resources/icons/car/UREB_TOPVIEW_BLACK.png");
+const MIN_DRIVER_MARKER_ANIMATION_MS = 900;
+const MAX_DRIVER_MARKER_ANIMATION_MS = 15000;
+const DEFAULT_DRIVER_MARKER_ANIMATION_MS = 6000;
+const DRIVER_MARKER_FRAME_MS = 120;
 
 const getCarIconByColor = (color) => {
   try {
@@ -64,6 +69,25 @@ const getCarIconByColor = (color) => {
   } catch (error) {
     return defaultIcon;
   }
+};
+
+const isValidCoordinate = (location) => (
+  Number.isFinite(location?.latitude) && Number.isFinite(location?.longitude)
+);
+
+const getDriverMarkerAnimationDuration = (lastUpdateAt) => {
+  if (!lastUpdateAt) return 0;
+  const elapsed = Date.now() - lastUpdateAt;
+  return Math.min(
+    MAX_DRIVER_MARKER_ANIMATION_MS,
+    Math.max(MIN_DRIVER_MARKER_ANIMATION_MS, elapsed * 0.9 || DEFAULT_DRIVER_MARKER_ANIMATION_MS)
+  );
+};
+
+const getNearestHeading = (currentHeading, nextHeading) => {
+  const safeNext = Number.isFinite(nextHeading) ? nextHeading : currentHeading;
+  const delta = ((safeNext - (currentHeading % 360) + 540) % 360) - 180;
+  return currentHeading + delta;
 };
 
 // --- Reusable Glass Components ---
@@ -91,6 +115,89 @@ const GlassHandle = () => (
   </View>
 );
 
+const SmoothDriverMarker = memo(({ driver, location }) => {
+  const lastUpdateAtRef = useRef(null);
+  const animationFrameRef = useRef(null);
+  const [displayLocation, setDisplayLocation] = React.useState(() => (
+    isValidCoordinate(location)
+      ? { latitude: location.latitude, longitude: location.longitude }
+      : null
+  ));
+  const heading = useSharedValue(location?.heading || 0);
+
+  useEffect(() => {
+    if (!isValidCoordinate(location)) return;
+
+    const fromLocation = displayLocation || {
+      latitude: location.latitude,
+      longitude: location.longitude,
+    };
+    const toLocation = {
+      latitude: location.latitude,
+      longitude: location.longitude,
+    };
+    const duration = getDriverMarkerAnimationDuration(lastUpdateAtRef.current);
+    lastUpdateAtRef.current = Date.now();
+
+    if (animationFrameRef.current) {
+      clearInterval(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    if (duration === 0) {
+      setDisplayLocation(toLocation);
+      return;
+    }
+
+    const startedAt = Date.now();
+    animationFrameRef.current = setInterval(() => {
+      const progress = Math.min(1, (Date.now() - startedAt) / duration);
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+      setDisplayLocation({
+        latitude: fromLocation.latitude + ((toLocation.latitude - fromLocation.latitude) * easedProgress),
+        longitude: fromLocation.longitude + ((toLocation.longitude - fromLocation.longitude) * easedProgress),
+      });
+
+      if (progress >= 1 && animationFrameRef.current) {
+        clearInterval(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    }, DRIVER_MARKER_FRAME_MS);
+
+    return () => {
+      if (animationFrameRef.current) {
+        clearInterval(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+  }, [location?.latitude, location?.longitude]);
+
+  useEffect(() => {
+    const nextHeading = getNearestHeading(heading.value, location?.heading || 0);
+    heading.value = withTiming(nextHeading, { duration: 700 });
+  }, [location?.heading]);
+
+  const carAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${heading.value}deg` }],
+  }));
+
+  if (!driver || !displayLocation) return null;
+
+  return (
+    <Marker
+      coordinate={displayLocation}
+      anchor={{ x: 0.5, y: 0.5 }}
+    >
+      <Animated.Image
+        source={getCarIconByColor(driver?.car?.color)}
+        style={[styles.driverCarIcon, carAnimatedStyle]}
+        resizeMode="contain"
+      />
+    </Marker>
+  );
+});
+
 const MapScreen = memo(() => {
   const logger = useLogger('MapScreen');
   const { models, operations } = useMapScreen();
@@ -99,14 +206,16 @@ const MapScreen = memo(() => {
   const buttonBottom = useSharedValue(scale(300));
   useEffect(() => {
     const snapMap = {
-      initial:        scale(280),
+      initial:        scale(260),
       carType:        scale(270),
-      userCarInfo:    scale(320),
+      userCarInfo:    scale(380),
       payment:        scale(320),
       rideSearch:     scale(270),
       tripStarted:    scale(310),
       driverArriving: scale(310),
       tripEnding:     scale(310),
+      details:        scale(520),
+      dragMarker:     scale(230),
     };
     const target = snapMap[models.activeBottomSheet] ?? scale(280);
     buttonBottom.value = withSpring(target + spacing.xl, animations.spring.enter);
@@ -129,6 +238,10 @@ const MapScreen = memo(() => {
   // Memoized map markers for performance
   const memoizedMapMarkers = useMemo(() => {
     return models.mapMarkers.map((item, index) => {
+      if (models.driver && models.driverLocation && models.tripState && index === 0) {
+        return null;
+      }
+
       return (
         <Marker coordinate={item} key={`marker-${index}-${item.latitude}-${item.longitude}`}>
           <CustomMarker
@@ -156,49 +269,37 @@ const MapScreen = memo(() => {
   }, [
     models.mapMarkers,
     models.tripState,
+    models.driver,
+    models.driverLocation,
     models.originCity,
     models.destinationCity,
     models.tripDuration,
     operations.formatDuration
   ]);
 
-  // Separate component for the driver to isolate high-frequency updates
-  const MemoizedDriverMarker = useMemo(() => {
-    if (!models.driver || !models.driverLocation) return null;
-
-    return (
-      <Marker
-        coordinate={{
-          latitude: models.driverLocation.latitude,
-          longitude: models.driverLocation.longitude,
-        }}
-        anchor={{ x: 0.5, y: 0.5 }}
-      >
-        <Image
-          source={getCarIconByColor(models.driver?.car?.color)}
-          style={{
-            width: scale(50),
-            height: scale(50),
-            transform: [{ rotate: `${models?.driverLocation?.heading || "0"}deg` }],
-          }}
-          resizeMode="contain"
-        />
-      </Marker>
-    );
-  }, [models.driver, models.driverLocation?.latitude, models.driverLocation?.longitude, models.driverLocation?.heading]);
+  const handleShareLocation = useCallback(async () => {
+    if (!models.userLocation) return;
+    const { latitude, longitude } = models.userLocation;
+    const url = `https://maps.google.com/?q=${latitude},${longitude}`;
+    try {
+      await Share.share({ message: `A minha localização atual: ${url}`, url });
+    } catch (_) {}
+  }, [models.userLocation]);
 
   // Memoized spots item renderer
   const renderSpotsItem = useCallback(({ item, index }) => {
     const isAddFavorite = item.place.name === "Adicionar Favorito";
+    const iconSource = getPlaceIcon(item.place.name);
     return (
       <CardSpots
         title={item.place.name}
-        description={item.place.description}
+        description={item.place.description || item.place.address}
         onPress={isAddFavorite
           ? operations.handleAddFavouriteButtonPress
           : operations.handleOnFavouriteButtonPress(item)}
         index={index}
         isAddFavorite={isAddFavorite}
+        iconSource={iconSource}
       />
     );
   }, [operations.handleAddFavouriteButtonPress, operations.handleOnFavouriteButtonPress]);
@@ -277,7 +378,10 @@ const MapScreen = memo(() => {
 
         {memoizedMapMarkers}
 
-        {MemoizedDriverMarker}
+        <SmoothDriverMarker
+          driver={models.driver}
+          location={models.driverLocation}
+        />
 
         {models.isRouteVisible && (
           <>
@@ -327,11 +431,41 @@ const MapScreen = memo(() => {
       )}
 
 
+      {!models.isRouteVisible && !models.service && (
+        <View style={styles.bellWrapper}>
+          <TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('Notificacoes')} activeOpacity={0.8}>
+            <BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
+            <Icon name="notifications-none" size={scale(24)} color={colors.textPrimary} />
+          </TouchableOpacity>
+          {models.unreadNotificationsCount > 0 && (
+            <View style={styles.bellBadge}>
+              <Text style={styles.bellBadgeText}>
+                {models.unreadNotificationsCount > 99 ? '99+' : models.unreadNotificationsCount}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
       {models.detailsInfo && (
         <TouchableOpacity style={styles.backDetails} onPress={operations.handleBackDetailsButtonPress} activeOpacity={0.8}>
           <BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
           <Icon name="arrow-back" size={scale(24)} color={colors.textPrimary} />
         </TouchableOpacity>
+      )}
+
+      {!models.isRouteVisible && !models.service && (
+        <Animated.View entering={FadeIn.duration(300)} style={styles.locationChipWrapper}>
+          <ScalePressable onPress={operations.handleRecenterMap} style={styles.locationChip}>
+            <Icon name="my-location" size={scale(14)} color={colors.primary} style={{ marginRight: spacing.xs }} />
+            <View>
+              <Text style={styles.locationChipLabel}>Sua Localização</Text>
+              <Text style={styles.locationChipAddress} numberOfLines={1}>
+                {models.currentLocationLabel || 'Obtendo localização...'}
+              </Text>
+            </View>
+          </ScalePressable>
+        </Animated.View>
       )}
 
       {models.markerVisible && (
@@ -369,7 +503,7 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.bottomSheetModalRef}
           index={0}
-          snapPoints={[scale(280)]}
+          snapPoints={[scale(260)]}
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
@@ -380,39 +514,43 @@ const MapScreen = memo(() => {
           handleComponent={GlassHandle}
         >
           <View style={styles.sheetContainerGlass}>
-            {/* Handle is now external */}
-
-            <Animated.View entering={FadeInDown.delay(100).springify()}>
-              <ScalePressable
-                onPress={operations.handleMapSearchBarPress}
-                style={styles.floatingPillContainer}
-              >
-                <LinearGradient
-                  colors={['#FFFFFF', '#F0F9FF']}
-                  style={styles.floatingPill}
-                >
-                  <View style={styles.pillIconBubble}>
-                    <Icon name="search" size={scale(20)} color={colors.primary} />
-                  </View>
-                  <Text style={styles.pillPlaceholder}>Para onde vamos?</Text>
-                  <View style={styles.pillAction}>
-                    <Icon name="arrow-forward" size={scale(16)} color={colors.textMuted} />
-                  </View>
-                </LinearGradient>
-              </ScalePressable>
+            {/* Section header: Rebocar para + Ver tudo */}
+            <Animated.View entering={FadeInDown.delay(60).springify()} style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeaderTitle}>Rebocar para</Text>
+              <TouchableOpacity onPress={operations.handleAddFavouriteButtonPress}>
+                <Text style={styles.sectionHeaderLink}>Ver tudo</Text>
+              </TouchableOpacity>
             </Animated.View>
 
-            <View style={styles.placesContainer}>
-              <Text style={styles.glassSectionTitle}>Seus Lugares</Text>
+            {/* Horizontal saved-place cards */}
+            <Animated.View entering={FadeInDown.delay(100).springify()}>
               <FlatList
                 data={models.favPlaces}
                 renderItem={renderSpotsItem}
                 keyExtractor={(item) => item._id.toString()}
                 horizontal={true}
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: scale(20), paddingVertical: scale(10) }}
+                contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: scale(8) }}
               />
-            </View>
+            </Animated.View>
+
+            {/* Pill search bar — bottom of sheet */}
+            <Animated.View entering={FadeInDown.delay(140).springify()}>
+              <ScalePressable
+                onPress={operations.handleMapSearchBarPress}
+                style={styles.floatingPillContainer}
+              >
+                <View style={styles.floatingPill}>
+                  <View style={styles.pillIconBubble}>
+                    <Icon name="search" size={scale(18)} color={colors.primary} />
+                  </View>
+                  <Text style={styles.pillPlaceholder}>Para onde está indo?</Text>
+                  <View style={styles.pillArrow}>
+                    <Icon name="chevron-right" size={scale(20)} color={colors.surface} />
+                  </View>
+                </View>
+              </ScalePressable>
+            </Animated.View>
           </View>
         </BottomSheetModal>
 
@@ -452,7 +590,7 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.userCarInfoSheetRef}
           index={0}
-          snapPoints={[scale(320), scale(550)]}
+          snapPoints={[scale(380), scale(500)]}
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
@@ -466,11 +604,16 @@ const MapScreen = memo(() => {
             <UserCarInfo
               handleBrandInputValueChange={operations.handleBrandInputValueChange}
               handleColorInputValueChange={operations.handleColorInputValueChange}
-              handleLicenseInputValueChange={
-                operations.handleLicenseInputValueChange
-              }
+              handleLicenseInputValueChange={operations.handleLicenseInputValueChange}
               handleModelInputValueChange={operations.handleModelInputValueChange}
               handleConfirmButtonPress={operations.handleConfirmButtonPress}
+              defaultSaveChecked={!models.user?.vehicles?.length}
+              initialValues={{
+                brand: models.brand,
+                model: models.model,
+                license: models.license,
+                color: models.color,
+              }}
             />
           </Animated.View>
         </BottomSheetModal>
@@ -525,7 +668,7 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.tripStartedSheetRef}
           index={0}
-          snapPoints={[scale(310), scale(450)]}
+          snapPoints={[scale(310), scale(500)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -548,6 +691,7 @@ const MapScreen = memo(() => {
               tripDuration={models.tripDuration}
               onCancelTrip={operations.handlePreCancelButtonPress}
               onDetailsTrip={operations.handleDetailsForm}
+              onShareLocation={handleShareLocation}
               onMessageDriver={operations.handleMessageDriver}
               onCallDriver={operations.handleCallDriver}
               bttmSheetRef={models.tripStartedSheetRef}
@@ -582,6 +726,7 @@ const MapScreen = memo(() => {
               tripDuration={models.tripDuration}
               onCancelTrip={operations.handleCancelTrip}
               onDetailsTrip={operations.handleDetailsForm}
+              onShareLocation={handleShareLocation}
               onMessageDriver={operations.handleMessageDriver}
               onCallDriver={operations.handleCallDriver}
               bttmSheetRef={models.driverArrivingSheetRef}
@@ -593,7 +738,7 @@ const MapScreen = memo(() => {
         <BottomSheetModal
           ref={models.tripEndingSheetRef}
           index={0}
-          snapPoints={[scale(310), scale(380)]}
+          snapPoints={[scale(310), scale(435)]}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -616,6 +761,7 @@ const MapScreen = memo(() => {
               tripDuration={models.tripDuration}
               onCancelTrip={operations.handleCancelTrip}
               onDetailsTrip={operations.handleDetailsForm}
+              onShareLocation={handleShareLocation}
               onMessageDriver={operations.handleMessageDriver}
               onCallDriver={operations.handleCallDriver}
               bttmSheetRef={models.driverArrivingSheetRef}
@@ -629,6 +775,7 @@ const MapScreen = memo(() => {
           index={0}
           snapPoints={[scale(520)]}
           enableDynamicSizing={false}
+          enablePanDownToClose={false}
           stackBehavior="replace"
           keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
@@ -736,6 +883,7 @@ const MapScreen = memo(() => {
         onCallDriver={operations.handleCallDriver}
       />
 
+
       <PreCancelationModal
         visible={models.modalPreCancelVisible}
         closeModal={operations.closePreCancelModal}
@@ -775,12 +923,93 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
+  driverCarIcon: {
+    width: scale(50),
+    height: scale(50),
+  },
+  bellWrapper: {
+    position: 'absolute',
+    top: scale(44),
+    right: scale(20),
+    width: scale(48),
+    height: scale(48),
+  },
+  bellButton: {
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(24),
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -scale(4),
+    right: -scale(4),
+    minWidth: scale(18),
+    height: scale(18),
+    borderRadius: scale(9),
+    backgroundColor: colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: scale(3),
+    borderWidth: 2,
+    borderColor: colors.background,
+  },
+  bellBadgeText: {
+    color: '#fff',
+    fontSize: scale(10),
+    fontWeight: '700',
+    lineHeight: scale(13),
+  },
+  locationChipWrapper: {
+    position: 'absolute',
+    top: scale(44),
+    left: scale(80),
+    right: scale(80),
+    alignItems: 'center',
+  },
+  locationChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: scale(20),
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.6)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  locationChipLabel: {
+    fontSize: scale(11),
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 0.3,
+  },
+  locationChipAddress: {
+    fontSize: scale(12),
+    color: colors.textPrimary,
+    fontWeight: '500',
+    maxWidth: scale(200),
+  },
   menuGlassButton: {
     width: scale(48),
     height: scale(48),
     position: "absolute",
     borderRadius: scale(24),
-    top: scale(44), // Adjusted for safe area
+    top: scale(44),
     left: scale(20),
     alignItems: "center",
     justifyContent: "center",
@@ -984,55 +1213,66 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.15)',
     borderRadius: scale(10),
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxs,
+    paddingBottom: spacing.md,
+  },
+  sectionHeaderTitle: {
+    fontSize: scale(14),
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  sectionHeaderLink: {
+    fontSize: scale(14),
+    fontWeight: '600',
+    color: colors.primary,
+  },
   floatingPillContainer: {
-    marginHorizontal: scale(24), // Wider margins for "floating" look
-    marginBottom: scale(28),
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 }, // Softer shadow
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
+    elevation: 10,
   },
   floatingPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: scale(20),
-    paddingVertical: scale(16),
-    paddingHorizontal: scale(20),
+    backgroundColor: colors.surface,
+    borderRadius: scale(26),
+    height: scale(52),
+    paddingLeft: spacing.lg,
+    paddingRight: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
+    borderColor: colors.borderLight,
+       ...shadows.md
   },
   pillIconBubble: {
-    width: scale(36),
-    height: scale(36),
-    borderRadius: scale(18),
-    backgroundColor: '#F0F9FF', // Light Blue
+    marginRight: spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: scale(16),
   },
   pillPlaceholder: {
     flex: 1,
-    fontSize: scale(16),
-    fontWeight: '600',
-    color: '#334155', // Slate 700
-    letterSpacing: 0.3,
+    fontSize: scale(15),
+    color: colors.textMuted,
   },
-  pillAction: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: scale(12),
-    padding: scale(8),
-  },
-  placesContainer: {
-    marginTop: scale(10),
+  pillArrow: {
+    width: scale(34),
+    height: scale(34),
+    borderRadius: scale(17),
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   glassSectionTitle: {
     fontSize: scale(14),
     fontWeight: '700',
-    color: '#64748B', // Slate 500
-    marginBottom: scale(16),
-    marginHorizontal: scale(24),
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+    marginHorizontal: spacing.lg,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },

@@ -4,14 +4,14 @@ import {
   Text,
   TextInput,
   FlatList,
-  StyleSheet
+  StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Haptics from 'expo-haptics';
 import PlaceItem from '../../cards/placeItem';
-import { ScalePressable } from '../../common/ScalePressable';
 import { useTextSearchQuery } from '../../../models/places/useTextSearchQuery';
 import { useDebounce } from 'use-debounce';
 import { useUserLocationStateContext } from '../../../context/UserLocationStateContext';
@@ -125,14 +125,13 @@ const LocationSearch = ({
 
   const renderSearchResult = ({ item, index }) => (
     <Animated.View entering={FadeInRight.delay(100 + (index * 30)).springify()}>
-      <ScalePressable onPress={() => handleLocationSelect(item)}>
-        <PlaceItem
-          key={item.place_id}
-          name={item.name}
-          iconUrl={item.icon}
-          address={item.formatted_address}
-        />
-      </ScalePressable>
+      <PlaceItem
+        key={item.place_id}
+        name={item.name}
+        iconUrl={item.icon}
+        address={item.formatted_address}
+        onPress={() => handleLocationSelect(item)}
+      />
     </Animated.View>
   );
 
@@ -140,9 +139,9 @@ const LocationSearch = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <ScalePressable style={styles.closeButton} onPress={() => selectSearchResult({ address: '', coordinates: null, name: '' })}>
+        <TouchableOpacity style={styles.closeButton} onPress={() => selectSearchResult({ address: '', coordinates: null, name: '' })} activeOpacity={0.75}>
           <Icon name="arrow-back" size={scale(25)} />
-        </ScalePressable>
+        </TouchableOpacity>
       </View>
 
       {/* Search Input */}
@@ -160,26 +159,26 @@ const LocationSearch = ({
 
         {/* Current Location Button */}
         <Animated.View entering={FadeInDown.delay(150).springify()}>
-          <ScalePressable onPress={handleCurrentLocation}>
+          <TouchableOpacity onPress={handleCurrentLocation} activeOpacity={0.75}>
             <View style={styles.locationButton}>
               <View style={styles.iconContainer}>
                 <Icon name="navigation" size={scale(26)} color={colors.primary} />
               </View>
               <Text style={styles.locationText}>Localização atual</Text>
             </View>
-          </ScalePressable>
+          </TouchableOpacity>
         </Animated.View>
 
         {/* Map Drag Button */}
         <Animated.View entering={FadeInDown.delay(200).springify()}>
-          <ScalePressable onPress={handleMapDrag}>
+          <TouchableOpacity onPress={handleMapDrag} activeOpacity={0.75}>
             <View style={styles.locationButton}>
               <View style={styles.iconContainer}>
                 <Icon name="map" size={scale(26)} color={colors.primary} />
               </View>
               <Text style={styles.locationText}>Definir localização no mapa</Text>
             </View>
-          </ScalePressable>
+          </TouchableOpacity>
         </Animated.View>
       </Animated.View>
 

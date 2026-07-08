@@ -1,15 +1,23 @@
 import React from "react";
-import {
-  View,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  Platform,
-} from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { scale } from "react-native-size-matters";
+import Icon from "react-native-vector-icons/MaterialIcons";
 import { colors, shadows, spacing, borderRadius } from "../../theme";
+
+const FIELDS = [
+  { key: "brand",   label: "Marca",      placeholder: "Ex: Toyota",  autoCapitalize: "words",      returnKeyType: "next" },
+  { key: "model",   label: "Modelo",     placeholder: "Ex: Corolla", autoCapitalize: "words",      returnKeyType: "next" },
+  { key: "license", label: "Matrícula",  placeholder: "LD-00-00",    autoCapitalize: "characters", returnKeyType: "next" },
+  { key: "color",   label: "Cor",        placeholder: "Ex: Branco",  autoCapitalize: "words",      returnKeyType: "done" },
+];
+
+const HANDLERS = {
+  brand:   (ops) => ops.handleBrandInputValueChange,
+  model:   (ops) => ops.handleModelInputValueChange,
+  license: (ops) => ops.handleLicenseInputValueChange,
+  color:   (ops) => ops.handleColorInputValueChange,
+};
 
 const UserCarInfo = ({
   handleBrandInputValueChange,
@@ -17,145 +25,119 @@ const UserCarInfo = ({
   handleLicenseInputValueChange,
   handleColorInputValueChange,
   handleConfirmButtonPress,
+  initialValues = {},
+  defaultSaveChecked = false,
 }) => {
-  const [errors, setErrors] = React.useState({
-    brand: '',
-    model: '',
-    license: '',
-    color: ''
-  });
-
-  const [formData, setFormData] = React.useState({
-    brand: 'Toyota',
-    model: 'Corolla',
-    license: 'LD-10-10',
-    color: 'Preto',
-    motive: "Motor Avariado"
-  });
-
-  const validateForm = () => {
-    let isValid = true;
-    const newErrors = {};
-
-    if (!formData.brand.trim()) {
-      newErrors.brand = 'Marca é obrigatória';
-      isValid = false;
-    }
-
-    if (!formData.model.trim()) {
-      newErrors.model = 'Modelo é obrigatório';
-      isValid = false;
-    }
-
-    if (!formData.license.trim()) {
-      newErrors.license = 'Matrícula é obrigatória';
-      isValid = false;
-    } else if (!/^[A-Z0-9-]{6,8}$/.test(formData.license.trim())) {
-      newErrors.license = 'Matrícula inválida';
-      isValid = false;
-    }
-
-    if (!formData.color.trim()) {
-      newErrors.color = 'Cor é obrigatória';
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
+  const handlers = {
+    handleBrandInputValueChange,
+    handleModelInputValueChange,
+    handleLicenseInputValueChange,
+    handleColorInputValueChange,
   };
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setErrors(prev => ({ ...prev, [field]: '' }));
+  const [errors, setErrors] = React.useState({});
+  const [saveVehicle, setSaveVehicle] = React.useState(defaultSaveChecked);
+  const [formData, setFormData] = React.useState({
+    brand: initialValues.brand || '',
+    model: initialValues.model || '',
+    license: initialValues.license || '',
+    color: initialValues.color || '',
+  });
 
-    // Call the original handlers
-    switch (field) {
-      case 'brand':
-        handleBrandInputValueChange(value);
-        break;
-      case 'model':
-        handleModelInputValueChange(value);
-        break;
-      case 'license':
-        handleLicenseInputValueChange(value);
-        break;
-      case 'color':
-        handleColorInputValueChange(value);
-        break;
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+    HANDLERS[field](handlers)(value);
+  };
+
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.brand.trim())   newErrors.brand   = "Marca é obrigatória";
+    if (!formData.model.trim())   newErrors.model   = "Modelo é obrigatório";
+    if (!formData.color.trim())   newErrors.color   = "Cor é obrigatória";
+    if (!formData.license.trim()) {
+      newErrors.license = "Matrícula é obrigatória";
+    } else if (!/^[A-Z0-9-]{5,9}$/.test(formData.license.trim())) {
+      newErrors.license = "Matrícula inválida";
     }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const onConfirmPress = () => {
-    if (validateForm()) {
-      handleConfirmButtonPress();
-    }
+    if (validate()) handleConfirmButtonPress(saveVehicle);
   };
+
+  // Render two inputs side-by-side per row
+  const rows = [FIELDS.slice(0, 2), FIELDS.slice(2, 4)];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        QUAL CARRO VAI REBOCAR?
-      </Text>
 
-      <View style={styles.containerInputs}>
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <BottomSheetTextInput
-              onChangeText={(value) => handleInputChange('brand', value)}
-              style={[styles.input, errors.brand && styles.inputError]}
-              placeholder="Marca"
-              placeholderTextColor={colors.textPrimary}
-              blurOnSubmit={false}
-              returnKeyType="next"
-            />
-            {errors.brand && <Text style={styles.errorText}>{errors.brand}</Text>}
-          </View>
-          <View style={{ flex: 1 }}>
-            <BottomSheetTextInput
-              onChangeText={(value) => handleInputChange('model', value)}
-              style={[styles.input, errors.model && styles.inputError]}
-              placeholder="Modelo"
-              placeholderTextColor={colors.textPrimary}
-              blurOnSubmit={false}
-              returnKeyType="next"
-            />
-            {errors.model && <Text style={styles.errorText}>{errors.model}</Text>}
-          </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerIcon}>
+          <Icon name="directions-car" size={scale(22)} color={colors.primary} />
         </View>
-
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <BottomSheetTextInput
-              onChangeText={(value) => handleInputChange('license', value)}
-              style={[styles.input, errors.license && styles.inputError]}
-              placeholder="Matricula"
-              placeholderTextColor={colors.textPrimary}
-              autoCapitalize="characters"
-              blurOnSubmit={false}
-              returnKeyType="next"
-            />
-            {errors.license && <Text style={styles.errorText}>{errors.license}</Text>}
-          </View>
-          <View style={{ flex: 1 }}>
-            <BottomSheetTextInput
-              onChangeText={(value) => handleInputChange('color', value)}
-              style={[styles.input, errors.color && styles.inputError]}
-              placeholder="Cor"
-              placeholderTextColor={colors.textPrimary}
-              blurOnSubmit={false}
-              returnKeyType="done"
-            />
-            {errors.color && <Text style={styles.errorText}>{errors.color}</Text>}
-          </View>
+        <View>
+          <Text style={styles.title}>Qual carro vai rebocar?</Text>
+          <Text style={styles.subtitle}>Preencha os dados do veículo</Text>
         </View>
       </View>
 
+      {/* Form grid */}
+      <View style={styles.form}>
+        {rows.map((row, ri) => (
+          <View key={ri} style={styles.row}>
+            {row.map(({ key, label, placeholder, autoCapitalize, returnKeyType }) => (
+              <View key={key} style={styles.fieldGroup}>
+                <Text style={styles.label}>{label}</Text>
+                <BottomSheetTextInput
+                  style={[styles.input, errors[key] && styles.inputError]}
+                  placeholder={placeholder}
+                  placeholderTextColor={colors.textMuted}
+                  defaultValue={formData[key]}
+                  autoCapitalize={autoCapitalize}
+                  onChangeText={(v) => handleChange(key, v)}
+                  blurOnSubmit={false}
+                  returnKeyType={returnKeyType}
+                />
+                {errors[key] ? (
+                  <Text style={styles.errorText}>{errors[key]}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+
+      {/* Save vehicle toggle — only shown on first car */}
+      {defaultSaveChecked && (
+        <TouchableOpacity
+          style={styles.saveToggleRow}
+          onPress={() => setSaveVehicle((v) => !v)}
+          activeOpacity={0.7}
+        >
+          <Icon
+            name={saveVehicle ? "bookmark" : "bookmark-border"}
+            size={scale(18)}
+            color={saveVehicle ? colors.primary : colors.textMuted}
+          />
+          <Text style={[styles.saveToggleLabel, saveVehicle && styles.saveToggleLabelActive]}>
+            Guardar veículo
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Confirm button */}
       <TouchableOpacity
-        style={styles.button}
+        style={styles.confirmButton}
         onPress={onConfirmPress}
+        activeOpacity={0.85}
       >
-        <Text style={styles.buttonText}>Confirmar</Text>
+        <Text style={styles.confirmButtonText}>Confirmar</Text>
       </TouchableOpacity>
+
     </View>
   );
 };
@@ -164,63 +146,107 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing.xl,
     flex: 1,
-    backgroundColor: 'transparent',
   },
-  button: {
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.primary,
+
+  // Header
+  header: {
+    flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: scale(10),
-    paddingVertical: scale(14),
-    ...shadows.primaryGlow,
-    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xl,
   },
-  input: {
-    height: scale(54),
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: "rgba(255,255,255,0.4)",
-    paddingHorizontal: spacing.lg,
-    marginHorizontal: spacing.xs,
+  headerIcon: {
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(14),
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.md,
+  },
+  title: {
     fontSize: scale(15),
     color: colors.textPrimary,
+    fontWeight: "700",
+  },
+  subtitle: {
+    fontSize: scale(12),
+    color: colors.textMuted,
+    marginTop: scale(2),
+    fontWeight: "500",
+  },
+
+  // Form
+  form: {
+    paddingBottom:spacing.xl
   },
   row: {
     flexDirection: "row",
-    marginBottom: spacing.lg,
-    paddingHorizontal: spacing.xs,
+    gap: spacing.md,
+    marginBottom: spacing.md,
   },
-  containerInputs: {
-    marginBottom: scale(10),
+  fieldGroup: {
+    flex: 1,
   },
-  title: {
-    fontSize: scale(16),
-    alignSelf: "center",
-    color: colors.primary,
-    fontWeight: "800",
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.lg,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+  label: {
+    fontSize: scale(12),
+    color: colors.textMuted,
+    fontWeight: "600",
+    marginBottom: scale(6),
+  },
+  input: {
+    height: scale(50),
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    fontSize: scale(14),
+    color: colors.textPrimary,
+    ...shadows.sm,
   },
   inputError: {
     borderColor: colors.error,
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
   errorText: {
     color: colors.error,
     fontSize: scale(11),
-    marginTop: spacing.xs,
-    marginLeft: scale(10),
-    fontWeight: '600',
+    marginTop: scale(4),
+    fontWeight: "500",
   },
-  buttonText: {
+
+  // Save toggle
+  saveToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  saveToggleLabel: {
+    fontSize: scale(12),
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  saveToggleLabelActive: {
+    color: colors.primary,
+  },
+
+  // Button
+  confirmButton: {
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    paddingVertical: scale(14),
+    marginBottom: spacing.lg,
+    ...shadows.primaryGlow,
+  },
+  confirmButtonText: {
     color: colors.surface,
     fontSize: scale(16),
     fontWeight: "700",
     letterSpacing: 0.5,
-  }
+  },
 });
 
 export default UserCarInfo;

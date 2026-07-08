@@ -47,7 +47,7 @@ const DestinationModal = ({
             {/* Header */}
             <View style={styles.header}>
               <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
-                <Icon name="close" size={scale(24)} color={colors.textPrimary} />
+                <Icon name="close" size={scale(20)} color={colors.textPrimary} />
               </TouchableOpacity>
               <Text style={styles.headerTitle}>PARA ONDE VAMOS?</Text>
               <View style={{ width: scale(40) }} />
@@ -180,16 +180,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.xl,
-    marginBottom: spacing.xl,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.xs,
   },
   closeButton: {
-    padding: spacing.sm,
-    borderRadius: borderRadius.xxl,
+    width: scale(36),
+    height: scale(36),
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: borderRadius.full,
     backgroundColor: colors.surface,
     ...shadows.sm,
   },
   headerTitle: {
-    fontSize: scale(16),
+    fontSize: scale(14),
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: 0.5,
@@ -198,14 +202,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     marginHorizontal: spacing.xl,
     borderRadius: borderRadius.xxl,
-    padding: spacing.lg,
+    padding: spacing.md,
     ...shadows.md,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: scale(10),
+    padding: scale(6),
     borderRadius: borderRadius.lg,
     backgroundColor: colors.background,
   },
@@ -216,53 +220,53 @@ const styles = StyleSheet.create({
   },
   textInputContainer: {
     flex: 1,
-    marginLeft: spacing.lg,
+    marginLeft: spacing.md,
   },
   label: {
-    fontSize: scale(11),
+    fontSize: scale(10),
     color: colors.textSecondary,
     fontWeight: '600',
-    marginBottom: scale(2),
+    marginBottom: scale(1),
     textTransform: 'uppercase',
   },
   textInput: {
-    fontSize: scale(16),
+    fontSize: scale(14),
     color: colors.textPrimary,
     fontWeight: '600',
-    paddingVertical: scale(4),
+    paddingVertical: scale(2),
   },
   activeInput: {
     color: colors.textPrimary,
   },
   iconBubble: {
-    width: scale(40),
-    height: scale(40),
+    width: scale(34),
+    height: scale(34),
     borderRadius: borderRadius.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   connectorLine: {
     width: 2,
-    height: scale(20),
+    height: scale(12),
     backgroundColor: colors.borderLight,
-    marginLeft: scale(30),
-    marginVertical: scale(4),
+    marginLeft: scale(23),
+    marginVertical: scale(2),
   },
   mapOption: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
     marginHorizontal: spacing.xl,
-    padding: spacing.md,
+    padding: spacing.sm,
     borderRadius: borderRadius.xl,
     ...shadows.sm,
   },
   mapOptionText: {
     flex: 1,
-    fontSize: scale(15),
+    fontSize: scale(13),
     fontWeight: '600',
     color: colors.textPrimary,
-    marginLeft: spacing.lg,
+    marginLeft: spacing.md,
   },
   divider: {
     height: 1,

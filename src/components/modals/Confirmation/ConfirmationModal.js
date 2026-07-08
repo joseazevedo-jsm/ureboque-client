@@ -1,6 +1,5 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
-  FlatList,
   Image,
   Modal,
   StyleSheet,
@@ -10,36 +9,46 @@ import {
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import Animated, { FadeInUp } from "react-native-reanimated";
 
 import { useConfirmationModal } from "./components/useConfirmationModal";
 import { useAlert } from "../../../context/AlertContext";
 import StarRating from "../../cards/starRating";
-import { colors, shadows, borderRadius, spacing, typography } from "../../../theme";
-import Animated, { FadeInUp } from "react-native-reanimated";
+import { colors, shadows, borderRadius, spacing } from "../../../theme";
 
 const imgDef =
   "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
-  
-const ConfirmationModal = ({
-  visible,
-  closeModal,
-  payment_total,
-  payment_type,
-  service,
-}) => {
+
+const PAYMENT_ICONS = {
+  DINHEIRO: require("../../../../resources/icons/payment/CASH.png"),
+  MULTICAIXA: require("../../../../resources/icons/payment/MULTICARD.png"),
+};
+
+const PAYMENT_LABELS = {
+  DINHEIRO: "Cash",
+  MULTICAIXA: "Multicaixa",
+};
+
+const ConfirmationModal = ({ visible, closeModal, payment_total, payment_type, service }) => {
   const { models, operations } = useConfirmationModal(service, closeModal);
   const { showAlert } = useAlert();
 
-  const handeBackButtonPress = () => {
-    closeModal();
-  };
+  const formattedTotal = useMemo(() => {
+    const n = Number(payment_total);
+    if (!payment_total || isNaN(n)) return "0 AOA";
+    return `AOA ${n.toLocaleString("pt-AO")}`;
+  }, [payment_total]);
+
+  const paymentIcon = PAYMENT_ICONS[payment_type] ?? PAYMENT_ICONS.DINHEIRO;
+  const paymentLabel = PAYMENT_LABELS[payment_type] ?? payment_type ?? "Cash";
 
   const handleProblemPress = () => {
     showAlert({
-      type: 'warning',
-      title: 'Reportar Problema',
-      message: 'Para reportar um problema com esta viagem, contacte o nosso suporte através do email suporte@ureboque.com ou pelo número de apoio ao cliente.',
-      buttons: [{ text: 'Fechar' }],
+      type: "warning",
+      title: "Reportar Problema",
+      message:
+        "Para reportar um problema com esta viagem, contacte o nosso suporte através do email suporte@ureboque.com ou pelo número de apoio ao cliente.",
+      buttons: [{ text: "Fechar" }],
     });
   };
 
@@ -47,64 +56,77 @@ const ConfirmationModal = ({
     <Modal onRequestClose={closeModal} visible={visible} animationType="fade">
       <View style={styles.container}>
 
-        <View style={styles.overlay}>
-        <TouchableOpacity style={styles.goback} onPress={handeBackButtonPress}>
-          <Icon name="close" size={scale(25)} color={colors.surface} />
-        </TouchableOpacity>
-          <View style={{ marginTop: scale(35), alignItems: "center" }}>
-            <Text style={styles.billTitle}>
-              SUA CONTA
-            </Text>
-            <Text style={styles.billAmount}>
-              AOA {payment_total.toLocaleString()}
-            </Text>
-            <Text style={styles.billPaymentType}>
-              A SER PAGO EM {payment_type}
-            </Text>
+        {/* ── Compact blue header ───────────────────────────── */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+            <Icon name="close" size={scale(22)} color={colors.surface} />
+          </TouchableOpacity>
+
+          <View style={styles.successBadge}>
+            <Icon name="check" size={scale(36)} color={colors.primary} />
           </View>
+          <Text style={styles.successTitle}>Viagem Concluída!</Text>
         </View>
 
-        <Animated.View entering={FadeInUp.delay(200).springify().damping(28).stiffness(180)} style={styles.profile}>
-          <View style={{ alignItems: "center" }}>
-            <View style={styles.driverPhotoContainer}>
-              <Image
-                source={{
-                  uri: service.driver?.photo || imgDef,
-                }}
-                style={styles.driverPhoto}
-              />
+        {/* ── Receipt card — pulls up over header ───────────── */}
+        <Animated.View
+          entering={FadeInUp.delay(150).springify().damping(28).stiffness(180)}
+          style={styles.card}
+        >
+          {/* Amount row */}
+          <View style={styles.amountRow}>
+            <View>
+              <Text style={styles.amountLabel}>Total a pagar</Text>
+              <Text style={styles.amountValue}>{formattedTotal}</Text>
             </View>
-            <Text style={styles.driverName}>
-              {service.driver?.name}
-            </Text>
+            <View style={styles.paymentChip}>
+              <Image source={paymentIcon} style={styles.paymentImage} resizeMode="contain" />
+              <Text style={styles.paymentChipText}>{paymentLabel}</Text>
+            </View>
           </View>
 
-          <Text style={styles.ratingLabel}>
-            Avalie o Motorista
-          </Text>
+          <View style={styles.divider} />
 
-          <StarRating rating={models.rating} onRate={operations.handleRate} />
+          {/* Driver + rating */}
+          <View style={styles.driverSection}>
+            <View style={styles.avatarRing}>
+              <Image
+                source={{ uri: service.driver?.photo || imgDef }}
+                style={styles.avatar}
+              />
+            </View>
+            <Text style={styles.driverName}>{service.driver?.name}</Text>
+            <Text style={styles.ratingLabel}>Avalie o motorista</Text>
+            <StarRating
+              rating={models.rating}
+              onRate={operations.handleRate}
+              size={scale(36)}
+              gap={scale(4)}
+            />
+          </View>
         </Animated.View>
-        <View style={styles.bottomContainer}>
+
+        {/* ── Push actions to the bottom ────────────────────── */}
+        <View style={styles.spacer} />
+
+        <View style={styles.actions}>
           <TouchableOpacity
             style={styles.problemButton}
             onPress={handleProblemPress}
-            accessibilityLabel="Reportar um problema com esta viagem"
             accessibilityRole="button"
           >
-            <Text style={styles.problemButtonText}>
-              Algum problema?
-            </Text>
+            <Text style={styles.problemText}>Algum problema?</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.confirmButton}
             onPress={operations.handleConfirmRate}
+            activeOpacity={0.85}
+            accessibilityRole="button"
           >
-            <Text style={styles.confirmButtonText}>
-              Confirmar
-            </Text>
+            <Text style={styles.confirmText}>Confirmar</Text>
           </TouchableOpacity>
         </View>
+
       </View>
     </Modal>
   );
@@ -115,111 +137,166 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  goback: {
-    width: scale(50),
-    height: scale(50),
-    position: "absolute",
+
+  // ── Header ────────────────────────────────────────────────
+  header: {
+    backgroundColor: colors.primary,
+    borderBottomLeftRadius: scale(36),
+    borderBottomRightRadius: scale(36),
+    paddingTop: spacing.modalSafeTop,
+    paddingBottom: scale(64),           // breathing room for the card pull-up
     alignItems: "center",
-    justifyContent: "center",
-    left: scale(16),
-    top: scale(40),
-    borderRadius: scale(25),
-    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "flex-end",
   },
-  profile: {
-    width: scale(290),
-    height: scale(290),
+  closeButton: {
     position: "absolute",
-    borderRadius: borderRadius.xxl,
-    backgroundColor: colors.surface,
-    alignSelf: "center",
-    top: "32%",
+    top: spacing.modalSafeTop,
+    left: spacing.xl,
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(22),
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  successBadge: {
+    width: scale(72),
+    height: scale(72),
+    borderRadius: scale(36),
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.md,
+    ...shadows.md,
+  },
+  successTitle: {
+    fontSize: scale(20),
+    fontWeight: "800",
+    color: colors.surface,
+    letterSpacing: 0.3,
+  },
+
+  // ── Receipt card ──────────────────────────────────────────
+  card: {
+    marginHorizontal: spacing.xl,
+    marginTop: -scale(44),             // pull up over the header
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xxl,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
     ...shadows.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
   },
-  overlay: {
-    width: "100%",
-    height: "60%",
-    borderBottomStartRadius: scale(200),
-    borderBottomEndRadius: scale(200),
-    backgroundColor: colors.primary,
+
+  // Amount
+  amountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  amountLabel: {
+    fontSize: scale(12),
+    color: colors.textMuted,
+    fontWeight: "600",
+    marginBottom: scale(4),
+  },
+  amountValue: {
+    fontSize: scale(25),
+    fontWeight: "800",
+    color: colors.primary,
+    letterSpacing: 0.5,
+  },
+  paymentChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  paymentImage: {
+    width: scale(34),
+    height: scale(22),
+    marginRight: spacing.sm,
+  },
+  paymentChipText: {
+    fontSize: scale(14),
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: colors.borderLight,
+    marginVertical: spacing.xl,
+  },
+
+  // Driver + rating
+  driverSection: {
     alignItems: "center",
   },
-  billTitle: {
-    fontSize: scale(14),
-    color: "rgba(255,255,255,0.9)",
-    fontWeight: "700",
-    padding: scale(30),
-    letterSpacing: 1,
-  },
-  billAmount: {
-    fontSize: scale(32),
-    color: colors.surface,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-  },
-  billPaymentType: {
-    fontSize: scale(12),
-    color: "rgba(255,255,255,0.8)",
-    marginTop: scale(8),
-    fontWeight: "500",
-    letterSpacing: 0.5,
-  },
-  driverPhotoContainer: {
-    borderRadius: scale(60),
+  avatarRing: {
+    borderRadius: scale(48),
     borderWidth: 3,
     borderColor: colors.primary,
+    marginBottom: spacing.md,
     ...shadows.primaryGlow,
   },
-  driverPhoto: {
-    width: scale(100),
-    height: scale(100),
-    borderRadius: scale(55),
+  avatar: {
+    width: scale(88),
+    height: scale(88),
+    borderRadius: scale(44),
   },
   driverName: {
     fontSize: scale(18),
     fontWeight: "700",
     color: colors.textPrimary,
-    marginTop: scale(12),
+    marginBottom: scale(4),
   },
   ratingLabel: {
-    marginTop: scale(12),
-    fontSize: scale(14),
-    color: colors.textSecondary,
-    marginBottom: scale(12),
-    fontWeight: "500",
+    fontSize: scale(13),
+    color: colors.textMuted,
+    fontWeight: "600",
+    marginBottom: spacing.lg,
   },
-  bottomContainer: {
+
+  // ── Bottom actions ────────────────────────────────────────
+  spacer: {
+    flex: 1,
+  },
+  actions: {
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xxxl,
     alignItems: "center",
-    marginTop: scale(150),
-    paddingHorizontal: scale(24),
   },
   problemButton: {
-    paddingVertical: scale(12),
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  problemButtonText: {
-    color: colors.primary,
-    fontSize: scale(15),
+  problemText: {
+    color: colors.textSecondary,
+    fontSize: scale(14),
     fontWeight: "600",
+    textDecorationLine: "underline",
   },
   confirmButton: {
-    marginTop: scale(16),
     backgroundColor: colors.primary,
     borderRadius: borderRadius.xl,
-    width: scale(300),
-    height: scale(52),
+    width: "100%",
+    height: scale(54),
     alignItems: "center",
     justifyContent: "center",
     ...shadows.primaryGlow,
   },
-  confirmButtonText: {
+  confirmText: {
     color: colors.surface,
     fontSize: scale(16),
     fontWeight: "700",
     letterSpacing: 0.5,
   },
 });
+
 export default ConfirmationModal;

@@ -1,34 +1,21 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { UserContext } from "../../context/UserContext";
-import { useAuth } from "../../context/AuthContext";
 import { useForm } from "../../hooks/useForm";
 import { loginValidationSchema, otpValidationSchema } from "../../utils/validationSchemas";
 import { useNavigation } from "@react-navigation/native";
 import api from "../../services/APIService";
-import ErrorService from "../../services/ErrorService";
-import axios from "axios";
 import { useLogger } from "../../hooks/useLogger";
 import { useAlert } from "../../context/AlertContext";
-
-const apiOTP = axios.create({
-  baseURL: "https://api.releans.com/v2/message",
-  headers: {
-    Authorization: `Bearer ${process.env.EXPO_PUBLIC_RELEANS_API_TOKEN}`,
-  },
-  maxRedirects: 20,
-});
 
 export const useLoginScreen = () => {
   const logger = useLogger('useLoginScreen');
   const { showAlert } = useAlert();
 
-  // Form validation for phone number
   const phoneForm = useForm(
     { phoneNumber: "", callingCode: "244" },
     { phoneNumber: loginValidationSchema.phoneNumber }
   );
 
-  // Form validation for OTP
   const otpForm = useForm(
     { otpCode: "" },
     otpValidationSchema
@@ -39,12 +26,14 @@ export const useLoginScreen = () => {
   const [modalRegisterVisible, setModalRegisterVisible] = useState(false);
   const [modalOtpVisible, setModalOtpVisible] = useState(false);
   const { setUser, login } = useContext(UserContext);
-  const auth = useAuth();
   const [warning, setWarning] = useState("");
   const [loginFailed, setLoginFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const navigation = useNavigation();
+
+  const getFullPhoneNumber = () =>
+    `${phoneForm.values.callingCode}${phoneForm.values.phoneNumber}`;
 
   useEffect(() => {
     if (otpForm.values.otpCode.length === 4) {
@@ -52,21 +41,16 @@ export const useLoginScreen = () => {
     }
   }, [otpForm.values.otpCode]);
 
-  const generateRandom4DigitNumber = () => {
-    return Math.floor(1000 + Math.random() * 9000);
-  };
-
   const handleCallingCodeSelect = (selectedCallingCode) => {
     phoneForm.setValue("callingCode", selectedCallingCode);
   };
 
   const handleNumberChange = (text) => {
     phoneForm.setValue("phoneNumber", text);
-    setWarning(""); // Clear warning when user types
+    setWarning("");
   };
 
   const handleOTPChange = (text) => {
-    // This function receives the complete 4-digit OTP from the modal
     otpForm.setValue("otpCode", text);
   };
 
@@ -75,41 +59,41 @@ export const useLoginScreen = () => {
   };
 
   const handleOnConfirmNumber = async () => {
+    const fullPhoneNumber = getFullPhoneNumber();
+
     try {
-      const random4DigitNumber = generateRandom4DigitNumber();
+      const response = await api.post("/users/send-otp", {
+        phone: fullPhoneNumber,
+      });
 
-      const message = {
-        mobile: `+${phoneForm.values.callingCode}${phoneForm.values.phoneNumber}`,
-        sender: "UREBOQUE",
-        content: `O seu codigo para ativação é ${random4DigitNumber}`,
-      };
-
-      const response = await apiOTP.post("", message).then();
-      const data = response.data;
-      logger.info('OTP API response received', data);
-      setCodeOTP({ confirm: data, code: random4DigitNumber });
-
-      if (data) {
-        logger.info('OTP sent successfully', { messageStatus: response.data.status, otpGenerated: true });
-        setModalOtpVisible(true);
-      }
+      logger.info('OTP sent successfully', { method: response.data?.method });
+      setCodeOTP({ phone: fullPhoneNumber, method: response.data?.method });
+      setModalOtpVisible(true);
     } catch (error) {
+      const devOTP = __DEV__ ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
+      if (devOTP) {
+        logger.warn('OTP backend unavailable; using development OTP fallback', { errorMessage: error.message });
+        setCodeOTP({ phone: fullPhoneNumber, development: true });
+        setModalOtpVisible(true);
+        return;
+      }
+
       logger.error('Error sending OTP', error);
       showAlert({
         type: 'error',
-        title: 'Erro ao enviar código',
-        message: 'Não foi possível enviar o código SMS. Verifique o número e tente novamente.',
+        title: 'Erro ao enviar codigo',
+        message: 'Nao foi possivel enviar o codigo SMS. Verifique o numero e tente novamente.',
         buttons: [{ text: 'OK' }],
       });
     }
   };
 
-  const onChangeLoginState = (phone) => {
+  const onChangeLoginState = () => {
     setModalOtpVisible(false);
     setModalRegisterVisible(false);
     navigation.navigate("Login", {
       passwordState: 1,
-      phone: `${phoneForm.values.callingCode}${phoneForm.values.phoneNumber}`,
+      phone: getFullPhoneNumber(),
     });
   };
 
@@ -119,7 +103,7 @@ export const useLoginScreen = () => {
       setWarning("");
       setLoginFailed(false);
 
-      logger.info('Login attempt', { hasPassword: !!password, phone });
+      logger.info('Login attempt', { hasPassword: !!password, hasPhone: !!phone });
 
       const response = await api.post("/users/login", {
         password: password,
@@ -129,11 +113,10 @@ export const useLoginScreen = () => {
       const data = response.data;
       logger.info('Login successful', { userId: data.user?.id, hasToken: !!data.token, role: data.user?.role });
 
-      // Check user role - drivers cannot log into client app
       if (data.user?.role === 'driver') {
         logger.warn('Driver attempted to login to client app', { userId: data.user.id, role: data.user.role });
         setLoginFailed(true);
-        setWarning("Este tipo de conta não pode acessar a aplicação cliente. Use a aplicação do motorista.");
+        setWarning("Este tipo de conta nao pode acessar a aplicacao cliente. Use a aplicacao do motorista.");
         return;
       }
 
@@ -145,7 +128,7 @@ export const useLoginScreen = () => {
         } catch (loginError) {
           logger.error('Error during login process (user data fetch failed)', loginError);
           setLoginFailed(true);
-          setWarning("Erro ao carregar dados do usuário. Tente novamente.");
+          setWarning("Erro ao carregar dados do usuario. Tente novamente.");
         }
       } else {
         throw new Error("Invalid response data");
@@ -154,13 +137,12 @@ export const useLoginScreen = () => {
       logger.error('Login failed', error);
       setLoginFailed(true);
 
-      // Handle different error types
       if (error.response?.status === 401) {
         setWarning("Credenciais incorretas. Verifique sua senha.");
       } else if (error.response?.status === 500) {
         setWarning("Erro no servidor. Tente novamente mais tarde.");
       } else if (error.response?.status === 404) {
-        setWarning("Número de telefone não encontrado.");
+        setWarning("Numero de telefone nao encontrado.");
       } else {
         setWarning("Falha no login. Verifique suas credenciais e tente novamente.");
       }
@@ -170,53 +152,63 @@ export const useLoginScreen = () => {
   };
 
   const verifyOTPCode = async () => {
-    // Check against generated OTP or development default
-    const expectedOTP = codeOTP?.code?.toString() || process.env.EXPO_PUBLIC_OTP_DEFAULT;
+    const fullPhoneNumber = getFullPhoneNumber();
+    const enteredOTP = otpForm.values.otpCode;
+    const devOTP = __DEV__ ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
 
-    if (otpForm.values.otpCode === expectedOTP) {
-      setModalOtpVisible(false);
-
-      const fullPhoneNumber = `${phoneForm.values.callingCode}${phoneForm.values.phoneNumber}`;
-
-      try {
-        // Check if user exists using GET /phone/:phone endpoint
-        const checkUserResponse = await api.get(`/users/phone/${fullPhoneNumber}`);
-        if (checkUserResponse.data) {
-          // User exists - go to password screen
-          logger.info('User found, navigating to login');
-          navigation.navigate("Login", {
-            passwordState: 1,
-            phone: fullPhoneNumber,
-          });
-        } else {
-          // New user - start registration flow
-          logger.info('User not found, starting registration flow');
-          navigation.navigate("RegistrationWelcome", {
-            phone: fullPhoneNumber
-          });
-        }
-      } catch (error) {
-        logger.error('Error checking user existence', error);
-        if (error.response?.status === 404) {
-          logger.info('User not found (404), starting registration flow');
-          navigation.navigate("RegistrationWelcome", {
-            phone: fullPhoneNumber
-          });
-        } else {
-          logger.warn('Network or server error during user check', error);
-          const isNetworkError = !error.response;
-          showAlert({
-            type: 'error',
-            title: 'Erro de ligação',
-            message: isNetworkError
-              ? 'Não foi possível ligar ao servidor. Verifique a sua internet e tente novamente.'
-              : 'Ocorreu um erro inesperado. Tente novamente.',
-            buttons: [{ text: 'OK' }],
-          });
-        }
+    if (codeOTP?.development) {
+      if (!devOTP || enteredOTP !== devOTP) {
+        showAlert({ type: 'error', title: 'Erro', message: 'Codigo OTP invalido. Tente novamente.' });
+        return;
       }
     } else {
-      showAlert({ type: 'error', title: 'Erro', message: 'Código OTP inválido. Tente novamente.' });
+      try {
+        await api.post("/users/verify-otp", {
+          phone: fullPhoneNumber,
+          otp: enteredOTP,
+        });
+      } catch (error) {
+        logger.error('OTP verification failed', error);
+        showAlert({ type: 'error', title: 'Erro', message: 'Codigo OTP invalido. Tente novamente.' });
+        return;
+      }
+    }
+
+    setModalOtpVisible(false);
+
+    try {
+      const checkUserResponse = await api.get(`/users/phone/${fullPhoneNumber}`);
+      if (checkUserResponse.data) {
+        logger.info('User found, navigating to login');
+        navigation.navigate("Login", {
+          passwordState: 1,
+          phone: fullPhoneNumber,
+        });
+      } else {
+        logger.info('User not found, starting registration flow');
+        navigation.navigate("RegistrationWelcome", {
+          phone: fullPhoneNumber
+        });
+      }
+    } catch (error) {
+      logger.error('Error checking user existence', error);
+      if (error.response?.status === 404) {
+        logger.info('User not found (404), starting registration flow');
+        navigation.navigate("RegistrationWelcome", {
+          phone: fullPhoneNumber
+        });
+      } else {
+        logger.warn('Network or server error during user check', error);
+        const isNetworkError = !error.response;
+        showAlert({
+          type: 'error',
+          title: 'Erro de ligacao',
+          message: isNetworkError
+            ? 'Nao foi possivel ligar ao servidor. Verifique a sua internet e tente novamente.'
+            : 'Ocorreu um erro inesperado. Tente novamente.',
+          buttons: [{ text: 'OK' }],
+        });
+      }
     }
   };
 
@@ -241,22 +233,22 @@ export const useLoginScreen = () => {
 
   const handleOTPModalClose = () => {
     setModalOtpVisible(false);
-    // Clear OTP state when modal is closed
     otpForm.setValue("otpCode", "");
     setCodeOTP(undefined);
   };
 
-  const onVerifyOtp = () => {
+  const onVerifyOtp = async () => {
     if (phoneForm.values.phoneNumber.length < 9) {
-      setWarning("O número de telefone deve ter pelo menos 9 caracteres");
+      setWarning("O numero de telefone deve ter pelo menos 9 caracteres");
     } else {
       setWarning("");
       const isValid = phoneForm.validate();
       if (isValid) {
-        setModalOtpVisible(true);
+        await handleOnConfirmNumber();
       }
     }
   };
+
   return {
     models: {
       callingCode: phoneForm.values.callingCode,

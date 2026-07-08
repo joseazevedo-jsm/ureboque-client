@@ -9,7 +9,7 @@ const useHistoryScreen = () => {
     logProps: true
   });
 
-  const { user, services, servicesLoading, servicesHasMore, fetchUserServices, loadMoreServices } = useUserData();
+  const { user, services, servicesLoading, servicesHasMore, servicesLoadedUserId, fetchUserServices, loadMoreServices } = useUserData();
   const { userToken } = useAuth();
 
   // Get count of services by status
@@ -104,22 +104,27 @@ const useHistoryScreen = () => {
       hasUserId: !!(user?._id || user?.id),
       hasToken: !!userToken,
       servicesCount: services.length,
-      servicesLoading
+      servicesLoading,
+      servicesLoadedUserId
     });
 
     const userId = user?._id || user?.id;
+    const servicesLoaded = servicesLoadedUserId === userId;
     
-    // Only fetch if we have user data but no services yet and not currently loading
-    if (userId && userToken && services.length === 0 && !servicesLoading) {
+    // Empty history is still a loaded state, so only fetch once per user.
+    if (userId && userToken && !servicesLoaded && !servicesLoading) {
+      setState(prev => (prev.error ? { ...prev, error: null } : prev));
       logger.info('Fetching initial services data');
       fetchUserServices(userId);
+    } else if (userId && userToken && servicesLoaded) {
+      setState(prev => (prev.error ? { ...prev, error: null } : prev));
     } else if (!userId || !userToken) {
       setState(prev => ({ 
         ...prev, 
         error: 'Dados do usuário não encontrados' 
       }));
     }
-  }, [user, userToken, services.length, servicesLoading]);
+  }, [user, userToken, servicesLoading, servicesLoadedUserId]);
 
   // Get services filtered by status - handle nested structure
   const getServicesByStatus = (status) => {
@@ -162,6 +167,7 @@ const useHistoryScreen = () => {
     mostRecentService: getMostRecentService(),
     statusCounts: getStatusCounts(services || []),
     hasMore: servicesHasMore,
+    servicesLoaded: servicesLoadedUserId === (user?._id || user?.id),
   };
 
   const operations = {

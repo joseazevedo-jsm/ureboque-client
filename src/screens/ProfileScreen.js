@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   View,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  ScrollView,
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
@@ -19,6 +20,10 @@ import KeyboardAvoidingWrapper from "../components/common/KeyboardAvoidingWrappe
 import { colors, spacing, shadows, borderRadius } from "../theme";
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAlert } from "../context/AlertContext";
+import VehiclesModal from "../components/vehicles/VehiclesModal";
+import EmergencyContactsModal from "../components/emergencyContacts/EmergencyContactsModal";
+import InsuranceModal from "../components/insurance/InsuranceModal";
+import AccessibilityModal from "../components/accessibility/AccessibilityModal";
 
 // Import your images
 import phoneIcon from "../../resources/icons/profile_settings/phone.png";
@@ -35,6 +40,11 @@ const ProfileScreen = () => {
   const { showAlert } = useAlert();
   const { models, operations } = useProfileScreen(showAlert);
   const navigation = useNavigation();
+
+  const [vehiclesModalVisible, setVehiclesModalVisible] = useState(false);
+  const [emergencyContactsModalVisible, setEmergencyContactsModalVisible] = useState(false);
+  const [insuranceModalVisible, setInsuranceModalVisible] = useState(false);
+  const [accessibilityModalVisible, setAccessibilityModalVisible] = useState(false);
 
   logger.debug('ProfileScreen rendered', {
     hasUser: !!models?.user,
@@ -62,7 +72,7 @@ const ProfileScreen = () => {
         }} />
       </Animated.View>
 
-      <View style={styles.contentContainer}>
+      <ScrollView style={styles.contentContainer} contentContainerStyle={styles.contentContainerInner} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* Profile Image Section */}
         <Animated.View style={styles.profileSection} entering={FadeInDown.delay(80).springify().damping(28).stiffness(180)}>
           <View style={styles.profileImageContainer}>
@@ -164,8 +174,25 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </Animated.View>
 
+        {/* My Data Section */}
+        <Animated.View style={styles.actionSection} entering={FadeInDown.delay(220).springify().damping(28).stiffness(180)}>
+          <Text style={styles.sectionTitle}>Meus Dados</Text>
+          {[
+            { icon: 'directions-car', label: 'Meus Veículos', onPress: () => setVehiclesModalVisible(true) },
+            { icon: 'contact-emergency', label: 'Contactos de Emergência', onPress: () => setEmergencyContactsModalVisible(true) },
+            { icon: 'verified-user', label: 'Seguros', onPress: () => setInsuranceModalVisible(true) },
+            { icon: 'accessibility', label: 'Acessibilidade', onPress: () => setAccessibilityModalVisible(true) },
+          ].map((item) => (
+            <TouchableOpacity key={item.label} style={[styles.actionItem, styles.actionItemSpaced]} onPress={item.onPress} activeOpacity={0.7}>
+              <Icon name={item.icon} size={scale(22)} color={colors.primary} style={styles.actionIconMaterial} />
+              <Text style={styles.actionText}>{item.label}</Text>
+              <Icon name="arrow-forward-ios" size={scale(16)} style={styles.actionArrow} />
+            </TouchableOpacity>
+          ))}
+        </Animated.View>
+
         {/* Settings Section */}
-        <Animated.View style={styles.actionSection} entering={FadeInDown.delay(240).springify().damping(28).stiffness(180)}>
+        <Animated.View style={styles.actionSection} entering={FadeInDown.delay(280).springify().damping(28).stiffness(180)}>
           <TouchableOpacity
             style={styles.actionItem}
             onPress={() => {
@@ -179,7 +206,12 @@ const ProfileScreen = () => {
             <Icon name="arrow-forward-ios" size={scale(16)} style={styles.actionArrow} />
           </TouchableOpacity>
         </Animated.View>
-      </View>
+      </ScrollView>
+
+      <VehiclesModal visible={vehiclesModalVisible} onClose={() => setVehiclesModalVisible(false)} />
+      <EmergencyContactsModal visible={emergencyContactsModalVisible} onClose={() => setEmergencyContactsModalVisible(false)} />
+      <InsuranceModal visible={insuranceModalVisible} onClose={() => setInsuranceModalVisible(false)} />
+      <AccessibilityModal visible={accessibilityModalVisible} onClose={() => setAccessibilityModalVisible(false)} />
 
       {/* OTP Modal for Phone Number Verification */}
       <OTPModal
@@ -222,6 +254,9 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     paddingHorizontal: spacing.xxl,
+  },
+  contentContainerInner: {
+    paddingBottom: spacing.xxxl,
   },
   profileSection: {
     alignItems: 'center',
@@ -365,6 +400,12 @@ const styles = StyleSheet.create({
   },
   actionArrow: {
     color: colors.textDisabled,
+  },
+  actionItemSpaced: {
+    marginBottom: spacing.sm,
+  },
+  actionIconMaterial: {
+    marginRight: spacing.lg,
   },
 });
 

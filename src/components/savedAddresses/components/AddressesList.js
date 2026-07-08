@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import PlaceSavedItem from '../../cards/placeSavedItem';
 import { ScalePressable } from '../../common/ScalePressable';
-import { colors, shadows, borderRadius, spacing } from '../../../theme';
+import { colors, shadows, spacing, borderRadius } from '../../../theme';
+import { getPlaceIcon, ICON_ADD } from '../../../assets/icons';
 
 const AddressesList = ({
   addresses,
@@ -17,39 +18,33 @@ const AddressesList = ({
 }) => {
   const [editMode, setEditMode] = React.useState(false);
 
-  // Add default Home/Work if not exists (keep existing logic)
   const displayAddresses = React.useMemo(() => {
-    const data = [...addresses];
+    const homeAddr = addresses.find(a => a.place.name === 'Casa');
+    const workAddr = addresses.find(a => a.place.name === 'Trabalho');
+    const others = addresses.filter(
+      a => a.place.name !== 'Casa' && a.place.name !== 'Trabalho'
+    );
 
-    const hasHome = data.some(addr => addr.place.name === "Casa");
-    const hasWork = data.some(addr => addr.place.name === "Trabalho");
+    const homeItem = homeAddr || {
+      _id: 'add-home',
+      place: { name: 'Adicionar Casa' },
+      isAdd: true,
+    };
+    const workItem = workAddr || {
+      _id: 'add-work',
+      place: { name: 'Adicionar Trabalho' },
+      isAdd: true,
+    };
 
-    if (!hasWork) {
-      data.unshift({
-        _id: "add-work",
-        place: { name: "Adicionar Trabalho" },
-        isAdd: true
-      });
-    }
-
-    if (!hasHome) {
-      data.unshift({
-        _id: "add-home",
-        place: { name: "Adicionar Casa" },
-        isAdd: true
-      });
-    }
-
-    return data;
+    return [homeItem, workItem, ...others];
   }, [addresses]);
 
   const handleItemPress = (item) => {
     if (item.isAdd) {
-      // Auto-populate name and type for home/work addresses
-      if (item._id === "add-home") {
-        startAdd({ name: "Casa" });
-      } else if (item._id === "add-work") {
-        startAdd({ name: "Trabalho" });
+      if (item._id === 'add-home') {
+        startAdd({ name: 'Casa' });
+      } else if (item._id === 'add-work') {
+        startAdd({ name: 'Trabalho' });
       } else {
         startAdd();
       }
@@ -59,13 +54,13 @@ const AddressesList = ({
         name: item.place.name,
         description: item.place.description,
         coordinates: item.place.coordinates,
-        instructions: item.place.instructions || ''
+        instructions: item.place.instructions || '',
       });
     }
   };
 
   const renderItem = ({ item, index }) => (
-    <Animated.View entering={FadeInRight.delay(150 + (index * 40)).springify()}>
+    <Animated.View entering={FadeInRight.delay(100 + index * 40).springify()}>
       <ScalePressable onPress={() => handleItemPress(item)}>
         <PlaceSavedItem
           key={item._id}
@@ -73,6 +68,8 @@ const AddressesList = ({
           edit={editMode}
           onPressEditItem={() => handleItemPress(item)}
           add={item.isAdd || false}
+          iconSource={getPlaceIcon(item.place.name)}
+          description={item.place.description || item.place.address || undefined}
         />
       </ScalePressable>
     </Animated.View>
@@ -80,25 +77,24 @@ const AddressesList = ({
 
   return (
     <View style={styles.container}>
-      {/* Header - Same design as current */}
-      <View style={styles.header}>
-        <ScalePressable style={styles.closeButton} onPress={onClose}>
-          <Icon name="close" size={scale(25)} />
-        </ScalePressable>
-        <ScalePressable
-          style={styles.editButton}
-          onPress={() => setEditMode(!editMode)}
-        >
-          <Text style={styles.editText}>Editar</Text>
-        </ScalePressable>
-      </View>
+      {/* Header */}
+      <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.header}>
+        <TouchableOpacity style={styles.circleButton} onPress={onClose} activeOpacity={0.75}>
+          <Icon name="close" size={scale(20)} color={colors.textPrimary} />
+        </TouchableOpacity>
 
-      {/* Title - Same design */}
-      <Animated.View entering={FadeInDown.delay(100).springify()}>
-        <Text style={styles.title}>LUGARES SALVOS</Text>
-        <Text style={styles.subtitle}>
-          O motorista irá levá-lo exatamente onde você está indo!
-        </Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.title}>Lugares Salvos</Text>
+          <Text style={styles.subtitle}>Acelere o pedido de reboques.</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.circleButton}
+          onPress={() => setEditMode(!editMode)}
+          activeOpacity={0.75}
+        >
+          <Icon name="edit" size={scale(20)} color={colors.primary} />
+        </TouchableOpacity>
       </Animated.View>
 
       {/* List */}
@@ -107,18 +103,23 @@ const AddressesList = ({
           data={displayAddresses}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          showsVerticalScrollIndicator={false}
+          ListFooterComponent={
+            <Animated.View entering={FadeInDown.delay(300).springify()}>
+              <ScalePressable onPress={startAdd}>
+                <PlaceSavedItem
+                  place={{ name: 'Adicionar' }}
+                  add={true}
+                  iconSource={ICON_ADD}
+                  description="Novo endereço personalizado"
+                  onPressEditItem={() => startAdd()}
+                />
+              </ScalePressable>
+            </Animated.View>
+          }
         />
-
-        {/* Add Place Button - Same design */}
-        <Animated.View entering={FadeInDown.delay(300).springify()}>
-          <ScalePressable style={styles.addButton} onPress={startAdd}>
-            <Text style={styles.addButtonText}>ADICIONAR LUGAR</Text>
-          </ScalePressable>
-        </Animated.View>
       </View>
 
-      {/* Loading/Error States */}
       {state.isLoading && (
         <View style={styles.loadingOverlay}>
           <Text>Carregando...</Text>
@@ -134,69 +135,43 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingTop: scale(60),
-    paddingHorizontal: spacing.lg,
-  },
-  closeButton: {
-    width: scale(44),
-    height: scale(44),
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: spacing.modalSafeTop,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.lg,
+  },
+  circleButton: {
+    width: scale(40),
+    height: scale(40),
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
-    ...shadows.md,
+    alignItems: 'center',
+    ...shadows.sm,
   },
-  editButton: {
-    paddingTop: spacing.sm,
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
     paddingHorizontal: spacing.sm,
-  },
-  editText: {
-    fontWeight: "600",
-    color: colors.primary,
-    fontSize: scale(14),
+    paddingTop: spacing.xs,
   },
   title: {
     fontSize: scale(18),
-    marginLeft: spacing.lg,
-    marginTop: spacing.xxl,
+    fontWeight: '800',
     color: colors.textPrimary,
-    fontWeight: "700",
-    letterSpacing: 0.5,
   },
   subtitle: {
-    marginLeft: spacing.lg,
-    marginTop: spacing.xs,
     fontSize: scale(13),
     color: colors.textSecondary,
+    marginTop: scale(2),
+    textAlign: 'center',
   },
   listContainer: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.xxl,
     flex: 1,
-  },
-  separator: {
-    height: spacing.md,
-  },
-  addButton: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: borderRadius.xl,
-    width: scale(300),
-    alignItems: "center",
-    alignSelf: "center",
-    paddingVertical: spacing.lg,
-    marginTop: spacing.xl,
-    marginBottom: spacing.xxl,
-    backgroundColor: colors.surface,
-    ...shadows.md,
-  },
-  addButtonText: {
-    color: colors.primary,
-    fontWeight: "700",
-    fontSize: scale(14),
-    letterSpacing: 0.5,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -207,7 +182,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-  }
+  },
 });
 
 export default AddressesList;

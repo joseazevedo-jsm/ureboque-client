@@ -24,6 +24,11 @@ class SocketService {
     }
 
     const socketUrl = process.env.EXPO_PUBLIC_SOCKET_URL;
+    if (!socketUrl) {
+      Logger.error('SocketService', 'EXPO_PUBLIC_SOCKET_URL is not configured');
+      throw new Error('Socket URL is not configured');
+    }
+
     Logger.info('SocketService', 'Attempting socket connection', { socketUrl });
 
     this.socket = io(socketUrl, {

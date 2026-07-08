@@ -4,137 +4,176 @@ import {
   Text,
   Image,
   StyleSheet,
+  TouchableOpacity,
+  ScrollView,
 } from "react-native";
-import {
-  DrawerContentScrollView,
-  DrawerItem,
-} from "@react-navigation/drawer";
-import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scale } from "react-native-size-matters";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import Animated, { FadeInLeft } from "react-native-reanimated";
 import { UserContext } from "../../context/UserContext";
+import { useUserData } from "../../context/UserDataContext";
 import { useTripState } from "../../context/TripStateContext";
 import { useAlert } from "../../context/AlertContext";
-import { colors } from "../../theme";
+import { colors, spacing, borderRadius, shadows } from "../../theme";
 
-// Import custom icons
-import ProfileIcon from "../../../resources/icons/side_bar/profile.png";
-import PromotionsIcon from "../../../resources/icons/side_bar/discount.png";
-import InviteIcon from "../../../resources/icons/side_bar/add_friend.png";
-import HistoryIcon from "../../../resources/icons/side_bar/history.png";
-import HelpIcon from "../../../resources/icons/side_bar/help.png";
+const MAIN_ITEMS = [
+  { route: "Map",         label: "Início",          icon: "home" },
+  { route: "Perfil",      label: "Perfil",           icon: "person" },
+  { route: "Historico",   label: "Histórico",        icon: "history" },
+  { route: "Promocoes",   label: "Promoções",        icon: "local-offer" },
+  { route: "Notificacoes",label: "Notificações",     icon: "notifications" },
+  { route: "Convidar",    label: "Convidar Amigos",  icon: "group-add" },
+];
 
-const UserProfile = ({ user }) => (
-  <View style={styles.userProfileContainer}>
-    <View style={styles.userImageContainer}>
-      <Image
-        source={user?.photo ? { uri: user.photo } : require('../../../resources/icons/side_bar/profile.png')}
-        style={styles.userImage}
-      />
-    </View>
-    <View style={styles.userNameContainer}>
-      <Text style={styles.userName}>{user?.name}</Text>
-    </View>
-  </View>
-);
+const BOTTOM_ITEMS = [
+  { route: "ComplaintsScreen", label: "Reclamacoes", icon: "support-agent" },
+  { route: "SettingsScreen", label: "Definições", icon: "settings" },
+];
 
-const DrawerMenuItem = ({ label, iconSource, iconName, onPress }) => (
-  <DrawerItem
-    label={() => <Text style={styles.drawerItemLabel}>{label}</Text>}
-    onPress={onPress}
-    icon={() =>
-      iconName ? (
-        <Icon name={iconName} size={scale(22)} color={colors.surface} style={{ opacity: 0.9 }} />
-      ) : (
-        <Image
-          source={iconSource}
-          style={styles.drawerItemIcon}
-          resizeMode="contain"
+const MenuItem = ({ label, icon, active, badge, onPress, delay }) => (
+  <Animated.View entering={FadeInLeft.delay(delay).springify().damping(28).stiffness(180)}>
+    <TouchableOpacity
+      style={[styles.menuItem, active && styles.menuItemActive]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.menuIconWrap, active && styles.menuIconWrapActive]}>
+        <Icon
+          name={icon}
+          size={scale(20)}
+          color={active ? colors.primary : colors.textSecondary}
         />
-      )
-    }
-  />
+      </View>
+      <Text style={[styles.menuLabel, active && styles.menuLabelActive]}>
+        {label}
+      </Text>
+      {badge > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{badge > 99 ? "99+" : badge}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  </Animated.View>
 );
 
 const SideMenuDrawer = (props) => {
-  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { user, logout } = useContext(UserContext);
+  const { unreadNotificationsCount } = useUserData();
   const { isTripActive } = useTripState();
   const { showAlert } = useAlert();
+
+  const activeRoute = props.state?.routeNames?.[props.state?.index];
 
   const navigateWithGuard = useCallback((screenName, params) => {
     if (isTripActive) {
       showAlert({
-        type: 'confirmation',
-        title: 'Viagem em andamento',
-        message: 'Tem uma viagem ativa. Deseja sair desta tela?',
+        type: "confirmation",
+        title: "Viagem em andamento",
+        message: "Tem uma viagem ativa. Deseja sair desta tela?",
         buttons: [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Continuar',
-            onPress: () => navigation.navigate(screenName, params),
-          },
+          { text: "Cancelar", style: "cancel" },
+          { text: "Continuar", onPress: () => props.navigation.navigate(screenName, params) },
         ],
       });
     } else {
-      navigation.navigate(screenName, params);
+      props.navigation.navigate(screenName, params);
     }
-  }, [isTripActive, showAlert, navigation]);
+  }, [isTripActive, showAlert, props.navigation]);
 
   const handleLogout = useCallback(() => {
     showAlert({
-      type: 'confirmation',
-      title: 'Terminar Sessão',
-      message: 'Tem certeza que deseja sair da sua conta?',
+      type: "confirmation",
+      title: "Terminar Sessão",
+      message: "Tem a certeza que deseja sair da sua conta?",
       buttons: [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sair',
-          style: 'destructive',
-          onPress: () => logout(),
-        },
+        { text: "Cancelar", style: "cancel" },
+        { text: "Sair", style: "destructive", onPress: () => logout() },
       ],
     });
   }, [showAlert, logout]);
 
   return (
     <View style={styles.container}>
-      <DrawerContentScrollView contentContainerStyle={styles.drawerContent}>
-        <UserProfile user={user} />
-        <View style={styles.divider} />
-        <View style={styles.drawerItemsContainer}>
-          <DrawerMenuItem
-            label="Início"
-            iconName="home"
-            onPress={() => navigateWithGuard("Map")}
-          />
-          <DrawerMenuItem
-            label="Perfil"
-            iconSource={ProfileIcon}
-            onPress={() => navigateWithGuard("Perfil", 123)}
-          />
-          <DrawerMenuItem
-            label="Histórico"
-            iconSource={HistoryIcon}
-            onPress={() => navigateWithGuard("Historico")}
-          />
-          <DrawerMenuItem
-            label="Promoções"
-            iconSource={PromotionsIcon}
-            onPress={() => navigateWithGuard("Promocoes", 123)}
-          />
-          <DrawerMenuItem
-            label="Convidar amigos"
-            iconSource={InviteIcon}
-            onPress={() => navigateWithGuard("Convidar")}
-          />
-          <DrawerMenuItem
-            label="Sair"
-            iconSource={HelpIcon}
-            onPress={handleLogout}
+      {/* Header */}
+      <Animated.View
+        style={[styles.header, { paddingTop: insets.top + spacing.xl }]}
+        entering={FadeInLeft.delay(0).springify().damping(28).stiffness(180)}
+      >
+        <View style={styles.avatarRing}>
+          <Image
+            source={
+              user?.photo
+                ? { uri: user.photo }
+                : require("../../../resources/icons/side_bar/profile.png")
+            }
+            style={styles.avatar}
           />
         </View>
-      </DrawerContentScrollView>
+        <View style={styles.userInfo}>
+          <Text style={styles.userName} numberOfLines={1}>
+            {user?.name ?? "Utilizador"}
+          </Text>
+          <Text style={styles.userSub} numberOfLines={1}>
+            {user?.phone ?? user?.email ?? ""}
+          </Text>
+        </View>
+      </Animated.View>
+
+      {/* Nav Items */}
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.section}>
+          {MAIN_ITEMS.map((item, i) => (
+            <MenuItem
+              key={item.route}
+              label={item.label}
+              icon={item.icon}
+              active={activeRoute === item.route}
+              badge={item.route === "Notificacoes" ? unreadNotificationsCount : 0}
+              onPress={() => navigateWithGuard(item.route)}
+              delay={40 + i * 40}
+            />
+          ))}
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.section}>
+          {BOTTOM_ITEMS.map((item, i) => (
+            <MenuItem
+              key={item.route}
+              label={item.label}
+              icon={item.icon}
+              active={activeRoute === item.route}
+              onPress={() => navigateWithGuard(item.route)}
+              delay={280 + i * 40}
+            />
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* Logout */}
+      <Animated.View
+        style={[styles.logoutWrapper, { paddingBottom: insets.bottom + spacing.lg }]}
+        entering={FadeInLeft.delay(340).springify().damping(28).stiffness(180)}
+      >
+        <View style={styles.divider} />
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.7}
+        >
+          <View style={styles.logoutIconWrap}>
+            <Icon name="logout" size={scale(20)} color={colors.error} />
+          </View>
+          <Text style={styles.logoutLabel}>Terminar Sessão</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 };
@@ -142,83 +181,132 @@ const SideMenuDrawer = (props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
-    borderTopRightRadius: scale(30),
-    borderBottomRightRadius: scale(30),
-    overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: { width: 5, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 10,
+    backgroundColor: colors.surface,
+    borderTopRightRadius: scale(24),
+    borderBottomRightRadius: scale(24),
+    overflow: "hidden",
+    ...shadows.lg,
   },
-  drawerContent: {
-    paddingTop: scale(20),
-    paddingHorizontal: scale(10),
-    backgroundColor: colors.primary,
-    flex: 1,
-  },
-  userProfileContainer: {
+  header: {
     flexDirection: "row",
-    alignItems: 'center',
-    paddingVertical: scale(24),
-    paddingHorizontal: scale(10),
-    marginBottom: scale(10),
+    alignItems: "center",
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xxl,
+    gap: spacing.lg,
   },
-  userImageContainer: {
-    borderRadius: scale(40),
-    borderColor: "rgba(255,255,255,0.3)",
+  avatarRing: {
+    borderRadius: scale(36),
     borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.4)",
     padding: 3,
-    marginRight: scale(16),
   },
-  userImage: {
-    height: scale(60),
-    width: scale(60),
-    borderRadius: scale(30),
-    backgroundColor: 'rgba(255,255,255,0.1)',
+  avatar: {
+    width: scale(56),
+    height: scale(56),
+    borderRadius: scale(28),
+    backgroundColor: "rgba(255,255,255,0.15)",
   },
-  userNameContainer: {
-    justifyContent: "center",
+  userInfo: {
     flex: 1,
   },
   userName: {
     color: colors.surface,
-    fontSize: scale(18),
+    fontSize: scale(16),
     fontWeight: "700",
-    marginBottom: scale(4),
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
+    marginBottom: scale(3),
   },
-  userRole: { // Added role text if needed
+  userSub: {
     color: "rgba(255,255,255,0.7)",
     fontSize: scale(12),
     fontWeight: "500",
   },
-  divider: {
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    marginHorizontal: scale(10),
-    marginBottom: scale(20),
-  },
-  drawerItemsContainer: {
+  scroll: {
     flex: 1,
   },
-  drawerItemLabel: {
-    color: colors.surface,
-    fontSize: scale(15),
+  scrollContent: {
+    paddingVertical: spacing.lg,
+  },
+  section: {
+    paddingHorizontal: spacing.lg,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    marginBottom: scale(2),
+  },
+  menuItemActive: {
+    backgroundColor: colors.primaryLight,
+  },
+  menuIconWrap: {
+    width: scale(36),
+    height: scale(36),
+    borderRadius: borderRadius.md,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: spacing.md,
+    backgroundColor: colors.background,
+  },
+  menuIconWrapActive: {
+    backgroundColor: "rgba(0,137,255,0.12)",
+  },
+  menuLabel: {
+    flex: 1,
+    fontSize: scale(14),
     fontWeight: "600",
-    marginLeft: scale(-10), // Adjust alignment with icon
+    color: colors.textSecondary,
   },
-  drawerItem: {
-    borderRadius: scale(12),
-    marginVertical: scale(4),
-    paddingVertical: scale(4),
+  menuLabelActive: {
+    color: colors.primary,
+    fontWeight: "700",
   },
-  drawerItemIcon: {
-    width: scale(22),
-    height: scale(22),
-    tintColor: colors.surface,
-    opacity: 0.9,
+  badge: {
+    backgroundColor: colors.error,
+    borderRadius: scale(10),
+    minWidth: scale(20),
+    height: scale(20),
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: scale(5),
+  },
+  badgeText: {
+    color: colors.surface,
+    fontSize: scale(10),
+    fontWeight: "700",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.borderLight,
+    marginHorizontal: spacing.xxl,
+    marginVertical: spacing.lg,
+  },
+  logoutWrapper: {
+    paddingHorizontal: spacing.lg,
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  logoutIconWrap: {
+    width: scale(36),
+    height: scale(36),
+    borderRadius: borderRadius.md,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: spacing.md,
+    backgroundColor: colors.errorLight,
+  },
+  logoutLabel: {
+    fontSize: scale(14),
+    fontWeight: "600",
+    color: colors.error,
   },
 });
 

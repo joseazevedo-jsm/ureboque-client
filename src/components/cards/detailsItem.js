@@ -2,28 +2,41 @@ import React, { memo, useMemo } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, Image } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
-import { colors, spacing, borderRadius, shadows, typography } from "../../theme";
+import { colors, spacing, borderRadius, shadows } from "../../theme";
+
+const PAYMENT_ICONS = {
+  DINHEIRO: require("../../../resources/icons/payment/CASH.png"),
+  MULTICAIXA: require("../../../resources/icons/payment/MULTICARD.png"),
+};
+
+const PAYMENT_LABELS = {
+  DINHEIRO: "Cash",
+  MULTICAIXA: "Multicaixa",
+};
+
+const imgDef =
+  "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
 
 const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMethod, paymentPrice, type, onBackPress }) => {
   const carInfoParts = useMemo(() => {
-    if (!clientCar) return { brand: '', details: '', license: '' };
+    if (!clientCar) return { brand: '', model: '', color: '', license: '' };
     const parts = clientCar.split(' | ');
     return {
       brand: parts[0] || '',
       model: parts[1] || '',
       color: parts[2] || '',
-      license: parts[3] || ''
+      license: parts[3] || '',
     };
   }, [clientCar]);
 
-  const carIcon = useMemo(() => {
-    return type === "JEEP"
+  const carIcon = useMemo(() => (
+    type === "JEEP"
       ? require("../../../resources/icons/UREB_JEEP.png")
-      : require("../../../resources/icons/UREB_TUR.png");
-  }, [type]);
+      : require("../../../resources/icons/UREB_TUR.png")
+  ), [type]);
 
-  const imgDef = "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
-
+  const paymentIcon = PAYMENT_ICONS[paymentMethod] ?? PAYMENT_ICONS.DINHEIRO;
+  const paymentLabel = PAYMENT_LABELS[paymentMethod] ?? "Cash";
 
   const formattedPrice = useMemo(() => {
     if (paymentPrice !== undefined && paymentPrice !== null && !isNaN(paymentPrice)) {
@@ -32,44 +45,21 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
     return "0,00 Kzs";
   }, [paymentPrice]);
 
-
-  const renderTimeline = () => (
-    <View style={styles.timelineContainer}>
-      <View style={styles.timelineLeft}>
-        <View style={styles.dot} />
-        <View style={styles.line} />
-        <Icon name="location-pin" size={scale(16)} color={colors.primary} style={styles.pinIcon} />
-      </View>
-      <View style={styles.timelineRight}>
-        <View style={styles.locationItem}>
-          <Text style={styles.locationText} numberOfLines={1}>{origin || "Origem"}</Text>
-        </View>
-        <View style={[styles.locationItem, { marginTop: scale(20) }]}>
-          <Text style={styles.locationText} numberOfLines={2}>{destination || "Destino"}</Text>
-        </View>
-      </View>
-    </View>
-  );
-
   return (
-    <View style={styles.containerStyle}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBackPress} style={styles.closeButton}>
           <Icon name="close" size={scale(20)} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detalhes da Viagem</Text>
-        <TouchableOpacity style={styles.hiddenButton} disabled>
-          {/* Invisible spacer for balance */}
-        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
       </View>
 
       <View style={styles.content}>
 
-        {/* Section 1: Driver */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>Motorista</Text>
-        </View>
+        {/* Driver */}
+        <Text style={styles.sectionLabel}>Motorista</Text>
         <View style={styles.driverRow}>
           <Image
             source={{ uri: driver?.photo || imgDef }}
@@ -77,7 +67,9 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
           />
           <View style={styles.driverInfo}>
             <Text style={styles.primaryText}>{driver?.name}</Text>
-            <Text style={styles.secondaryText}>Eu não consigo falar em portug...</Text>
+            <Text style={styles.secondaryText} numberOfLines={1}>
+              Eu não consigo falar em portug...
+            </Text>
           </View>
           <TouchableOpacity style={styles.actionButton}>
             <Icon name="near-me" size={scale(20)} color={colors.surface} />
@@ -86,16 +78,10 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
 
         <View style={styles.divider} />
 
-        {/* Section 2: Car */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>Carro do motorista</Text>
-        </View>
+        {/* Car */}
+        <Text style={styles.sectionLabel}>Carro do motorista</Text>
         <View style={styles.carRow}>
-          <Image
-            source={carIcon}
-            style={styles.carImage}
-            resizeMode="contain"
-          />
+          <Image source={carIcon} style={styles.carImage} resizeMode="contain" />
           <View style={styles.carInfo}>
             <Text style={styles.carText}>
               {carInfoParts.brand}, {carInfoParts.model}, {carInfoParts.color}
@@ -108,26 +94,34 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
 
         <View style={styles.divider} />
 
-        {/* Section 3: Location */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>Pontos de Localização</Text>
+        {/* Location */}
+        <Text style={styles.sectionLabel}>Pontos de Localização</Text>
+        <View style={styles.timelineContainer}>
+          <View style={styles.timelineLeft}>
+            <View style={styles.dot} />
+            <View style={styles.line} />
+            <Icon name="location-pin" size={scale(16)} color={colors.primary} />
+          </View>
+          <View style={styles.timelineRight}>
+            <View style={styles.locationItem}>
+              <Text style={styles.locationText} numberOfLines={1}>{origin || "Origem"}</Text>
+            </View>
+            <View style={[styles.locationItem, styles.destinationItem]}>
+              <Text style={styles.locationText} numberOfLines={2}>{destination || "Destino"}</Text>
+            </View>
+          </View>
         </View>
-        {renderTimeline()}
 
         <View style={styles.divider} />
 
-        {/* Section 4: Payment */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>Método de pagamento</Text>
-        </View>
+        {/* Payment */}
+        <Text style={styles.sectionLabel}>Método de pagamento</Text>
         <View style={styles.paymentRow}>
-          <View style={styles.paymentMethod}>
-            <Icon name="payments" size={scale(24)} color={colors.success} />
-            <Text style={styles.paymentText}>{paymentMethod || "Dinheiro"}</Text>
+          <View style={styles.paymentLeft}>
+            <Image source={paymentIcon} style={styles.paymentImage} resizeMode="contain" />
+            <Text style={styles.paymentText}>{paymentLabel}</Text>
           </View>
-          <Text style={styles.priceText}>
-            {formattedPrice}
-          </Text>
+          <Text style={styles.priceText}>{formattedPrice}</Text>
         </View>
 
       </View>
@@ -136,24 +130,22 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
 });
 
 const styles = StyleSheet.create({
-  containerStyle: {
+  container: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
-    flex: 1, // Integrate with bottom sheet
+    flex: 1,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: spacing.lg,
     marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
   headerTitle: {
-    ...typography.h3,
     fontSize: scale(18),
     color: colors.primary,
     fontWeight: '700',
-    textAlign: 'center',
   },
   closeButton: {
     width: scale(36),
@@ -163,28 +155,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hiddenButton: {
+  headerSpacer: {
     width: scale(36),
     height: scale(36),
   },
   content: {
     paddingTop: spacing.xs,
   },
-  sectionHeader: {
-    marginBottom: spacing.sm,
-  },
   sectionLabel: {
-    ...typography.label,
-    fontSize: scale(13),
-    color: colors.textSecondary,
+    fontSize: scale(12),
+    color: colors.textMuted,
     fontWeight: '600',
+    marginBottom: spacing.sm,
   },
   divider: {
     height: 1.5,
-    backgroundColor: colors.primary, // Increased visibility
-    marginVertical: spacing.lg, // Increased spacing
+    backgroundColor: colors.primary,
+    marginVertical: spacing.lg,
   },
-  // Driver Section
+  // Driver
   driverRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -192,24 +181,24 @@ const styles = StyleSheet.create({
   driverAvatar: {
     width: scale(54),
     height: scale(54),
-    borderRadius: scale(16),
+    borderRadius: scale(10),
     marginRight: spacing.md,
     backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   driverInfo: {
     flex: 1,
   },
   primaryText: {
-    ...typography.body,
     fontWeight: '700',
-    fontSize: scale(16),
+    fontSize: scale(15),
     color: colors.textPrimary,
+    marginBottom: scale(2),
   },
   secondaryText: {
-    ...typography.caption,
     fontSize: scale(13),
-    color: colors.textSecondary,
-    marginTop: scale(2),
+    color: colors.textMuted,
   },
   actionButton: {
     width: scale(44),
@@ -220,22 +209,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadows.sm,
   },
-  // Car Section
+  // Car
   carRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.xs,
   },
   carImage: {
-    width: scale(70),
-    height: scale(45),
+    width: scale(80),
+    height: scale(55),
     marginRight: spacing.md,
   },
   carInfo: {
     flex: 1,
   },
   carText: {
-    ...typography.body,
     fontSize: scale(15),
     fontWeight: '600',
     color: colors.textPrimary,
@@ -253,7 +240,7 @@ const styles = StyleSheet.create({
     fontSize: scale(13),
     fontWeight: '700',
   },
-  // Timeline Section
+  // Timeline
   timelineContainer: {
     flexDirection: 'row',
     alignItems: 'stretch',
@@ -277,9 +264,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     marginVertical: scale(4),
   },
-  pinIcon: {
-    marginBottom: scale(2),
-  },
   timelineRight: {
     flex: 1,
     paddingBottom: spacing.xs,
@@ -288,31 +272,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: scale(26),
   },
+  destinationItem: {
+    marginTop: scale(20),
+  },
   locationText: {
-    ...typography.body,
     fontSize: scale(15),
     color: colors.textPrimary,
     fontWeight: '500',
   },
-  // Payment Section
+  // Payment
   paymentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: spacing.xs,
   },
-  paymentMethod: {
+  paymentLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  paymentImage: {
+    width: scale(40),
+    height: scale(28),
+    marginRight: spacing.md,
+  },
   paymentText: {
-    marginLeft: spacing.md,
     fontSize: scale(15),
     fontWeight: '700',
     color: colors.textPrimary,
   },
   priceText: {
-    fontSize: scale(18),
+    fontSize: scale(17),
     fontWeight: '800',
     color: colors.textPrimary,
   },

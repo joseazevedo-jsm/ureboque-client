@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/APIService';
 import { useAuth } from './AuthContext';
@@ -26,6 +26,8 @@ export const UserDataProvider = ({ children }) => {
   const [servicesLoading, setServicesLoading] = useState(false);
   const [servicesPage, setServicesPage] = useState(1);
   const [servicesHasMore, setServicesHasMore] = useState(false);
+  const [servicesLoadedUserId, setServicesLoadedUserId] = useState(null);
+  const [notifications, setNotifications] = useState([]);
 
   const SERVICES_PAGE_LIMIT = 20;
 
@@ -175,16 +177,17 @@ export const UserDataProvider = ({ children }) => {
   };
 
   const removeDiscount = async (code) => {
+    logger.info('[DEBUG] removeDiscount called', { code, userId: user.id });
     try {
       const response = await api.put(`/promotions/${code}/remove/${user.id}`);
-      logger.info('UserDataContext', 'Discount operation completed', response.data.discount);
+      logger.info('[DEBUG] removeDiscount response', response.data);
       const newDiscount = response.data.discount;
       setUser((prevState) => ({
         ...prevState,
         discount: newDiscount,
       }));
     } catch (error) {
-      logger.error('UserDataContext', 'API operation failed', error);
+      logger.error('[DEBUG] removeDiscount failed', { status: error.response?.status, data: error.response?.data });
     }
   };
 
@@ -227,17 +230,25 @@ export const UserDataProvider = ({ children }) => {
 
       const response = await api.get(`service/allMonthlyClient/${userId}`, {
         params: { page, limit: SERVICES_PAGE_LIMIT },
+        validateStatus: (status) => (status >= 200 && status < 300) || status === 404,
       });
 
       logger.logApiResponse('GET', url, response.status, response.data, timer.end());
 
-      if (response.data) {
+      if (response.status === 404) {
+        logger.info('No user services found', { page, userId });
+        if (page === 1 || refreshing) setServices([]);
+        setServicesPage(page);
+        setServicesHasMore(false);
+        if (page === 1 || refreshing) setServicesLoadedUserId(userId);
+      } else if (response.data) {
         const servicesData = Array.isArray(response.data) ? response.data : response.data.services ?? [];
         const hasMore = servicesData.length >= SERVICES_PAGE_LIMIT;
 
         setServices((prev) => (page === 1 || refreshing ? servicesData : [...prev, ...servicesData]));
         setServicesPage(page);
         setServicesHasMore(hasMore);
+        if (page === 1 || refreshing) setServicesLoadedUserId(userId);
 
         logger.info('User services loaded', { page, count: servicesData.length, hasMore, userId });
 
@@ -251,6 +262,7 @@ export const UserDataProvider = ({ children }) => {
         logger.warn('No services data in response');
         if (page === 1 || refreshing) setServices([]);
         setServicesHasMore(false);
+        if (page === 1 || refreshing) setServicesLoadedUserId(userId);
       }
     } catch (error) {
       ErrorService.handleAPIError(error, false, 'UserDataContext');
@@ -271,6 +283,212 @@ export const UserDataProvider = ({ children }) => {
     await fetchUserServices(userId);
   };
 
+  // --- Vehicles ---
+
+  const saveUserVehicle = async (vehicle) => {
+    const timer = logger.startTimer('save_vehicle');
+    logger.logApiRequest('POST', `/users/${user.id}/vehicles`, vehicle);
+    try {
+      const response = await api.post(`/users/${user.id}/vehicles`, vehicle);
+      logger.logApiResponse('POST', `/users/${user.id}/vehicles`, response.status, response.data, timer.end());
+      setUser((prev) => ({ ...prev, vehicles: response.data.vehicles }));
+    } catch (error) {
+      ErrorService.handleAPIError(error, true, 'UserDataContext');
+      logger.logError(error, { operation: 'saveUserVehicle', vehicle });
+      throw error;
+    }
+  };
+
+  const updateUserVehicle = async (vehicle, vehicleId) => {
+    const timer = logger.startTimer('update_vehicle');
+    logger.logApiRequest('PUT', `/users/${user.id}/vehicles/${vehicleId}`, vehicle);
+    try {
+      const response = await api.put(`/users/${user.id}/vehicles/${vehicleId}`, vehicle);
+      logger.logApiResponse('PUT', `/users/${user.id}/vehicles/${vehicleId}`, response.status, response.data, timer.end());
+      setUser((prev) => ({ ...prev, vehicles: response.data.vehicles }));
+    } catch (error) {
+      ErrorService.handleAPIError(error, true, 'UserDataContext');
+      logger.logError(error, { operation: 'updateUserVehicle', vehicleId });
+      throw error;
+    }
+  };
+
+  const removeUserVehicle = async (vehicleId) => {
+    try {
+      const response = await api.delete(`/users/${user.id}/vehicles/${vehicleId}`);
+      if (response.data?.vehicles) {
+        setUser((prev) => ({ ...prev, vehicles: response.data.vehicles }));
+      } else {
+        setUser((prev) => ({ ...prev, vehicles: prev.vehicles.filter((v) => v._id !== vehicleId) }));
+      }
+    } catch (error) {
+      logger.logError(error, { operation: 'removeUserVehicle', vehicleId });
+      throw error;
+    }
+  };
+
+  // --- Emergency Contacts ---
+
+  const saveEmergencyContact = async (contact) => {
+    try {
+      const response = await api.post(`/users/${user.id}/emergency-contacts`, contact);
+      setUser((prev) => ({ ...prev, emergency_contacts: response.data.emergency_contacts }));
+    } catch (error) {
+      ErrorService.handleAPIError(error, true, 'UserDataContext');
+      logger.logError(error, { operation: 'saveEmergencyContact', contact });
+      throw error;
+    }
+  };
+
+  const updateEmergencyContact = async (contact, contactId) => {
+    try {
+      const response = await api.put(`/users/${user.id}/emergency-contacts/${contactId}`, contact);
+      setUser((prev) => ({ ...prev, emergency_contacts: response.data.emergency_contacts }));
+    } catch (error) {
+      logger.logError(error, { operation: 'updateEmergencyContact', contactId });
+      throw error;
+    }
+  };
+
+  const removeEmergencyContact = async (contactId) => {
+    try {
+      const response = await api.delete(`/users/${user.id}/emergency-contacts/${contactId}`);
+      if (response.data?.emergency_contacts) {
+        setUser((prev) => ({ ...prev, emergency_contacts: response.data.emergency_contacts }));
+      } else {
+        setUser((prev) => ({ ...prev, emergency_contacts: prev.emergency_contacts.filter((c) => c._id !== contactId) }));
+      }
+    } catch (error) {
+      logger.logError(error, { operation: 'removeEmergencyContact', contactId });
+      throw error;
+    }
+  };
+
+  // --- Insurance ---
+
+  const saveInsurance = async (insurance) => {
+    try {
+      const response = await api.post(`/users/${user.id}/insurance`, insurance);
+      setUser((prev) => ({ ...prev, insurance: response.data.insurance }));
+    } catch (error) {
+      ErrorService.handleAPIError(error, true, 'UserDataContext');
+      logger.logError(error, { operation: 'saveInsurance', insurance });
+      throw error;
+    }
+  };
+
+  const updateInsurance = async (insurance, insuranceId) => {
+    try {
+      const response = await api.put(`/users/${user.id}/insurance/${insuranceId}`, insurance);
+      setUser((prev) => ({ ...prev, insurance: response.data.insurance }));
+    } catch (error) {
+      logger.logError(error, { operation: 'updateInsurance', insuranceId });
+      throw error;
+    }
+  };
+
+  const removeInsurance = async (insuranceId) => {
+    try {
+      const response = await api.delete(`/users/${user.id}/insurance/${insuranceId}`);
+      if (response.data?.insurance) {
+        setUser((prev) => ({ ...prev, insurance: response.data.insurance }));
+      } else {
+        setUser((prev) => ({ ...prev, insurance: prev.insurance.filter((i) => i._id !== insuranceId) }));
+      }
+    } catch (error) {
+      logger.logError(error, { operation: 'removeInsurance', insuranceId });
+      throw error;
+    }
+  };
+
+  // --- Accessibility ---
+
+  const updateAccessibility = async (accessibilityData) => {
+    try {
+      const response = await api.put(`/users/${user.id}/accessibility`, accessibilityData);
+      setUser((prev) => ({ ...prev, accessibility: response.data.accessibility }));
+    } catch (error) {
+      logger.logError(error, { operation: 'updateAccessibility', accessibilityData });
+      throw error;
+    }
+  };
+
+  // --- Notifications ---
+
+  // Normalise backend field isRead → read so all consumers use a single field name
+  const normalizeNotification = (n) => ({
+    ...n,
+    read: n.read ?? n.isRead ?? false,
+  });
+
+  const fetchUserNotifications = async () => {
+    try {
+      const response = await api.get(`/notifications/user/${user.id}`);
+      setNotifications((response.data || []).map(normalizeNotification));
+    } catch (error) {
+      logger.logError(error, { operation: 'fetchUserNotifications' });
+    }
+  };
+
+  const deleteUserNotifications = async (onlyRead = false) => {
+    try {
+      const response = await api.delete(`/notifications/user/${user.id}`, {
+        params: onlyRead ? { onlyRead: true } : {},
+      });
+      if (onlyRead) {
+        setNotifications((prev) => prev.filter((n) => !n.read));
+      } else {
+        setNotifications([]);
+      }
+      return response.data.deleted;
+    } catch (error) {
+      logger.logError(error, { operation: 'deleteUserNotifications', onlyRead });
+      throw error;
+    }
+  };
+
+  const deleteNotificationsByIds = async (ids) => {
+    try {
+      await api.delete(`/notifications/user/${user.id}/bulk`, { data: { ids } });
+      setNotifications((prev) => prev.filter((n) => !ids.includes(n._id)));
+    } catch (error) {
+      logger.logError(error, { operation: 'deleteNotificationsByIds', ids });
+      throw error;
+    }
+  };
+
+  const addNotification = useCallback((notification) => {
+    const normalized = normalizeNotification(notification);
+    setNotifications((prev) => {
+      if (prev.some((n) => n._id === normalized._id)) return prev;
+      return [normalized, ...prev];
+    });
+  }, []);
+
+  const markNotificationAsRead = async (notificationId) => {
+    try {
+      await api.put(`/notifications/${notificationId}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
+      );
+    } catch (error) {
+      logger.logError(error, { operation: 'markNotificationAsRead', notificationId });
+      throw error;
+    }
+  };
+
+  const deleteNotification = async (notificationId) => {
+    try {
+      await api.delete(`/notifications/${notificationId}`);
+      setNotifications((prev) => prev.filter((n) => n._id !== notificationId));
+    } catch (error) {
+      logger.logError(error, { operation: 'deleteNotification', notificationId });
+      throw error;
+    }
+  };
+
+  const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
+
   // Auto-fetch user data when authenticated
   useEffect(() => {
     if (isAuthenticated && userToken) {
@@ -285,6 +503,13 @@ export const UserDataProvider = ({ children }) => {
     }
   }, [isAuthenticated, userToken]);
 
+  // Auto-fetch notifications once user is loaded
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserNotifications();
+    }
+  }, [user?.id]);
+
   const value = {
     user,
     setUser,
@@ -297,6 +522,7 @@ export const UserDataProvider = ({ children }) => {
     servicesLoading,
     servicesPage,
     servicesHasMore,
+    servicesLoadedUserId,
     fetchUserById,
     fetchPrices,
     fetchUserServices,
@@ -308,6 +534,24 @@ export const UserDataProvider = ({ children }) => {
     activateDiscount,
     removeDiscount,
     getAppStatus,
+    saveUserVehicle,
+    updateUserVehicle,
+    removeUserVehicle,
+    saveEmergencyContact,
+    updateEmergencyContact,
+    removeEmergencyContact,
+    saveInsurance,
+    updateInsurance,
+    removeInsurance,
+    updateAccessibility,
+    notifications,
+    unreadNotificationsCount,
+    fetchUserNotifications,
+    addNotification,
+    markNotificationAsRead,
+    deleteNotification,
+    deleteUserNotifications,
+    deleteNotificationsByIds,
   };
 
   return <UserDataContext.Provider value={value}>{children}</UserDataContext.Provider>;

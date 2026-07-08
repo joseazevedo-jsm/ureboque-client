@@ -64,7 +64,6 @@ const styles = StyleSheet.create({
   paymentOptionContainer: {
     marginHorizontal: spacing.xl,
     marginBottom: spacing.sm,
-    ...shadows.lg,
   },
   paymentOption: {
     flexDirection: "row",
@@ -74,6 +73,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.xxl,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.6)',
+    ...shadows.sm
   },
   paymentImageConfig: {
     width: scale(40),

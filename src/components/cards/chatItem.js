@@ -80,8 +80,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.xl,
     paddingVertical: scale(10),
     paddingHorizontal: scale(14),
-    marginTop: scale(8),
-    marginHorizontal: scale(12),
+    marginTop: scale(6),
+    marginHorizontal: scale(14),
     maxWidth: "78%",
   },
   senderContainer: {
@@ -95,8 +95,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderBottomLeftRadius: scale(4),
     borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.md,
+    borderColor: colors.borderLight,
+    ...shadows.sm,
   },
   messageText: {
     fontSize: scale(15),

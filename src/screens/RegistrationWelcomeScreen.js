@@ -25,7 +25,7 @@ const RegistrationWelcomeScreen = () => {
   logger.debug('RegistrationWelcomeScreen initialized', { hasPhone: !!phone });
 
   const handleGetStarted = () => {
-    logger.info('User starting registration process', { phone });
+    logger.info('User starting registration process', { hasPhone: !!phone });
     navigation.navigate('PasswordCreation', { phone });
   };
 
@@ -50,9 +50,9 @@ const RegistrationWelcomeScreen = () => {
       <View style={styles.content}>
         <View style={styles.logoSection}>
           <Image
-            source={require('../../resources/icons/UREB_LOGO.png')}
+            source={require('../../resources/icons/UREB_CARD.png')}
             resizeMode="contain"
-            style={styles.logo}
+            style={[styles.logo, { tintColor: '#0089FF' }]}
           />
            <Text style={styles.welcomeTitle}>Bem-vindo!</Text>
           <Text style={styles.subtitle}>Vamos criar a sua conta</Text>
@@ -97,7 +97,7 @@ const RegistrationWelcomeScreen = () => {
           accessibilityLabel="Começar criação de conta"
           accessibilityRole="button"
         >
-          <Text style={styles.getStartedButtonText}>COMEÇAR</Text>
+          <Text style={styles.getStartedButtonText}>Começar</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

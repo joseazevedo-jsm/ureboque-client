@@ -5,6 +5,7 @@ import { useLogger } from "../../hooks/useLogger";
 
 export const useTextSearchQuery = (searchQuery) => {
   const logger = useLogger('useTextSearchQuery');
+  const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
   
   const [responseData, setResponseData] = useState(null);
   const { userLocation } = useUserLocationStateContext();
@@ -13,14 +14,25 @@ export const useTextSearchQuery = (searchQuery) => {
     "https://maps.googleapis.com/maps/api/place/textsearch/json";
 
   useEffect(() => {
-    if (searchQuery && searchQuery !== "") {
+    if (
+      searchQuery &&
+      searchQuery !== "" &&
+      userLocation?.latitude != null &&
+      userLocation?.longitude != null
+    ) {
+      if (!googleMapsApiKey) {
+        logger.warn('Google Maps API key missing; skipping text search');
+        setResponseData(null);
+        return;
+      }
+
       (async () => {
         try {
           const { data } = await axios(requestUrl, {
             params: {
               query: searchQuery,
               location: `${userLocation.latitude},${userLocation.longitude}`,
-              key: "AIzaSyBqPFzMJ7TgohKLMZ8Q0Z1iRVmk63OWWpk",
+              key: googleMapsApiKey,
             },
           });
           setResponseData(data);
@@ -29,9 +41,9 @@ export const useTextSearchQuery = (searchQuery) => {
         }
       })();
     } else {
-      setResponseData();
+      setResponseData(null);
     }
-  }, [searchQuery,userLocation?.latitude, userLocation?.longitude]);
+  }, [googleMapsApiKey, searchQuery, userLocation?.latitude, userLocation?.longitude]);
 
   return { responseData, setResponseData };
 };

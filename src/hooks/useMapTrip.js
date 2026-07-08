@@ -34,6 +34,7 @@ export const useMapTrip = ({
   fetchPrices,
   setOriginCity,
   setDestinationCity,
+  removeDiscount,
 }) => {
   const logger = useLogger('useMapTrip');
 
@@ -249,15 +250,19 @@ export const useMapTrip = ({
 
   const handleServiceEnded = useCallback((data) => {
     try {
+      logger.info('[DEBUG] serviceEnded received', { data, discountState: user?.discount });
       if (data?.status === 'completed') {
         dismissAllBottomSheets();
         updateModal('confirmation', true);
-        logger.info('Trip completed', { userId: user?.id });
+        logger.info('[DEBUG] discount check', { active: user?.discount?.active, code: user?.discount?.promotion?.code });
+        if (user?.discount?.active) {
+          removeDiscount(user.discount.promotion.code);
+        }
       }
     } catch (error) {
       logger.error('Error handling serviceEnded event', error);
     }
-  }, [dismissAllBottomSheets, updateModal, user?.id]);
+  }, [dismissAllBottomSheets, updateModal, user, removeDiscount]);
 
   const handleServiceCancelled = useCallback((data) => {
     try {

@@ -188,7 +188,7 @@ export const useRegistrationFlow = (initialPhone = '', initialPassword = '', sho
     }
 
     updateUIState('currentStep', 2);
-    logger.info('Password validation passed, proceeding to personal info', { phone: formData.phone });
+    logger.info('Password validation passed, proceeding to personal info', { hasPhone: !!formData.phone });
     navigation.navigate('PersonalInfo', { 
       phone: formData.phone, 
       password: formData.password 

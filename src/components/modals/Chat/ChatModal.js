@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Modal, Platform, KeyboardAvoidingView } from "react-native";
 import {
   View,
@@ -7,49 +7,39 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
+  Image,
 } from "react-native";
 import { useChatModal } from "./component/useChatModal";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { scale } from "react-native-size-matters";
-import { Image } from "react-native";
 import ChatItem from "../../cards/chatItem";
 import { colors, shadows, borderRadius, spacing } from "../../../theme";
 
-const imgDef = "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
+const imgDef =
+  "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
 
-const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnreadMessageCount, onCallDriver }) => {
+const ChatModal = ({ visible, closeModal, idService, driver, setUnreadMessageCount, onCallDriver }) => {
   const { models, operations } = useChatModal(idService, setUnreadMessageCount);
 
-  const handleBackButtonPress = () => {
-    closeModal();
-  };
-
-  // Extract timestamp from MongoDB ObjectId as fallback
   const extractTimestampFromObjectId = (objectId) => {
-    if (!objectId || typeof objectId !== 'string' || objectId.length !== 24) {
-      return null;
-    }
+    if (!objectId || typeof objectId !== "string" || objectId.length !== 24) return null;
     try {
-      // MongoDB ObjectId first 8 characters represent timestamp in seconds since epoch
-      const timestamp = parseInt(objectId.substring(0, 8), 16) * 1000;
-      return new Date(timestamp).toISOString();
-    } catch (error) {
+      return new Date(parseInt(objectId.substring(0, 8), 16) * 1000).toISOString();
+    } catch {
       return null;
     }
   };
 
-  const renderItem = ({ item, index }) => {
+  const renderItem = ({ item }) => {
     if (!item?.message) return null;
-
     const timestamp =
       item.message?.createdAt ||
       item.createdAt ||
       item.message?.timestamp ||
       extractTimestampFromObjectId(item._id);
-
     return (
       <ChatItem
-        text={item.message.message ?? ''}
+        text={item.message.message ?? ""}
         isSender={item.message.sender === models.user?.id}
         timestamp={timestamp}
       />
@@ -60,41 +50,43 @@ const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnre
     <Modal onRequestClose={closeModal} visible={visible} animationType="slide">
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
+        {/* Header */}
         <View style={styles.topBar}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleBackButtonPress}
-          >
-            <Icon name="arrow-back" size={scale(26)} color={colors.primary} />
+          <TouchableOpacity style={styles.iconButton} onPress={closeModal}>
+            <Icon name="arrow-back" size={scale(22)} color={colors.primary} />
           </TouchableOpacity>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View style={styles.driverPhotoContainer}>
+
+          <View style={styles.driverInfo}>
+            <View style={styles.avatarWrapper}>
               <Image
-                source={{
-                  uri: driver?.photo || imgDef,
-                }}
+                source={{ uri: driver?.photo || imgDef }}
                 style={styles.driverPhoto}
               />
+              <View style={styles.onlineDot} />
             </View>
-            <View style={{ justifyContent: "center" }}>
-              <Text style={styles.topBarTitle}>{driver?.name}</Text>
+            <View style={styles.driverTextGroup}>
+              <Text style={styles.driverName} numberOfLines={1}>{driver?.name}</Text>
+              <Text style={styles.onlineLabel}>Online</Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.callButton}
-            onPress={onCallDriver}
-          >
-            <Icon name="phone" size={scale(26)} color={colors.primary} />
+
+          <TouchableOpacity style={styles.iconButton} onPress={onCallDriver}>
+            <Icon name="phone" size={scale(22)} color={colors.primary} />
           </TouchableOpacity>
         </View>
+
+        {/* Messages */}
         <FlatList
           data={models.messages}
-          keyExtractor={(item, index) => index.toString()}
+          keyExtractor={(_, index) => index.toString()}
           renderItem={renderItem}
-          ListFooterComponent={() => <View style={{ height: scale(15) }} />}
+          contentContainerStyle={styles.messageList}
+          ListFooterComponent={<View style={{ height: scale(8) }} />}
         />
+
+        {/* Input */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -111,7 +103,7 @@ const ChatModal = ({ visible, closeModal, idService, driver, navigation, setUnre
               operations.sendMessage();
             }}
           >
-            <Icon name="send" size={scale(22)} color="#FFFFFF" />
+            <Icon name="send" size={scale(20)} color={colors.surface} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -126,55 +118,89 @@ const styles = StyleSheet.create({
   },
   topBar: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: scale(50),
+    paddingTop: spacing.modalSafeTop,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
     backgroundColor: colors.surface,
-    paddingBottom: scale(16),
-    paddingHorizontal: scale(16),
-    alignContent: "center",
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderLight,
     ...shadows.md,
   },
-  topBarTitle: {
-    fontSize: scale(17),
-    fontWeight: "600",
-    color: colors.textPrimary,
-    alignSelf: "center",
-    paddingHorizontal: scale(12),
+  iconButton: {
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(20),
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  driverPhoto: {
-    height: scale(45),
-    width: scale(45),
-    borderRadius: scale(45),
-  },
-  driverPhotoContainer: {
-    borderRadius: scale(45),
-    borderColor: colors.primary,
-    borderWidth: scale(2),
-    ...shadows.sm,
-  },
-  inputContainer: {
-    backgroundColor: colors.surface,
+  driverInfo: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: scale(12),
-    paddingHorizontal: scale(12),
+    flex: 1,
+    justifyContent: "center",
+    marginHorizontal: spacing.md,
+  },
+  avatarWrapper: {
+    position: "relative",
+    marginRight: spacing.sm,
+  },
+  driverPhoto: {
+    width: scale(42),
+    height: scale(42),
+    borderRadius: scale(21),
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  onlineDot: {
+    position: "absolute",
+    bottom: 1,
+    right: 1,
+    width: scale(10),
+    height: scale(10),
+    borderRadius: scale(5),
+    backgroundColor: colors.success,
+    borderWidth: 2,
+    borderColor: colors.surface,
+  },
+  driverTextGroup: {
+    justifyContent: "center",
+  },
+  driverName: {
+    fontSize: scale(15),
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  onlineLabel: {
+    fontSize: scale(12),
+    color: colors.success,
+    fontWeight: "600",
+  },
+  messageList: {
+    paddingTop: spacing.md,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
     paddingBottom: scale(28),
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    ...shadows.lg,
+    borderTopColor: colors.borderLight,
   },
   input: {
     flex: 1,
     fontSize: scale(15),
-    paddingHorizontal: scale(16),
-    paddingVertical: scale(12),
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.background,
     borderRadius: borderRadius.xxl,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    marginRight: scale(10),
+    marginRight: spacing.sm,
     color: colors.textPrimary,
     maxHeight: scale(100),
   },
@@ -186,17 +212,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     ...shadows.primaryGlow,
-  },
-  messageText: {
-    paddingVertical: scale(4),
-  },
-  backButton: {
-    alignSelf: "center",
-    padding: scale(4),
-  },
-  callButton: {
-    alignSelf: "center",
-    padding: scale(4),
   },
 });
 

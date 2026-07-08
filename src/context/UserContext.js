@@ -1,4 +1,4 @@
-import React, { createContext } from "react";
+import React, { createContext, useEffect } from "react";
 import {  useAuth } from './AuthContext';
 import {   useUserData } from './UserDataContext';
 import {  useSocket } from './SocketContext';
@@ -21,6 +21,21 @@ const LegacyUserProvider = ({ children }) => {
   const auth = useAuth();
   const userData = useUserData();
   const socketData = useSocket();
+
+  // Subscribe to notification socket events after login
+  useEffect(() => {
+    const { socket } = socketData;
+    const userId = userData.user?.id;
+    const { addNotification } = userData;
+    if (!socket || !userId) return;
+
+    socket.emit('subscribeToNotifications', { userId });
+    socket.on('newNotification', addNotification);
+
+    return () => {
+      socket.off('newNotification', addNotification);
+    };
+  }, [socketData.socket, userData.user?.id, userData.addNotification]);
 
   // Legacy interface - map new context methods to old interface
   const legacyLogin = async (token, id) => {

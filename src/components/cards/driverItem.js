@@ -85,14 +85,15 @@ const styles = StyleSheet.create({
   },
   plateBadge: {
     marginLeft: spacing.xs,
-    backgroundColor: colors.borderLight,
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: scale(3),
   },
   plateText: {
     fontSize: scale(10),
-    color: colors.textPrimary,
+    color: colors.surface,
     fontWeight: "bold",
-    padding: scale(3),
   },
   actionsRow: {
     flexDirection: "row",

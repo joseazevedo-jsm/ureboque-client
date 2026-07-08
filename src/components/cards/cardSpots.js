@@ -11,15 +11,9 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { colors, spacing, shadows, fontWeights, animations } from "../../theme";
 
-const CARD_WIDTH = scale(148);
-const CARD_HEIGHT = scale(78);
-const TRUCK_WIDTH = scale(95);
-const TRUCK_HEIGHT = scale(42);
+const CARD_WIDTH = scale(155);
+const CARD_HEIGHT = scale(100);
 
-/**
- * CardSpots - "Watermark Background" Design
- * Large subtle truck as atmospheric branding element behind the content
- */
 const CardSpots = memo(
   ({
     title,
@@ -27,12 +21,13 @@ const CardSpots = memo(
     onPress,
     index = 0,
     isAddFavorite = false,
+    iconSource,
   }) => {
     const cardScale = useSharedValue(1);
     const cardTranslateY = useSharedValue(0);
 
     const triggerHaptic = useCallback(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }, []);
 
     const handlePressIn = useCallback(() => {
@@ -47,9 +42,7 @@ const CardSpots = memo(
     }, []);
 
     const handlePress = useCallback(() => {
-      if (onPress) {
-        onPress();
-      }
+      if (onPress) onPress();
     }, [onPress]);
 
     const cardAnimatedStyle = useAnimatedStyle(() => ({
@@ -61,7 +54,10 @@ const CardSpots = memo(
 
     return (
       <Animated.View
-        entering={FadeInRight.delay(index * animations.stagger.list).springify().damping(28).stiffness(180)}
+        entering={FadeInRight.delay(index * animations.stagger.list)
+          .springify()
+          .damping(28)
+          .stiffness(180)}
       >
         <TouchableOpacity
           activeOpacity={1}
@@ -76,24 +72,23 @@ const CardSpots = memo(
               cardAnimatedStyle,
             ]}
           >
-            {/* Truck Watermark - large subtle background element */}
-            <Image
-              source={require("../../../resources/icons/UREB_CARD.png")}
-              style={styles.truckWatermark}
-              resizeMode="contain"
-            />
+            {iconSource ? (
+              <Image
+                source={iconSource}
+                style={styles.icon}
+                resizeMode="contain"
+              />
+            ) : null}
 
-            {/* Content Area */}
-            <View style={styles.content}>
-              {/* Text Content */}
-              <View style={styles.textContainer}>
-                <Text style={styles.title} numberOfLines={1}>
-                  {title}
-                </Text>
-                <Text style={styles.description} numberOfLines={1}>
+            <View style={styles.textContainer}>
+              <Text style={styles.title} numberOfLines={1}>
+                {title}
+              </Text>
+              {description ? (
+                <Text style={styles.description} numberOfLines={2}>
                   {description}
                 </Text>
-              </View>
+              ) : null}
             </View>
           </Animated.View>
         </TouchableOpacity>
@@ -111,49 +106,37 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
     marginBottom: scale(6),
     borderWidth: 1,
-    borderColor: "rgba(0,137,255,0.10)",
+    borderColor: colors.borderLight,
     overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.sm,
     ...shadows.md,
   },
   addCardContainer: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
+    backgroundColor: colors.surface,
+    borderColor: colors.borderLight,
   },
-  truckWatermark: {
-    position: "absolute",
-    right: scale(6),
-    bottom: scale(0),
-    width: TRUCK_WIDTH,
-    height: TRUCK_HEIGHT,
-    opacity: 0.25,
-  },
-  content: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: scale(14),
+  icon: {
+    width: scale(50),
+    height: scale(50),
+    marginRight: spacing.sm,
   },
   textContainer: {
     flex: 1,
   },
   title: {
-    fontSize: scale(14),
+    fontSize: scale(13),
     fontWeight: "700",
     color: colors.textPrimary,
     letterSpacing: -0.2,
-    textShadowColor: "rgba(255,255,255,0.9)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 4,
   },
   description: {
     fontSize: scale(11),
     fontWeight: fontWeights.light,
-    color: colors.textPrimary,
+    color: colors.textSecondary,
     marginTop: scale(3),
-    letterSpacing: 0.1,
-    textShadowColor: "rgba(255,255,255,1)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 3,
+    lineHeight: scale(15),
   },
 });
 

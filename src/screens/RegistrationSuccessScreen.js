@@ -28,7 +28,7 @@ const RegistrationSuccessScreen = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  logger.debug('RegistrationSuccessScreen initialized', { firstName, phone });
+  logger.debug('RegistrationSuccessScreen initialized', { hasFirstName: !!firstName, hasPhone: !!phone });
 
   useEffect(() => {
     // Start success animation sequence
@@ -58,11 +58,11 @@ const RegistrationSuccessScreen = () => {
     animationSequence.start();
 
     // Log successful completion
-    logger.info('Registration success animation started', { firstName });
+    logger.info('Registration success animation started', { hasFirstName: !!firstName });
   }, [scaleAnim, fadeAnim, slideAnim, firstName, logger]);
 
   const handleStartUsingApp = () => {
-    logger.info('User starting to use app after registration', { firstName, phone });
+    logger.info('User starting to use app after registration', { hasFirstName: !!firstName, hasPhone: !!phone });
     
     // Navigate to password state to complete login
     navigation.reset({
@@ -179,7 +179,7 @@ const RegistrationSuccessScreen = () => {
           accessibilityLabel="Começar a usar a aplicação"
           accessibilityRole="button"
         >
-          <Text style={styles.startButtonText}>COMEÇAR A USAR</Text>
+          <Text style={styles.startButtonText}>Começar a usar</Text>
           <Icon name="arrow-forward" size={20} color="#FFFFFF" style={styles.startButtonIcon} />
         </TouchableOpacity>
 

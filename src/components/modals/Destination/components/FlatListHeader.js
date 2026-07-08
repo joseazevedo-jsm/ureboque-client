@@ -29,7 +29,7 @@ const FlatListHeader = ({
           <View style={{ width: "100%" }}>
             <View>
               <View style={styles.input}>
-                <Icon name="my-location" size={scale(25)} color=colors.primary />
+                <Icon name="my-location" size={scale(25)} color={colors.primary} />
                 <TextInput
                   style={{
                     marginLeft: scale(5),
@@ -50,7 +50,7 @@ const FlatListHeader = ({
                 />
               </View>
               <View style={styles.inputy}>
-                <Icon name="location-on" size={scale(25)} color=colors.primary />
+                <Icon name="location-on" size={scale(25)} color={colors.primary} />
                 <TextInput
                   ref={inputRef}
                   style={{

@@ -170,7 +170,7 @@ const PersonalInfoScreen = () => {
               styles.createButtonText,
               isPersonalInfoValid() ? styles.createButtonTextActive : styles.createButtonTextInactive
             ]}>
-              CRIAR CONTA
+              Criar conta
             </Text>
           )}
         </TouchableOpacity>

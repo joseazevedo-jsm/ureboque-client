@@ -53,13 +53,13 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: spacing.sm,
     marginHorizontal: spacing.xl,
-    ...shadows.lg,
   },
   cardGradient: {
     borderRadius: borderRadius.xxl,
     padding: spacing.lg,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.6)',
+    ...shadows.sm,
   },
   contentRow: {
     flexDirection: "row",

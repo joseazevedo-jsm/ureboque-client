@@ -3,7 +3,11 @@ import Geocoder from 'react-native-geocoding';
 import { useLogger } from './useLogger';
 import { GEOCODE_CACHE_MAX } from '../constants/config';
 
-Geocoder.init(process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY);
+const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+if (googleMapsApiKey) {
+  Geocoder.init(googleMapsApiKey);
+}
 
 export const useMapGeocoding = () => {
   const logger = useLogger('useMapGeocoding');
@@ -15,6 +19,11 @@ export const useMapGeocoding = () => {
       logger.warn('getAddressFromCoordinates called with invalid coordinates', { lat, lng });
       return null;
     }
+    if (!googleMapsApiKey) {
+      logger.warn('Google Maps API key missing; skipping reverse geocoding');
+      return null;
+    }
+
     const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
 
     if (geocodeCache.has(key)) {

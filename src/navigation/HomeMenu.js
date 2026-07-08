@@ -9,6 +9,9 @@ import PromotionScreen from "../screens/PromotionScreen";
 import InviteScreen from "../screens/InviteScreen";
 import HistoryScreen from "../screens/HistoryScreen";
 import SettingsScreen from "../screens/SettingsScreen";
+import NotificationsScreen from "../screens/NotificationsScreen";
+import ComplaintsScreen from "../screens/ComplaintsScreen";
+import LegalDocumentScreen from "../screens/LegalDocumentScreen";
 
 const Drawer = createDrawerNavigator();
 
@@ -29,6 +32,18 @@ const HomeMenu = () => {
       <Drawer.Screen name="Convidar" component={InviteScreen} />
       <Drawer.Screen name="Perfil" component={ProfileScreen} />
       <Drawer.Screen name="SettingsScreen" component={SettingsScreen} />
+      <Drawer.Screen name="ComplaintsScreen" component={ComplaintsScreen} />
+      <Drawer.Screen
+        name="PrivacyPolicyScreen"
+        component={LegalDocumentScreen}
+        initialParams={{ type: "privacy" }}
+      />
+      <Drawer.Screen
+        name="TermsScreen"
+        component={LegalDocumentScreen}
+        initialParams={{ type: "terms" }}
+      />
+      <Drawer.Screen name="Notificacoes" component={NotificationsScreen} />
     </Drawer.Navigator>
   );
 };

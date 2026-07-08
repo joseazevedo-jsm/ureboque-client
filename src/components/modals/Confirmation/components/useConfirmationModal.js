@@ -1,9 +1,4 @@
-import { useContext, useState } from "react";
-import { useTextSearchQuery } from "../../../../models/places/useTextSearchQuery";
-import { useDebounce } from "use-debounce";
-import { useRef } from "react";
-import { useEffect } from "react";
-import { UserContext } from "../../../../context/UserContext";
+import { useState } from "react";
 import { useUserData } from "../../../../context/UserDataContext";
 import { useLogger } from "../../../../hooks/useLogger";
 import { useAlert } from "../../../../context/AlertContext";
@@ -12,17 +7,11 @@ import api from "../../../../services/APIService";
 export const useConfirmationModal = (lastService, close) => {
   const logger = useLogger('useConfirmationModal');
   const { showAlert } = useAlert();
-  const { user, removeDiscount } = useContext(UserContext);
   const { services, setServices, setServiceStatus } = useUserData();
   const [rating, setRating] = useState(0);
 
   const handleConfirmRate = () => {
     logger.info('Confirming rating', { rating });
-    if (user?.discount?.active) {
-      const code = user.discount.promotion.code;
-      removeDiscount(code);
-    }
-
     addReview();
   };
 

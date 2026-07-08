@@ -108,7 +108,12 @@ export const useRegisterModal = (OTPChange) => {
     try {
       setIsCreating(true);
       if (validateRegistrationUser()) {
-        logger.debug("User registration data", { password: "***", name, email, surname, phone });
+        logger.debug("User registration data", {
+          hasName: !!name,
+          hasEmail: !!email,
+          hasSurname: !!surname,
+          hasPhone: !!phone,
+        });
         const result = await api.post("/users/register", {
           password: password,
           details: {

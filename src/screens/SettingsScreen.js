@@ -1,5 +1,5 @@
 import React from "react";
-import { version as appVersion } from '../../package.json';
+import { version as appVersion } from "../../package.json";
 import {
   View,
   Text,
@@ -10,68 +10,42 @@ import {
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import useSettingsScreen from "../components/settings/useSettingsScreen";
-import { useLogger } from "../hooks/useLogger";
-import { useAlert } from "../context/AlertContext";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import useSettingsScreen from "../components/settings/useSettingsScreen";
+import { useAlert } from "../context/AlertContext";
 import { colors, spacing, borderRadius, shadows, typography } from "../theme";
 
+const SettingItem = ({ icon, title, subtitle, onPress, danger = false, last = false }) => (
+  <TouchableOpacity
+    style={[styles.item, last && styles.itemLast]}
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
+    <View style={[styles.itemIcon, danger && styles.itemIconDanger]}>
+      <Icon name={icon} size={scale(20)} color={danger ? colors.error : colors.primary} />
+    </View>
+    <View style={styles.itemContent}>
+      <Text style={[styles.itemTitle, danger && styles.dangerText]}>{title}</Text>
+      {subtitle ? <Text style={styles.itemSubtitle}>{subtitle}</Text> : null}
+    </View>
+    <Icon name="chevron-right" size={scale(18)} color={colors.textMuted} />
+  </TouchableOpacity>
+);
+
+const Section = ({ title, children, delay }) => (
+  <Animated.View
+    style={styles.section}
+    entering={FadeInDown.delay(delay).springify().damping(28).stiffness(180)}
+  >
+    <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={styles.sectionCard}>{children}</View>
+  </Animated.View>
+);
+
 const SettingsScreen = () => {
-  const logger = useLogger("SettingsScreen", {
-    enableLifecycleLogging: true,
-    logProps: true,
-  });
-
   const navigation = useNavigation();
-  const { models, operations } = useSettingsScreen();
+  const { operations } = useSettingsScreen();
   const { showAlert } = useAlert();
-
-  const SettingItem = ({
-    icon,
-    title,
-    subtitle,
-    onPress,
-    showArrow = true,
-    danger = false,
-    last = false,
-    disabled = false,
-  }) => (
-    <TouchableOpacity
-      style={[styles.settingItem, last && styles.settingItemLast, disabled && styles.settingItemDisabled]}
-      onPress={disabled ? undefined : onPress}
-      activeOpacity={disabled ? 1 : 0.7}
-      disabled={disabled}
-    >
-      <View style={[styles.settingIconWrap, danger && styles.settingIconWrapDanger]}>
-        <Icon
-          name={icon}
-          size={scale(20)}
-          color={danger ? colors.error : colors.primary}
-        />
-      </View>
-      <View style={styles.settingContent}>
-        <Text style={[styles.settingTitle, danger && styles.dangerText]}>
-          {title}
-        </Text>
-        {subtitle && (
-          <Text style={styles.settingSubtitle}>{subtitle}</Text>
-        )}
-      </View>
-      {showArrow && !disabled && (
-        <Icon name="chevron-right" size={scale(18)} color={colors.textMuted} />
-      )}
-    </TouchableOpacity>
-  );
-
-  const SettingSection = ({ title, children, delay = 0 }) => (
-    <Animated.View
-      entering={FadeInDown.delay(delay).springify().damping(28).stiffness(180)}
-      style={styles.section}
-    >
-      {title ? <Text style={styles.sectionTitle}>{title}</Text> : null}
-      <View style={styles.sectionCard}>{children}</View>
-    </Animated.View>
-  );
 
   return (
     <View style={styles.container}>
@@ -80,132 +54,90 @@ const SettingsScreen = () => {
         entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}
       >
         <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          style={styles.menuButton}
+          onPress={() => navigation.openDrawer()}
           activeOpacity={0.7}
         >
-          <Icon name="arrow-back" size={scale(22)} color={colors.primary} />
+          <Icon name="menu" size={scale(22)} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>DEFINIÇÕES</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={styles.headerTitle}>DEFINICOES</Text>
+        <View style={styles.menuButton} pointerEvents="none" />
       </Animated.View>
 
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        <SettingSection title="Segurança" delay={60}>
+        <Section title="Seguranca" delay={60}>
           <SettingItem
             icon="lock"
-            title="Alterar Senha"
-            subtitle="Mude a sua senha de acesso"
+            title="Alterar Palavra-passe"
+            subtitle="Enviar email de redefinicao"
             onPress={() => operations.handleChangePassword()}
-          />
-          <SettingItem
-            icon="security"
-            title="Autenticação de Dois Fatores"
-            subtitle="Em breve"
             last
-            disabled
           />
-        </SettingSection>
+        </Section>
 
-        <SettingSection title="Conta" delay={130}>
+        <Section title="Conta" delay={130}>
           <SettingItem
             icon="person"
-            title="Informações Pessoais"
+            title="Informacoes da Conta"
             subtitle="Gerir os seus dados pessoais"
-            onPress={() => navigation.goBack()}
-          />
-          <SettingItem
-            icon="privacy-tip"
-            title="Privacidade"
-            subtitle="Em breve"
+            onPress={() => navigation.navigate("Perfil")}
             last
-            disabled
           />
-        </SettingSection>
+        </Section>
 
-        <SettingSection title="Notificações" delay={200}>
+        <Section title="Sobre" delay={200}>
           <SettingItem
-            icon="notifications"
-            title="Notificações Push"
-            subtitle="Em breve"
-            disabled
-          />
-          <SettingItem
-            icon="email"
-            title="Notificações por Email"
-            subtitle="Em breve"
-            last
-            disabled
-          />
-        </SettingSection>
-
-        <SettingSection title="Preferências" delay={270}>
-          <SettingItem
-            icon="language"
-            title="Idioma"
-            subtitle="Em breve"
-            disabled
-          />
-          <SettingItem
-            icon="palette"
-            title="Tema"
-            subtitle="Em breve"
-            last
-            disabled
-          />
-        </SettingSection>
-
-        <SettingSection title="Sobre" delay={340}>
-          <SettingItem
-            icon="info"
-            title="Versão do App"
-            subtitle={appVersion}
-            showArrow={false}
+            icon="info-outline"
+            title="Versao"
+            subtitle={`Ureboque v${appVersion}`}
             onPress={() => {}}
+          />
+          <SettingItem
+            icon="support-agent"
+            title="Contacte-nos"
+            subtitle="WhatsApp, email ou chamada"
+            onPress={() => navigation.navigate("ComplaintsScreen")}
           />
           <SettingItem
             icon="description"
-            title="Termos de Serviço"
-            subtitle="Em breve"
-            onPress={() => {}}
+            title="Termos de Servico"
+            onPress={() => navigation.navigate("TermsScreen", { type: "terms" })}
           />
           <SettingItem
             icon="policy"
-            title="Política de Privacidade"
-            subtitle="Em breve"
+            title="Politica de Privacidade"
+            onPress={() => navigation.navigate("PrivacyPolicyScreen", { type: "privacy" })}
             last
-            onPress={() => {}}
           />
-        </SettingSection>
+        </Section>
 
         <Animated.View
-          entering={FadeInDown.delay(410).springify().damping(28).stiffness(180)}
+          entering={FadeInDown.delay(270).springify().damping(28).stiffness(180)}
         >
           <TouchableOpacity
             style={styles.logoutButton}
             onPress={() =>
               showAlert({
-                type: 'warning',
-                title: 'Terminar Sessão',
-                message: 'Tem a certeza que deseja terminar sessão?',
+                type: "warning",
+                title: "Terminar Sessao",
+                message: "Tem a certeza que deseja terminar sessao?",
                 buttons: [
-                  { text: 'Cancelar' },
-                  { text: 'Terminar', onPress: () => operations.handleLogout() },
+                  { text: "Cancelar", style: "cancel" },
+                  { text: "Terminar", onPress: () => operations.handleLogout() },
                 ],
               })
             }
             activeOpacity={0.8}
           >
             <Icon name="logout" size={scale(20)} color={colors.error} />
-            <Text style={styles.logoutText}>Terminar Sessão</Text>
+            <Text style={styles.logoutText}>Terminar Sessao</Text>
           </TouchableOpacity>
         </Animated.View>
 
-        <View style={styles.bottomPadding} />
+        <View style={{ height: scale(40) }} />
       </ScrollView>
     </View>
   );
@@ -224,7 +156,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  backButton: {
+  menuButton: {
     width: scale(40),
     height: scale(40),
     borderRadius: borderRadius.xxl,
@@ -234,15 +166,10 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   headerTitle: {
-    ...typography.h3,
     fontSize: scale(17),
-    letterSpacing: 0.8,
-  },
-  headerSpacer: {
-    width: scale(40),
-  },
-  scroll: {
-    flex: 1,
+    fontWeight: "800",
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
   },
   scrollContent: {
     paddingHorizontal: spacing.xxl,
@@ -264,7 +191,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     ...shadows.sm,
   },
-  settingItem: {
+  item: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: scale(14),
@@ -272,13 +199,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
-  settingItemLast: {
+  itemLast: {
     borderBottomWidth: 0,
   },
-  settingItemDisabled: {
-    opacity: 0.45,
-  },
-  settingIconWrap: {
+  itemIcon: {
     width: scale(36),
     height: scale(36),
     borderRadius: borderRadius.md,
@@ -287,18 +211,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: spacing.md,
   },
-  settingIconWrapDanger: {
+  itemIconDanger: {
     backgroundColor: colors.errorLight,
   },
-  settingContent: {
+  itemContent: {
     flex: 1,
   },
-  settingTitle: {
+  itemTitle: {
     fontSize: scale(15),
     fontWeight: "600",
     color: colors.textPrimary,
   },
-  settingSubtitle: {
+  itemSubtitle: {
     fontSize: scale(12),
     color: colors.textMuted,
     marginTop: scale(2),
@@ -321,9 +245,6 @@ const styles = StyleSheet.create({
     fontSize: scale(15),
     fontWeight: "700",
     color: colors.error,
-  },
-  bottomPadding: {
-    height: scale(40),
   },
 });
 

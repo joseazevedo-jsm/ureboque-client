@@ -33,7 +33,7 @@ hideNativeSplash();
 
 // Initialize Sentry
 Sentry.init({
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || "https://your-dsn-here@sentry.io/your-project-id",
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || undefined,
   environment: __DEV__ ? "development" : "production",
   sendDefaultPii: true,
   tracesSampleRate: __DEV__ ? 1.0 : 0.2,

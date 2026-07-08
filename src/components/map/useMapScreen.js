@@ -20,7 +20,7 @@ export const useMapScreen = () => {
 
   // ── Context ─────────────────────────────────────────────────────────────
   const { socket } = useSocket();
-  const { user, serviceStatus, setServiceStatus, prices, fetchPrices } = useUserData();
+  const { user, setUser, serviceStatus, setServiceStatus, prices, fetchPrices, unreadNotificationsCount, saveUserVehicle, removeDiscount } = useUserData();
   const { userLocation, setUserLocation } = useUserLocationStateContext();
   const { setTripActive, setTripStatus } = useTripState();
   const { showAlert } = useAlert();
@@ -119,8 +119,13 @@ export const useMapScreen = () => {
       _id: sp._id,
       place: { name: sp.place.name, description: sp.place.description, coordinates: sp.place.coordinates },
     }));
+    const home = converted.filter(sp => sp.place.name === 'Casa');
+    const work = converted.filter(sp => sp.place.name === 'Trabalho');
+    const others = converted.filter(sp => sp.place.name !== 'Casa' && sp.place.name !== 'Trabalho');
     setFavPlaces([
-      ...converted,
+      ...home,
+      ...work,
+      ...others,
       {
         _id: 'add-favorite',
         place: {
@@ -209,6 +214,7 @@ export const useMapScreen = () => {
     serviceStatus,
     setServiceStatus,
     fetchPrices,
+    removeDiscount,
     setOriginCity,
     setDestinationCity,
   });
@@ -319,8 +325,10 @@ export const useMapScreen = () => {
     const { service, car } = serviceStatus;
     const status = service.status;
     const room = `service-request-${service._id}`;
+    const paymentValue = service.payment?.value ?? service.payment?.amount;
 
     trip.updateTripData({
+      price: paymentValue,
       driver: {
         id: service.driver._id,
         driverId: service.driver._id,
@@ -344,16 +352,19 @@ export const useMapScreen = () => {
       case 'in-progress':
         if (socket?.connected) socket.emit('join', room);
         presentBottomSheet('tripEnding');
-        trip.updateTripData({ service, status: 'in-progress' });
+        trip.updateTripData({ service, status: 'in-progress', price: paymentValue });
         break;
       case 'assigned':
         if (socket?.connected) socket.emit('join', room);
         presentBottomSheet('tripStarted');
-        trip.updateTripData({ service, status: 'assigned' });
+        trip.updateTripData({ service, status: 'assigned', price: paymentValue });
         break;
       case 'completed':
-        trip.updateTripData({ price: service.payment.value, service });
+        trip.updateTripData({ price: paymentValue, service });
         updateModal('confirmation', true);
+        if (user?.discount?.active) {
+          removeDiscount(user.discount.promotion.code);
+        }
         break;
     }
   }, [serviceStatus, presentBottomSheet]);
@@ -366,6 +377,18 @@ export const useMapScreen = () => {
         .catch((e) => logger.error('Failed to fetch message count', e));
     }
   }, [modalState.chat, trip.tripData.service?._id]);
+
+  // ── Current Location Label (chip) ────────────────────────────────────────
+  const [currentLocationLabel, setCurrentLocationLabel] = useState(null);
+  const hasGeocodedRef = useRef(false);
+
+  useEffect(() => {
+    if (!userLocation || hasGeocodedRef.current) return;
+    hasGeocodedRef.current = true;
+    geocoding.getAddressFromCoordinates(userLocation.latitude, userLocation.longitude)
+      .then((address) => { if (address) setCurrentLocationLabel(address); })
+      .catch(() => {});
+  }, [userLocation]);
 
   // ── Location-throttle ────────────────────────────────────────────────────
   const lastLocationUpdateRef = useRef(Date.now());
@@ -589,14 +612,33 @@ export const useMapScreen = () => {
   }, [trip]);
 
   const handleTypeCarPress = useCallback((type, price) => () => {
-    trip.updateTripData({ carType: type, price });
+    const defaultVehicle = user?.vehicles?.find((v) => v.isDefault);
+    trip.updateTripData({
+      carType: type,
+      price,
+      brand: defaultVehicle?.brand || '',
+      model: defaultVehicle?.model || '',
+      license: defaultVehicle?.license || '',
+      color: defaultVehicle?.color || '',
+    });
     presentBottomSheet('userCarInfo');
-  }, [trip, presentBottomSheet]);
+  }, [trip, presentBottomSheet, user?.vehicles]);
 
-  const handleConfirmButtonPress = useCallback(() => {
+  const handleConfirmButtonPress = useCallback(async (shouldSave) => {
     Keyboard.dismiss();
+    if (shouldSave) {
+      try {
+        await saveUserVehicle({
+          brand: trip.tripData.brand,
+          model: trip.tripData.model,
+          license: trip.tripData.license,
+          color: trip.tripData.color,
+          isDefault: !user?.vehicles?.length,
+        });
+      } catch (_) {}
+    }
     presentBottomSheet('payment');
-  }, [presentBottomSheet]);
+  }, [presentBottomSheet, saveUserVehicle, trip.tripData, user?.vehicles]);
 
   const handleBrandInputValueChange = useCallback((brand) => trip.updateTripData({ brand }), [trip]);
   const handleModelInputValueChange = useCallback((model) => trip.updateTripData({ model }), [trip]);
@@ -690,6 +732,8 @@ export const useMapScreen = () => {
 
   // ── Derived State ─────────────────────────────────────────────────────────
   const isRouteVisible = markers.length === 2;
+  const servicePaymentValue = trip.tripData.service?.payment?.value ?? trip.tripData.service?.payment?.amount;
+  const ridePrice = servicePaymentValue ?? trip.tripData.price;
 
   // ── Return ────────────────────────────────────────────────────────────────
   return {
@@ -701,7 +745,7 @@ export const useMapScreen = () => {
       service: trip.tripData.service,
       driver: trip.tripData.driver,
       typeCar: trip.tripData.carType,
-      ridePrice: trip.tripData.price,
+      ridePrice,
       brand: trip.tripData.brand,
       model: trip.tripData.model,
       license: trip.tripData.license,
@@ -721,6 +765,7 @@ export const useMapScreen = () => {
       modalChatVisible: modalState.chat,
       modalPreCancelVisible: modalState.preCancel,
       unreadMessageCount,
+      unreadNotificationsCount,
       mapMarkers: markers,
       markerVisible,
       markerCity: geocoding.markerCity,
@@ -731,6 +776,7 @@ export const useMapScreen = () => {
       locationSelection,
       originCity,
       destinationCity,
+      currentLocationLabel,
       bottomSheetModalRef,
       carTypeSelectionSheetRef,
       userCarInfoSheetRef,

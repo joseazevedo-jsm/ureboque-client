@@ -4,6 +4,7 @@
  */
 
 import * as Sentry from '@sentry/react-native';
+import { Platform } from 'react-native';
 
 // Log levels with priority values
 const LOG_LEVELS = {
@@ -22,6 +23,47 @@ const LOG_COLORS = {
   ERROR: '\x1b[31m',    // Red
   CRITICAL: '\x1b[35m', // Magenta
   RESET: '\x1b[0m'      // Reset
+};
+
+const REMOTE_LOG_LEVELS = ['WARN', 'ERROR', 'CRITICAL'];
+const REDACTED = '[REDACTED]';
+const SENSITIVE_KEY_PATTERN = /(password|pass|token|authorization|jwt|secret|otp|code|phone|email|mail|latitude|longitude|location|coordinates|address|card|payment|message|chat|name|surname|photo|image|document|license)/i;
+const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const BEARER_PATTERN = /Bearer\s+[A-Za-z0-9._~+/=-]+/gi;
+const LONG_TOKEN_PATTERN = /\b[A-Za-z0-9_-]{24,}\b/g;
+const PHONE_PATTERN = /(\+?\d[\d\s().-]{7,}\d)/g;
+
+const shouldSendRemoteLogs = () => {
+  const flag = process.env.EXPO_PUBLIC_REMOTE_LOGS_ENABLED;
+  if (flag === 'true') return true;
+  if (flag === 'false') return false;
+  return !__DEV__;
+};
+
+const redactString = (value) => (
+  value
+    .slice(0, 500)
+    .replace(EMAIL_PATTERN, REDACTED)
+    .replace(BEARER_PATTERN, REDACTED)
+    .replace(PHONE_PATTERN, REDACTED)
+    .replace(LONG_TOKEN_PATTERN, REDACTED)
+);
+
+const sanitizeForRemote = (value, depth = 0) => {
+  if (value === null || value === undefined) return value;
+  if (depth > 4) return '[MAX_DEPTH]';
+  if (typeof value === 'string') return redactString(value);
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value.slice(0, 20).map((item) => sanitizeForRemote(item, depth + 1));
+  if (typeof value === 'object') {
+    return Object.entries(value).slice(0, 30).reduce((acc, [key, childValue]) => {
+      acc[key] = SENSITIVE_KEY_PATTERN.test(key)
+        ? REDACTED
+        : sanitizeForRemote(childValue, depth + 1);
+      return acc;
+    }, {});
+  }
+  return String(value);
 };
 
 class Logger {
@@ -95,12 +137,40 @@ class Logger {
     if (!this.shouldLog(level)) return;
 
     const logEntry = this.formatLogEntry(level, component, message, data);
-    
+
     // Add to buffer for potential remote logging
     this.addToBuffer(logEntry);
-    
+    this.sendRemoteLog(logEntry);
+
     // Console output
     this.outputToConsole(logEntry);
+  }
+
+  sendRemoteLog(logEntry) {
+    const apiUrl = process.env.EXPO_PUBLIC_UREBOQUE_API;
+    if (!apiUrl || !shouldSendRemoteLogs() || !REMOTE_LOG_LEVELS.includes(logEntry.level)) {
+      return;
+    }
+
+    const url = `${apiUrl.replace(/\/$/, '')}/logs/client`;
+    const payload = {
+      app: 'client',
+      platform: Platform.OS,
+      appVersion: process.env.EXPO_PUBLIC_APP_VERSION || 'unknown',
+      level: logEntry.level.toLowerCase(),
+      component: sanitizeForRemote(logEntry.component),
+      message: sanitizeForRemote(logEntry.message),
+      session: sanitizeForRemote(logEntry.session),
+      data: sanitizeForRemote(logEntry.data || {}),
+    };
+
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {
+      // Logging must never affect the user flow.
+    });
   }
 
   /**
@@ -185,9 +255,9 @@ class Logger {
         Sentry.captureException(data.error, {
           contexts: {
             logger: {
-              component: component,
-              message: message,
-              additionalData: data,
+                component: component,
+                message: message,
+                additionalData: sanitizeForRemote(data),
             }
           },
           tags: {
@@ -217,7 +287,7 @@ class Logger {
           logger: {
             component: component,
             level: 'critical',
-            additionalData: data,
+            additionalData: sanitizeForRemote(data),
           }
         },
         tags: {
@@ -352,7 +422,7 @@ class Logger {
         data: {
           from,
           to,
-          params,
+          params: sanitizeForRemote(params),
         },
         level: 'info',
       });

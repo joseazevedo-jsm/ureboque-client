@@ -14,6 +14,7 @@ const DriverStatus = ({
   tripDuration,
   onDetailsTrip,
   onCancelTrip,
+  onShareLocation,
   onMessageDriver,
   onCallDriver,
   bttmSheetRef,
@@ -41,39 +42,42 @@ const DriverStatus = ({
       <View style={styles.divider} />
 
       <View style={styles.actions}>
+        {/* Share location */}
         <TouchableOpacity
-          style={styles.actionButton}
+          style={[styles.actionBtn, styles.shareBtn]}
+          onPress={onShareLocation}
+          activeOpacity={0.8}
+          accessibilityLabel="Partilhar localização"
+          accessibilityRole="button"
+        >
+          <Icon name="near-me" size={scale(18)} color={colors.primary} style={styles.btnIcon} />
+          <Text style={[styles.btnText, styles.shareBtnText]}>Partilhar localização</Text>
+        </TouchableOpacity>
+
+        {/* Trip details */}
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.detailsBtn]}
           onPress={() => onDetailsTrip(bttmSheetRef)}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
           accessibilityLabel="Ver detalhes da viagem"
           accessibilityRole="button"
         >
-          <View style={styles.actionIcon}>
-            <Icon name="info-outline" size={scale(18)} color={colors.primary} />
-          </View>
-          <Text style={styles.actionText}>Detalhes</Text>
-          <Icon name="chevron-right" size={scale(18)} color={colors.textMuted} />
+          <Icon name="format-list-bulleted" size={scale(18)} color={colors.textPrimary} style={styles.btnIcon} />
+          <Text style={[styles.btnText, styles.detailsBtnText]}>Detalhes da viagem</Text>
         </TouchableOpacity>
 
+        {/* Cancel — only when driver is en route */}
         {status === TRIP_STATUS.DRIVER_EN_ROUTE && (
-          <>
-            <View style={styles.divider} />
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={onCancelTrip}
-              activeOpacity={0.7}
-              accessibilityLabel="Cancelar viagem atual"
-              accessibilityRole="button"
-            >
-              <View style={[styles.actionIcon, styles.actionIconDanger]}>
-                <Icon name="close" size={scale(18)} color={colors.error} />
-              </View>
-              <Text style={[styles.actionText, styles.actionTextDanger]}>
-                Cancelar viagem
-              </Text>
-              <Icon name="chevron-right" size={scale(18)} color={colors.textMuted} />
-            </TouchableOpacity>
-          </>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.cancelBtn]}
+            onPress={onCancelTrip}
+            activeOpacity={0.8}
+            accessibilityLabel="Cancelar viagem"
+            accessibilityRole="button"
+          >
+            <Icon name="cancel" size={scale(18)} color={colors.error} style={styles.btnIcon} />
+            <Text style={[styles.btnText, styles.cancelBtnText]}>Cancelar viagem</Text>
+          </TouchableOpacity>
         )}
       </View>
     </View>
@@ -92,35 +96,52 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.borderLight,
     marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
   },
   actions: {
-    marginTop: spacing.xs,
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
   },
-  actionIcon: {
-    width: scale(34),
-    height: scale(34),
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primaryLight,
-    justifyContent: "center",
+  actionBtn: {
+    flexDirection: "row",
     alignItems: "center",
+    borderRadius: borderRadius.xl,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  btnIcon: {
     marginRight: spacing.md,
   },
-  actionIconDanger: {
-    backgroundColor: colors.errorLight,
-  },
-  actionText: {
-    flex: 1,
+  btnText: {
     fontSize: scale(15),
     fontWeight: "600",
+    flex: 1,
+  },
+  shareBtn: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+  shareBtnText: {
+    color: colors.primary,
+  },
+  detailsBtn: {
+    backgroundColor: colors.surface,
+    borderColor: colors.borderLight,
+  },
+  detailsBtnText: {
     color: colors.textPrimary,
   },
-  actionTextDanger: {
+  cancelBtn: {
+    backgroundColor: colors.errorSurface,
+    borderColor: colors.errorBorder,
+  },
+  cancelBtnText: {
     color: colors.error,
   },
 });

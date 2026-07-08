@@ -13,7 +13,9 @@ import PlaceSavedItem from "../../cards/placeSavedItem";
 import { useSavedPlacesModal } from "./components/useSavedPlacesModal.js";
 import AddressModal from "./AddressModal";
 import { useLogger } from "../../../hooks/useLogger";
-import { colors, borderRadius, shadows } from "../../../theme";
+import { colors, borderRadius, shadows, spacing } from "../../../theme";
+
+import { ICON_ADD, getPlaceIcon } from "../../../assets/icons";
 
 const SavedPlacesModal = ({
   visible,
@@ -21,42 +23,32 @@ const SavedPlacesModal = ({
   addressCallBack,
   mapDrag,
 }) => {
-  const logger = useLogger('SavedPlacesModal');
-
+  const logger = useLogger("SavedPlacesModal");
   const { models, operations } = useSavedPlacesModal();
   logger.debug("Modal props received", { addressCallBack, mapDrag });
-  const handeBackButtonPress = () => {
-    closeModal();
-  };
 
   const renderFlatListItem = ({ item }) => {
-    if (item.place.name === "Adicionar Casa" && !item.place.coordinates) {
-      return (
-        <PlaceSavedItem
-          key={item.id}
-          place={item.place}
-          edit={models.edit}
-          onPressEditItem={operations.handleAddFavouriteButtonPress()}
-          add={true}
-        />
-      );
-    }
+    const isAddHome =
+      item.place.name === "Adicionar Casa" && !item.place.coordinates;
+    const isAddWork =
+      item.place.name === "Adicionar Trabalho" && !item.place.coordinates;
 
-    if (item.place.name === "Adicionar Trabalho" && !item.place.coordinates) {
+    if (isAddHome || isAddWork) {
       return (
         <PlaceSavedItem
-          key={item.id}
+          key={item._id}
           place={item.place}
           edit={models.edit}
           onPressEditItem={operations.handleAddFavouriteButtonPress()}
           add={true}
+          iconSource={getPlaceIcon(item.place.name)}
         />
       );
     }
 
     return (
       <PlaceSavedItem
-        key={item.id}
+        key={item._id}
         place={item.place}
         edit={models.edit}
         onPressEditItem={operations.handleAddressEditButtonPress(
@@ -64,6 +56,8 @@ const SavedPlacesModal = ({
           item._id
         )}
         add={false}
+        iconSource={getPlaceIcon(item.place.name)}
+        description={item.place.description || item.place.address}
       />
     );
   };
@@ -82,27 +76,34 @@ const SavedPlacesModal = ({
           onPress={closeModal}
         >
           <View style={styles.modalContent}>
-            <View style={styles.contentWrapper}>
+            <TouchableOpacity activeOpacity={1} style={styles.contentWrapper}>
+              {/* Header */}
               <View style={styles.header}>
                 <TouchableOpacity
-                  style={styles.goback}
-                  onPress={handeBackButtonPress}
+                  style={styles.circleButton}
+                  onPress={closeModal}
+                  accessibilityLabel="Fechar"
+                  accessibilityRole="button"
                 >
-                  <Icon name="close" size={scale(25)} color={colors.textPrimary} />
+                  <Icon name="close" size={scale(20)} color={colors.textPrimary} />
                 </TouchableOpacity>
+
+                <View style={styles.headerCenter}>
+                  <Text style={styles.title}>Lugares Salvos</Text>
+                  <Text style={styles.subtitle}>Acelere o pedido de reboques.</Text>
+                </View>
+
                 <TouchableOpacity
-                  style={styles.editButton}
+                  style={styles.circleButton}
                   onPress={operations.handleEditPress}
+                  accessibilityLabel="Editar lugares"
+                  accessibilityRole="button"
                 >
-                  <Text style={styles.editText}>Editar</Text>
+                  <Icon name="edit" size={scale(20)} color={colors.primary} />
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.title}>LUGARES SALVOS</Text>
-              <Text style={styles.subtitle}>
-                O motorista irá levá-lo exatamente onde você está indo!
-              </Text>
-
+              {/* List */}
               <View style={styles.listContainer}>
                 <FlatList
                   data={models.savedPlaces}
@@ -110,24 +111,23 @@ const SavedPlacesModal = ({
                   keyExtractor={(item) => item._id.toString()}
                   keyboardShouldPersistTaps="always"
                   keyboardDismissMode="on-drag"
-                  ItemSeparatorComponent={() => (
-                    <View style={{ height: scale(15) }} />
-                  )}
                   showsVerticalScrollIndicator={false}
+                  ListFooterComponent={
+                    <PlaceSavedItem
+                      place={{ name: "Adicionar" }}
+                      add={true}
+                      iconSource={ICON_ADD}
+                      description="Novo endereço personalizado"
+                      onPressEditItem={operations.handleAddFavouriteButtonPress()}
+                    />
+                  }
                 />
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={operations.handleAddFavouriteButtonPress()}
-                >
-                  <Text style={styles.addButtonText}>
-                    ADICIONAR LUGAR
-                  </Text>
-                </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
+
       <AddressModal
         visible={
           addressCallBack?.callback !== undefined
@@ -166,71 +166,48 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: scale(25),
     borderTopRightRadius: scale(25),
     height: "85%",
-    ...shadows.xl,
-
+    ...shadows.lg,
   },
   contentWrapper: {
     flex: 1,
-    paddingHorizontal: scale(20),
-    paddingTop: scale(30),
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
   },
   header: {
     flexDirection: "row",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: scale(20),
+    marginBottom: spacing.xl,
   },
-  goback: {
+  circleButton: {
     width: scale(40),
     height: scale(40),
     borderRadius: scale(20),
     backgroundColor: colors.surface,
     justifyContent: "center",
     alignItems: "center",
-    ...shadows.sm,
+    ...shadows.md,
   },
-  editButton: {
-    padding: scale(8),
-  },
-  editText: {
-    fontWeight: "700",
-    color: colors.primary,
-    fontSize: scale(14),
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: spacing.sm,
   },
   title: {
-    fontSize: scale(22),
-    color: colors.primary,
+    fontSize: scale(18),
     fontWeight: "800",
-    marginTop: scale(20),
+    color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: scale(12),
-    color: colors.textMuted,
-    marginTop: scale(8),
-    lineHeight: scale(18),
+    fontSize: scale(13),
+    color: colors.textSecondary,
+    marginTop: scale(2),
+    textAlign: "center",
   },
   listContainer: {
     flex: 1,
-    marginTop: scale(40),
-    paddingBottom: scale(20),
-  },
-  addButton: {
-    borderColor: colors.primary,
-    borderWidth: 2,
-    borderRadius: borderRadius.md,
-    width: "100%",
-    alignItems: "center",
-    alignSelf: "center",
-    padding: scale(16),
-    backgroundColor: colors.surface,
-    marginTop: scale(15),
-    marginBottom: scale(10),
-    ...shadows.sm,
-  },
-  addButtonText: {
-    color: colors.primary,
-    fontWeight: "700",
-    fontSize: scale(14),
+    paddingBottom: spacing.lg,
   },
 });
+
 export default SavedPlacesModal;

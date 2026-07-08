@@ -41,7 +41,7 @@ const useSettingsScreen = () => {
     setIsLoading(true);
 
     try {
-      logger.debug('Requesting password reset email', { email: user.email });
+      logger.debug('Requesting password reset email', { hasEmail: !!user.email });
 
       const resp = await api.post('users/request-password-reset', {
         email: user.email
@@ -58,9 +58,8 @@ const useSettingsScreen = () => {
     } catch (error) {
       logger.error('Password reset request failed', {
         error: error.message,
-        email: user.email,
         status: error.response?.status,
-        responseData: error.response?.data
+        hasResponseData: !!error.response?.data
       });
 
       showAlert({
