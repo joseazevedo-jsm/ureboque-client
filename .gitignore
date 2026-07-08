@@ -37,3 +37,8 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# local scratch / design reference material
+claude_convo_ureboque_client.txt
+android-backup/
+ureboque_client_theme/
