@@ -30,6 +30,17 @@ export const UserDataProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
 
   const SERVICES_PAGE_LIMIT = 20;
+  const ACTIVE_SERVICE_STATUSES = ['connecting', 'assigned', 'in-progress'];
+  const ACTIVE_SERVICE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+
+  const isRecoverableActiveService = (item) => {
+    const service = item?.service;
+    if (!ACTIVE_SERVICE_STATUSES.includes(service?.status) || !service?.driver || service?.review?.rating) {
+      return false;
+    }
+    const createdAt = service?.createdAt ? new Date(service.createdAt).getTime() : 0;
+    return createdAt > 0 && Date.now() - createdAt <= ACTIVE_SERVICE_MAX_AGE_MS;
+  };
 
   const fetchUserById = async (userId) => {
     const timer = logger.startTimer('fetch_user_by_id');
@@ -253,10 +264,8 @@ export const UserDataProvider = ({ children }) => {
         logger.info('User services loaded', { page, count: servicesData.length, hasMore, userId });
 
         if (page === 1 || refreshing) {
-          const lastService = servicesData[0];
-          if (lastService?.service?.status && lastService?.service?.driver && !lastService?.service?.review?.rating) {
-            setServiceStatus(lastService);
-          }
+          const activeService = servicesData.find(isRecoverableActiveService);
+          setServiceStatus(activeService || null);
         }
       } else {
         logger.warn('No services data in response');
@@ -502,6 +511,13 @@ export const UserDataProvider = ({ children }) => {
       loadUserData();
     }
   }, [isAuthenticated, userToken]);
+
+  useEffect(() => {
+    const userId = user?.id || user?._id;
+    if (isAuthenticated && userId && servicesLoadedUserId !== userId && !servicesLoading) {
+      fetchUserServices(userId);
+    }
+  }, [isAuthenticated, user?.id, user?._id, servicesLoadedUserId, servicesLoading]);
 
   // Auto-fetch notifications once user is loaded
   useEffect(() => {

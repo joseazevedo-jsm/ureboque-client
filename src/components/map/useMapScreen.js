@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Keyboard, Linking } from 'react-native';
+import { BackHandler, Keyboard, Linking } from 'react-native';
 import { scale } from 'react-native-size-matters';
 import { useUserLocationStateContext } from '../../context/UserLocationStateContext';
 import { useSocket } from '../../context/SocketContext';
@@ -30,6 +30,7 @@ export const useMapScreen = () => {
   const mapRef = useRef(null);
   const transitionTimeoutRef = useRef(null);
   const lastMessageCountRef = useRef(0);
+  const lastRecoveredServiceKeyRef = useRef(null);
 
   // ── Bottom Sheet Refs ────────────────────────────────────────────────────
   const bottomSheetModalRef = useRef(null);
@@ -153,7 +154,23 @@ export const useMapScreen = () => {
   }, []);
 
   const presentBottomSheet = useCallback((sheetName) => {
-    if (activeBottomSheet === sheetName) return;
+    const sheetMap = {
+      initial: bottomSheetModalRef,
+      carType: carTypeSelectionSheetRef,
+      userCarInfo: userCarInfoSheetRef,
+      payment: paymentOptionsSheetRef,
+      rideSearch: rideSearchSheetRef,
+      tripStarted: tripStartedSheetRef,
+      driverArriving: driverArrivingSheetRef,
+      tripEnding: tripEndingSheetRef,
+      details: bottomSheetModalRefDetails,
+      dragMarker: bottomSheetModalDragMarker,
+    };
+    if (activeBottomSheet === sheetName) {
+      dismissAllBottomSheets();
+      sheetMap[sheetName]?.current?.present();
+      return;
+    }
     if (transitionTimeoutRef.current) {
       clearTimeout(transitionTimeoutRef.current);
       transitionTimeoutRef.current = null;
@@ -161,18 +178,6 @@ export const useMapScreen = () => {
     dismissAllBottomSheets();
     setActiveBottomSheet(sheetName);
     transitionTimeoutRef.current = setTimeout(() => {
-      const sheetMap = {
-        initial: bottomSheetModalRef,
-        carType: carTypeSelectionSheetRef,
-        userCarInfo: userCarInfoSheetRef,
-        payment: paymentOptionsSheetRef,
-        rideSearch: rideSearchSheetRef,
-        tripStarted: tripStartedSheetRef,
-        driverArriving: driverArrivingSheetRef,
-        tripEnding: tripEndingSheetRef,
-        details: bottomSheetModalRefDetails,
-        dragMarker: bottomSheetModalDragMarker,
-      };
       sheetMap[sheetName]?.current?.present();
       transitionTimeoutRef.current = null;
     }, 300);
@@ -260,6 +265,19 @@ export const useMapScreen = () => {
     setTripStatus(trip.tripData.status);
   }, [trip.tripData.service, trip.tripData.status, setTripActive, setTripStatus]);
 
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (activeBottomSheet === 'rideSearch' || trip.tripData.status === 'connecting') {
+        trip.handleCancelSearch();
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handleHardwareBack);
+    return () => subscription.remove();
+  }, [activeBottomSheet, trip.tripData.status, trip.handleCancelSearch]);
+
   // Center map initially
   useEffect(() => {
     if (userLocation && !trip.tripData.driver && !hasCentered) {
@@ -304,7 +322,19 @@ export const useMapScreen = () => {
     };
     Object.entries(handlers).forEach(([event, handler]) => socket.on(event, handler));
     return () => Object.entries(handlers).forEach(([event, handler]) => socket.off(event, handler));
-  }, [socket]);
+  }, [
+    socket,
+    trip.handleBestDriver,
+    trip.handleDriverConnected,
+    trip.handleDriverLocation,
+    trip.handleServiceAccepted,
+    trip.handleDriverDeclined,
+    trip.handleServiceStarted,
+    trip.handleServiceEnded,
+    trip.handleServiceCancelled,
+    trip.handleNoDriver,
+    trip.handleMessage,
+  ]);
 
   // Nearby-driver polling — stops automatically when a service is active
   useEffect(() => {
@@ -319,16 +349,44 @@ export const useMapScreen = () => {
 
   // Handle service status updates (reconnect flow)
   useEffect(() => {
-    if (!serviceStatus ||
-      ['nodriver', 'cancelled', 'flagged'].includes(serviceStatus?.service?.status)) return;
+    if (!serviceStatus) return;
 
-    const { service, car } = serviceStatus;
+    if (['nodriver', 'cancelled'].includes(serviceStatus?.service?.status)) {
+      resetToInitialState();
+      setServiceStatus?.(null);
+      return;
+    }
+
+    if (serviceStatus?.service?.status === 'flagged') return;
+
+    const { service, car = {} } = serviceStatus;
+    if (!service?.driver?._id || !service?.locations?.[0] || !service?.locations?.[1]) {
+      setServiceStatus?.(null);
+      resetToInitialState();
+      return;
+    }
     const status = service.status;
     const room = `service-request-${service._id}`;
     const paymentValue = service.payment?.value ?? service.payment?.amount;
+    const recoveryKey = `${service._id}:${status}`;
+    const recoverySheet =
+      status === 'in-progress' ? 'tripEnding' :
+        status === 'assigned' ? 'tripStarted' :
+          status === 'connecting' ? 'tripStarted' :
+            null;
+
+    if (lastRecoveredServiceKeyRef.current === recoveryKey) {
+      if (recoverySheet && activeBottomSheet !== recoverySheet) {
+        presentBottomSheet(recoverySheet);
+      }
+      return;
+    }
+
+    lastRecoveredServiceKeyRef.current = recoveryKey;
 
     trip.updateTripData({
       price: paymentValue,
+      driverConnected: true,
       driver: {
         id: service.driver._id,
         driverId: service.driver._id,
@@ -339,9 +397,9 @@ export const useMapScreen = () => {
         numServices: service.driver.numServices,
         phone: service.driver.phone,
         car: {
-          name: `${car.brand} ${car.model} ${car.color}`,
-          color: car.color,
-          licensePlate: car.licensePlate,
+          name: [car.brand, car.model, car.color].filter(Boolean).join(' '),
+          color: car.color || '',
+          licensePlate: car.licensePlate || '',
         },
       },
     });
@@ -352,12 +410,17 @@ export const useMapScreen = () => {
       case 'in-progress':
         if (socket?.connected) socket.emit('join', room);
         presentBottomSheet('tripEnding');
-        trip.updateTripData({ service, status: 'in-progress', price: paymentValue });
+        trip.updateTripData({ service, status: 'in-progress', price: paymentValue, driverConnected: true });
         break;
       case 'assigned':
         if (socket?.connected) socket.emit('join', room);
         presentBottomSheet('tripStarted');
-        trip.updateTripData({ service, status: 'assigned', price: paymentValue });
+        trip.updateTripData({ service, status: 'assigned', price: paymentValue, driverConnected: true });
+        break;
+      case 'connecting':
+        if (socket?.connected) socket.emit('join', room);
+        presentBottomSheet('tripStarted');
+        trip.updateTripData({ service, status: 'assigned', price: paymentValue, driverConnected: true });
         break;
       case 'completed':
         trip.updateTripData({ price: paymentValue, service });
@@ -367,7 +430,17 @@ export const useMapScreen = () => {
         }
         break;
     }
-  }, [serviceStatus, presentBottomSheet]);
+  }, [
+    serviceStatus,
+    presentBottomSheet,
+    resetToInitialState,
+    setServiceStatus,
+    socket,
+    trip.updateTripData,
+    updateModal,
+    user,
+    removeDiscount,
+  ]);
 
   // Sync message count ref after chat closes
   useEffect(() => {

@@ -31,12 +31,12 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(true);
       logger.logStateChange('isLoading', false, true, 'login_started');
       
+      await AsyncStorage.setItem('userToken', token);
+      await AsyncStorage.setItem('userId', userId);
+
       setUserToken(token);
       setIsAuthenticated(true);
       logger.logStateChange('isAuthenticated', false, true, 'login_success');
-      
-      await AsyncStorage.setItem('userToken', token);
-      await AsyncStorage.setItem('userId', userId);
       
       // Set Sentry user context on successful login
       sentryService.setUser({
