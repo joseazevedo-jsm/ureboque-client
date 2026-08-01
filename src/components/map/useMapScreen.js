@@ -14,6 +14,7 @@ import { useMapDrivers } from '../../hooks/useMapDrivers';
 import { useMapTrip } from '../../hooks/useMapTrip';
 import api from '../../services/APIService';
 import { MAP_LATITUDE_DELTA, MAP_LONGITUDE_DELTA, DRIVER_POLL_INTERVAL_MS } from '../../constants/config';
+import { getRecoverySheetForTripStatus, isActiveServiceStatus } from '../../utils/serviceState';
 
 export const useMapScreen = () => {
   const logger = useLogger('useMapScreen');
@@ -308,6 +309,12 @@ export const useMapScreen = () => {
   // Register socket event handlers
   useEffect(() => {
     if (!socket) return;
+    console.log('[RIDE_STATE_DEBUG][client] register socket handlers', {
+      socketId: socket.id,
+      connected: !!socket.connected,
+      serviceId: trip.tripData.service?._id,
+      tripStatus: trip.tripData.status,
+    });
     const handlers = {
       bestDriver: trip.handleBestDriver,
       driverConnected: trip.handleDriverConnected,
@@ -317,11 +324,20 @@ export const useMapScreen = () => {
       serviceStarted: trip.handleServiceStarted,
       serviceEnded: trip.handleServiceEnded,
       serviceCancelled: trip.handleServiceCancelled,
+      driverTimeout: trip.handleDriverTimeout,
       noDriver: trip.handleNoDriver,
       message: trip.handleMessage,
     };
     Object.entries(handlers).forEach(([event, handler]) => socket.on(event, handler));
-    return () => Object.entries(handlers).forEach(([event, handler]) => socket.off(event, handler));
+    return () => {
+      console.log('[RIDE_STATE_DEBUG][client] unregister socket handlers', {
+        socketId: socket.id,
+        connected: !!socket.connected,
+        serviceId: trip.tripData.service?._id,
+        tripStatus: trip.tripData.status,
+      });
+      Object.entries(handlers).forEach(([event, handler]) => socket.off(event, handler));
+    };
   }, [
     socket,
     trip.handleBestDriver,
@@ -332,6 +348,7 @@ export const useMapScreen = () => {
     trip.handleServiceStarted,
     trip.handleServiceEnded,
     trip.handleServiceCancelled,
+    trip.handleDriverTimeout,
     trip.handleNoDriver,
     trip.handleMessage,
   ]);
@@ -369,11 +386,7 @@ export const useMapScreen = () => {
     const room = `service-request-${service._id}`;
     const paymentValue = service.payment?.value ?? service.payment?.amount;
     const recoveryKey = `${service._id}:${status}`;
-    const recoverySheet =
-      status === 'in-progress' ? 'tripEnding' :
-        status === 'assigned' ? 'tripStarted' :
-          status === 'connecting' ? 'tripStarted' :
-            null;
+    const recoverySheet = getRecoverySheetForTripStatus(status);
 
     if (lastRecoveredServiceKeyRef.current === recoveryKey) {
       if (recoverySheet && activeBottomSheet !== recoverySheet) {
@@ -406,22 +419,14 @@ export const useMapScreen = () => {
     setOriginCity(service.locations[0].name);
     setDestinationCity(service.locations[1].name);
 
+    if (isActiveServiceStatus(status)) {
+      if (socket?.connected) socket.emit('join', room);
+      presentBottomSheet(recoverySheet);
+      trip.updateTripData({ service, status, price: paymentValue, driverConnected: true });
+      return;
+    }
+
     switch (status) {
-      case 'in-progress':
-        if (socket?.connected) socket.emit('join', room);
-        presentBottomSheet('tripEnding');
-        trip.updateTripData({ service, status: 'in-progress', price: paymentValue, driverConnected: true });
-        break;
-      case 'assigned':
-        if (socket?.connected) socket.emit('join', room);
-        presentBottomSheet('tripStarted');
-        trip.updateTripData({ service, status: 'assigned', price: paymentValue, driverConnected: true });
-        break;
-      case 'connecting':
-        if (socket?.connected) socket.emit('join', room);
-        presentBottomSheet('tripStarted');
-        trip.updateTripData({ service, status: 'assigned', price: paymentValue, driverConnected: true });
-        break;
       case 'completed':
         trip.updateTripData({ price: paymentValue, service });
         updateModal('confirmation', true);
@@ -432,6 +437,7 @@ export const useMapScreen = () => {
     }
   }, [
     serviceStatus,
+    activeBottomSheet,
     presentBottomSheet,
     resetToInitialState,
     setServiceStatus,
@@ -450,7 +456,6 @@ export const useMapScreen = () => {
         .catch((e) => logger.error('Failed to fetch message count', e));
     }
   }, [modalState.chat, trip.tripData.service?._id]);
-
   // ── Current Location Label (chip) ────────────────────────────────────────
   const [currentLocationLabel, setCurrentLocationLabel] = useState(null);
   const hasGeocodedRef = useRef(false);

@@ -3,6 +3,7 @@ import { useLogger } from './useLogger';
 import api from '../services/APIService';
 import ErrorService from '../services/ErrorService';
 import { SEARCH_TIMER_DURATION_S, DRIVER_ARRIVAL_THRESHOLD_KM, DRIVER_MOVE_THRESHOLD_M } from '../constants/config';
+import { getTripStatusFromDriverLeg } from '../utils/serviceState';
 
 const DEFAULT_TIMER_DURATION = SEARCH_TIMER_DURATION_S;
 
@@ -53,15 +54,21 @@ export const useMapTrip = ({
     detailsInfo: null,
     status: null,
     driverArrived: false,
+    _lastDriverLegStatus: null,
   });
 
   const [timer, setTimer] = useState(DEFAULT_TIMER_DURATION);
   const [isActive, setIsActive] = useState(false);
   const noDriverAlertShownRef = useRef(false);
+  const tripStatusRef = useRef(null);
 
   const updateTripData = useCallback((updates) => {
     setTripData((prev) => ({ ...prev, ...updates }));
   }, []);
+
+  useEffect(() => {
+    tripStatusRef.current = tripData.status;
+  }, [tripData.status]);
 
   // Timer helpers
   const startTimer = useCallback(() => setIsActive(true), []);
@@ -88,8 +95,8 @@ export const useMapTrip = ({
   // No-driver alert (shared by socket noDriver event and timer timeout)
   const showNoDriverAlert = useCallback(() => {
     setTripData((current) => {
-      if (current.driver || current.driverConnected) {
-        logger.info('Driver already connected, skipping no driver alert');
+      if (current.driverConnected || ['connecting', 'assigned', 'in-progress', 'completed'].includes(current.status)) {
+        logger.info('Service already active, skipping no driver alert');
         return current;
       }
       if (noDriverAlertShownRef.current) {
@@ -123,7 +130,12 @@ export const useMapTrip = ({
           },
         ],
       });
-      return current;
+      return {
+        ...current,
+        driver: null,
+        driverConnected: false,
+        status: null,
+      };
     });
   }, [showAlert, presentBottomSheet, resetTimer, onResetRef]);
 
@@ -144,27 +156,41 @@ export const useMapTrip = ({
   const handleDriverConnect = useCallback((driverLocation, coords) => {
     logger.debug('Map markers set', { coords });
     setMapMarkers([driverLocation, coords]);
-    updateTripData({ status: 'assigned' });
+    if (!['assigned', 'in-progress', 'completed'].includes(tripStatusRef.current)) {
+      updateTripData({ status: 'connecting' });
+    }
   }, [setMapMarkers, updateTripData]);
 
   const handleDriverConnected = useCallback((data) => {
     try {
       logger.info('Socket event: driverConnected', data);
       resetTimer();
+      const serviceId = data?.service?.id || data?.service?._id || tripData.service?._id;
+      if (serviceId && socket?.connected) {
+        socket.emit('join', `service-request-${serviceId}`);
+      }
       if (data?.location && data?.service?.pickup) {
-        updateTripData({ driverConnected: true, driver: data.driver });
+        const nextStatus = ['assigned', 'in-progress', 'completed'].includes(tripStatusRef.current)
+          ? tripStatusRef.current
+          : 'connecting';
+        updateTripData({ driverConnected: true, driver: data.driver, status: nextStatus });
         setDriverLocation(data.location);
         handleDriverConnect(data.location, data.service.pickup);
       }
     } catch (error) {
       logger.error('Error handling driverConnected event', error);
     }
-  }, [resetTimer, updateTripData, setDriverLocation, handleDriverConnect]);
+  }, [resetTimer, updateTripData, setDriverLocation, handleDriverConnect, socket, tripData.service?._id]);
 
   const handleDriverLocation = useCallback((data) => {
     try {
       if (!data?.service || !data?.location) return;
       const { service, location } = data;
+      console.log('[RIDE_STATE_DEBUG][client] received driverLocation', {
+        serviceId: service?.id,
+        driverLegStatus: service?.status,
+        currentTripStatus: tripStatusRef.current,
+      });
       setDriverLocation(location);
 
       setTripData((current) => {
@@ -176,8 +202,16 @@ export const useMapTrip = ({
           updateCurrentRoute(sliced);
         }
 
-        switch (service.status) {
-          case 1: {
+        const driverLegStatus = getTripStatusFromDriverLeg(service.status);
+
+        switch (driverLegStatus) {
+          case 'assigned': {
+            if (current.status === 'connecting' || !['assigned', 'in-progress', 'completed'].includes(current.status)) {
+              resetTimer();
+              if (!current.detailsInfo?.isViewingDetails) {
+                presentBottomSheet('tripStarted');
+              }
+            }
             const newMarkers = [location, service.pickupLocation];
             setMapMarkers(newMarkers);
             if (serviceStatus) setServiceStatus(null);
@@ -189,37 +223,72 @@ export const useMapTrip = ({
               if (!current.detailsInfo?.isViewingDetails) {
                 presentBottomSheet('driverArriving');
               }
-              return { ...current, driverArrived: true, _lastDriverLocation: location };
+              return { ...current, status: 'assigned', driverConnected: true, driverArrived: true, _lastDriverLocation: location, _lastDriverLegStatus: service.status };
             }
             break;
           }
-          case 2: {
+          case 'in-progress': {
+            if (current.status !== 'in-progress') {
+              resetTimer();
+              if (!current.detailsInfo?.isViewingDetails) {
+                presentBottomSheet('tripEnding');
+              }
+            }
             setMapMarkers([location, service.dropoffLocation]);
-            break;
+            return { ...current, status: 'in-progress', driverConnected: true, _lastDriverLocation: location, _lastDriverLegStatus: service.status };
           }
         }
-        return { ...current, _lastDriverLocation: location };
+        return {
+          ...current,
+          status: driverLegStatus || current.status,
+          driverConnected: driverLegStatus ? true : current.driverConnected,
+          _lastDriverLocation: location,
+          _lastDriverLegStatus: service.status,
+        };
       });
     } catch (error) {
       logger.error('Error handling driverLocation event', error);
     }
-  }, [getDistanceInKm, getSlicedRoute, routeCoordinates, updateCurrentRoute, setDriverLocation, setMapMarkers, setDirections, serviceStatus, setServiceStatus, presentBottomSheet]);
+  }, [getDistanceInKm, getSlicedRoute, routeCoordinates, updateCurrentRoute, setDriverLocation, setMapMarkers, setDirections, serviceStatus, setServiceStatus, presentBottomSheet, resetTimer]);
 
   const handleServiceAccepted = useCallback((data) => {
     try {
+      console.log('[RIDE_STATE_DEBUG][client] received serviceAccepted', {
+        payloadStatus: data?.status,
+        payloadServiceStatus: data?.service?.status,
+        serviceId: data?.service?._id || tripData.service?._id,
+        currentTripStatus: tripStatusRef.current,
+        socketConnected: !!socket?.connected,
+      });
       logger.info('Socket event: serviceAccepted', data);
-      updateTripData({ status: 'assigned' });
+      if (tripData.service?._id && socket?.connected) {
+        socket.emit('join', `service-request-${tripData.service._id}`);
+      }
+      updateTripData({
+        status: 'assigned',
+        service: data?.service || tripData.service,
+        driver: data?.driverDetails || tripData.driver,
+        driverConnected: true,
+      });
       resetTimer();
       presentBottomSheet('tripStarted');
+      console.log('[RIDE_STATE_DEBUG][client] applied serviceAccepted', {
+        serviceId: data?.service?._id || tripData.service?._id,
+        nextTripStatus: 'assigned',
+      });
     } catch (error) {
       logger.error('Error handling serviceAccepted event', error);
     }
-  }, [updateTripData, resetTimer, presentBottomSheet]);
+  }, [updateTripData, resetTimer, presentBottomSheet, socket, tripData.service?._id]);
 
   const handleDriverDeclined = useCallback((data) => {
     try {
       logger.info('Socket event: driverDeclined', data);
       const { idUser, idService, userLocation: driverUserLocation } = data;
+      updateTripData({ driverConnected: false, driver: null, status: 'requested' });
+      startTimer();
+      presentBottomSheet('rideSearch');
+      if (data?.rematching) return;
       const { longitude, latitude } = driverUserLocation;
       if (socket?.connected) {
         socket.emit('chooseBestDriver', {
@@ -231,7 +300,18 @@ export const useMapTrip = ({
     } catch (error) {
       logger.error('Error handling driverDeclined event', error);
     }
-  }, [socket]);
+  }, [socket, updateTripData, startTimer, presentBottomSheet]);
+
+  const handleDriverTimeout = useCallback((data) => {
+    try {
+      logger.info('Socket event: driverTimeout', data);
+      updateTripData({ driverConnected: false, driver: null, status: 'requested' });
+      startTimer();
+      presentBottomSheet('rideSearch');
+    } catch (error) {
+      logger.error('Error handling driverTimeout event', error);
+    }
+  }, [updateTripData, startTimer, presentBottomSheet]);
 
   const handleServiceStarted = useCallback((data) => {
     try {
@@ -267,22 +347,33 @@ export const useMapTrip = ({
   const handleServiceCancelled = useCallback((data) => {
     try {
       logger.info('Socket event: serviceCancelled', data);
+      onResetRef.current?.();
       showAlert({
         type: 'error',
         title: 'Serviço cancelado',
         message: 'O motorista cancelou o serviço',
-        buttons: [{ text: 'OK', onPress: () => onResetRef.current?.() }],
+        buttons: [{ text: 'OK' }],
       });
     } catch (error) {
       logger.error('Error handling serviceCancelled event', error);
     }
   }, [showAlert, onResetRef]);
 
-  const handleMessage = useCallback((messages) => {
+  const normalizeMessages = useCallback((payload) => (
+    Array.isArray(payload) ? payload : payload?.messages || []
+  ), []);
+
+  const handleMessage = useCallback((payload, meta = {}) => {
     try {
+      if (meta.chatRoomId && tripData.service?._id && meta.chatRoomId !== tripData.service._id) return;
+      const messages = normalizeMessages(payload);
       if (!messages?.length) return;
       const currentCount = messages.length;
       const previousCount = lastMessageCountRef.current;
+      if (modalChatOpen) {
+        lastMessageCountRef.current = currentCount;
+        return;
+      }
       if (currentCount > previousCount) {
         const newMessages = messages.slice(previousCount);
         handleIncomingMessages(newMessages, user, modalChatOpen);
@@ -291,7 +382,7 @@ export const useMapTrip = ({
     } catch (error) {
       logger.error('Error handling message event', error);
     }
-  }, [user, modalChatOpen, handleIncomingMessages, lastMessageCountRef]);
+  }, [tripData.service?._id, normalizeMessages, lastMessageCountRef, modalChatOpen, handleIncomingMessages, user]);
 
   // Payment / booking
   const handleConfirmPaymentPress = useCallback((payment_type) => async () => {
@@ -337,6 +428,7 @@ export const useMapTrip = ({
       updateTripData({ service: resp.data });
 
       if (socket?.connected) {
+        socket.emit('join', `service-request-${resp.data._id}`);
         socket.emit('chooseBestDriver', {
           idService: resp.data._id,
           userLocation: [markers[0].longitude, markers[0].latitude],
@@ -353,7 +445,7 @@ export const useMapTrip = ({
   // Cancel helpers
   const onConfirmCancelSearch = useCallback((complaints) => {
     logger.info('Canceling search', { serviceId: tripData.service?._id });
-    if (socket?.connected) {
+    if (tripData.service?._id && socket?.connected) {
       socket.emit('searchCancel', { idService: tripData.service._id, complaints });
     }
     onResetRef.current?.();
@@ -431,6 +523,7 @@ export const useMapTrip = ({
       detailsInfo: null,
       status: null,
       driverArrived: false,
+      _lastDriverLegStatus: null,
     });
     resetTimer();
     noDriverAlertShownRef.current = false;
@@ -457,6 +550,7 @@ export const useMapTrip = ({
     handleDriverConnect,
     handleServiceAccepted,
     handleDriverDeclined,
+    handleDriverTimeout,
     handleServiceStarted,
     handleServiceEnded,
     handleServiceCancelled,
