@@ -70,8 +70,8 @@ const InsuranceList = ({ insurances, startAdd, startEdit, deleteInsuranceRecord,
             <Animated.View entering={FadeInDown.delay(300).springify()}>
               <ScalePressable onPress={startAdd}>
                 <View style={styles.addButton}>
-                  <Icon name="add-circle-outline" size={scale(22)} color={colors.success} />
-                  <Text style={[styles.addButtonText, { color: colors.success }]}>Adicionar Seguro</Text>
+                  <Icon name="add-circle-outline" size={scale(22)} color={colors.primary} />
+                  <Text style={[styles.addButtonText, { color: colors.primary }]}>Adicionar Seguro</Text>
                 </View>
               </ScalePressable>
             </Animated.View>
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.successLight,
+    backgroundColor: colors.primaryLight,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginTop: spacing.sm,

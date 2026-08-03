@@ -167,11 +167,6 @@ export const useMapScreen = () => {
       details: bottomSheetModalRefDetails,
       dragMarker: bottomSheetModalDragMarker,
     };
-    if (activeBottomSheet === sheetName) {
-      dismissAllBottomSheets();
-      sheetMap[sheetName]?.current?.present();
-      return;
-    }
     if (transitionTimeoutRef.current) {
       clearTimeout(transitionTimeoutRef.current);
       transitionTimeoutRef.current = null;
@@ -182,7 +177,7 @@ export const useMapScreen = () => {
       sheetMap[sheetName]?.current?.present();
       transitionTimeoutRef.current = null;
     }, 300);
-  }, [activeBottomSheet, dismissAllBottomSheets]);
+  }, [dismissAllBottomSheets]);
 
   // ── onResetRef (avoids circular dep in useMapTrip) ───────────────────────
   const onResetRef = useRef(null);
@@ -265,19 +260,6 @@ export const useMapScreen = () => {
     setTripActive(!!trip.tripData.service);
     setTripStatus(trip.tripData.status);
   }, [trip.tripData.service, trip.tripData.status, setTripActive, setTripStatus]);
-
-  useEffect(() => {
-    const handleHardwareBack = () => {
-      if (activeBottomSheet === 'rideSearch' || trip.tripData.status === 'connecting') {
-        trip.handleCancelSearch();
-        return true;
-      }
-      return false;
-    };
-
-    const subscription = BackHandler.addEventListener('hardwareBackPress', handleHardwareBack);
-    return () => subscription.remove();
-  }, [activeBottomSheet, trip.tripData.status, trip.handleCancelSearch]);
 
   // Center map initially
   useEffect(() => {
@@ -762,6 +744,39 @@ export const useMapScreen = () => {
       presentBottomSheet('initial');
     }
   }, [markers.length, routing, trip, centerToUserLocation, presentBottomSheet]);
+
+  // Hardware back must mirror whatever on-screen back control is visible for the
+  // current step, or Android falls through to its default behavior and exits the
+  // app outright — silently discarding an in-progress request or an active ride.
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (activeBottomSheet === 'rideSearch' || trip.tripData.status === 'connecting') {
+        trip.handleCancelSearch();
+        return true;
+      }
+      if (trip.tripData.detailsInfo) {
+        handleBackDetailsButtonPress();
+        return true;
+      }
+      if (markers.length === 2 && !trip.tripData.service) {
+        handleBackButtonPress();
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handleHardwareBack);
+    return () => subscription.remove();
+  }, [
+    activeBottomSheet,
+    trip.tripData.status,
+    trip.tripData.detailsInfo,
+    trip.tripData.service,
+    trip.handleCancelSearch,
+    markers.length,
+    handleBackButtonPress,
+    handleBackDetailsButtonPress,
+  ]);
 
   const handleRecenterMap = useCallback(() => {
     if (routing.directions?.coordinates?.length > 0) {

@@ -27,7 +27,7 @@ const MAIN_ITEMS = [
 ];
 
 const BOTTOM_ITEMS = [
-  { route: "ComplaintsScreen", label: "Reclamacoes", icon: "support-agent" },
+  { route: "ComplaintsScreen", label: "Reclamações", icon: "support-agent" },
   { route: "SettingsScreen", label: "Definições", icon: "settings" },
 ];
 
@@ -124,7 +124,8 @@ const SideMenuDrawer = (props) => {
       {/* Nav Items */}
       <ScrollView
         style={styles.scroll}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
+        indicatorStyle="black"
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.section}>

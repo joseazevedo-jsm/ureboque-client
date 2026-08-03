@@ -67,7 +67,7 @@ const AddressForm = ({
       {/* Header - Same design as current AddressModal */}
       <View style={styles.header}>
         <ScalePressable style={styles.closeButton} onPress={onClose}>
-          <Icon name="close" size={scale(25)} />
+          <Icon name="close" size={scale(25)} color={colors.textPrimary} />
         </ScalePressable>
         {isEdit && (
           <ScalePressable style={styles.deleteButton} onPress={handleDelete}>

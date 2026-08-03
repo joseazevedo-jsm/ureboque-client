@@ -4,6 +4,7 @@ import api from '../services/APIService';
 import { useAuth } from './AuthContext';
 import { useLogger } from '../hooks/useLogger';
 import ErrorService from '../services/ErrorService';
+import { ACTIVE_SERVICE_STATUSES } from '../utils/serviceState';
 
 const UserDataContext = createContext();
 
@@ -30,7 +31,6 @@ export const UserDataProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
 
   const SERVICES_PAGE_LIMIT = 20;
-  const ACTIVE_SERVICE_STATUSES = ['connecting', 'assigned', 'in-progress'];
   const ACTIVE_SERVICE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
   const isRecoverableActiveService = (item) => {

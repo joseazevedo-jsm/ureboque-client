@@ -57,7 +57,7 @@ const VehiclesList = ({ vehicles, startAdd, startEdit, deleteVehicle, setDefault
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>Meus Veículos</Text>
-          <Text style={styles.subtitle}>Guarde os seus dados para reques mais rápidos.</Text>
+          <Text style={styles.subtitle}>Guarde os seus dados para pedidos mais rápidos.</Text>
         </View>
         <TouchableOpacity style={styles.circleButton} onPress={toggleEditMode} activeOpacity={0.75}>
           <Icon name={state.isEditMode ? 'check' : 'edit'} size={scale(20)} color={colors.primary} />

@@ -302,7 +302,7 @@ const NotificationsScreen = () => {
               onPress={handleCancelSelection}
               activeOpacity={0.7}
             >
-              <Icon name="close" size={scale(22)} color={colors.textSecondary} />
+              <Icon name="close" size={scale(22)} color={colors.textPrimary} />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleSelectAll} activeOpacity={0.7}>
               <Text style={styles.headerText}>
@@ -345,7 +345,7 @@ const NotificationsScreen = () => {
                 <Icon name="delete-sweep" size={scale(22)} color={colors.textSecondary} />
               </TouchableOpacity>
             ) : (
-              <View style={styles.menuButton} pointerEvents="none" />
+              <View style={styles.headerSpacer} />
             )}
           </>
         )}
@@ -415,6 +415,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     ...shadows.sm,
+  },
+  headerSpacer: {
+    width: scale(40),
+    height: scale(40),
   },
   menuButtonDisabled: {
     opacity: 0.5,

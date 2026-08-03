@@ -14,6 +14,7 @@ import { scale } from 'react-native-size-matters';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRegistrationFlow } from '../hooks/useRegistrationFlow';
 import { useAlert } from '../context/AlertContext';
+import { colors } from '../theme';
 
 const PersonalInfoScreen = () => {
   const route = useRoute();
@@ -55,7 +56,7 @@ const PersonalInfoScreen = () => {
             accessibilityLabel="Voltar"
             accessibilityRole="button"
           >
-            <Icon name="arrow-back" size={24} color="#0089FF" />
+            <Icon name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
           <View style={styles.progressSection}>
             <Text style={styles.progressText}>Passo 2 de 2</Text>

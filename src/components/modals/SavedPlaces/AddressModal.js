@@ -80,7 +80,7 @@ const AddressModal = ({
             style={styles.goback}
             onPress={handeBackButtonPress}
           >
-            <Icon name="close" size={scale(25)} />
+            <Icon name="close" size={scale(25)} color={colors.textPrimary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={{ top: scale(15), marginRight: scale(10) }}

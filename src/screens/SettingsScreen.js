@@ -60,19 +60,19 @@ const SettingsScreen = () => {
         >
           <Icon name="menu" size={scale(22)} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>DEFINICOES</Text>
-        <View style={styles.menuButton} pointerEvents="none" />
+        <Text style={styles.headerTitle}>DEFINIÇÕES</Text>
+        <View style={styles.headerSpacer} />
       </Animated.View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Section title="Seguranca" delay={60}>
+        <Section title="Segurança" delay={60}>
           <SettingItem
             icon="lock"
             title="Alterar Palavra-passe"
-            subtitle="Enviar email de redefinicao"
+            subtitle="Enviar email de redefinição"
             onPress={() => operations.handleChangePassword()}
             last
           />
@@ -81,7 +81,7 @@ const SettingsScreen = () => {
         <Section title="Conta" delay={130}>
           <SettingItem
             icon="person"
-            title="Informacoes da Conta"
+            title="Informações da Conta"
             subtitle="Gerir os seus dados pessoais"
             onPress={() => navigation.navigate("Perfil")}
             last
@@ -91,7 +91,7 @@ const SettingsScreen = () => {
         <Section title="Sobre" delay={200}>
           <SettingItem
             icon="info-outline"
-            title="Versao"
+            title="Versão"
             subtitle={`Ureboque v${appVersion}`}
             onPress={() => {}}
           />
@@ -103,12 +103,12 @@ const SettingsScreen = () => {
           />
           <SettingItem
             icon="description"
-            title="Termos de Servico"
+            title="Termos de Serviço"
             onPress={() => navigation.navigate("TermsScreen", { type: "terms" })}
           />
           <SettingItem
             icon="policy"
-            title="Politica de Privacidade"
+            title="Política de Privacidade"
             onPress={() => navigation.navigate("PrivacyPolicyScreen", { type: "privacy" })}
             last
           />
@@ -122,8 +122,8 @@ const SettingsScreen = () => {
             onPress={() =>
               showAlert({
                 type: "warning",
-                title: "Terminar Sessao",
-                message: "Tem a certeza que deseja terminar sessao?",
+                title: "Terminar Sessão",
+                message: "Tem a certeza que deseja terminar sessão?",
                 buttons: [
                   { text: "Cancelar", style: "cancel" },
                   { text: "Terminar", onPress: () => operations.handleLogout() },
@@ -133,7 +133,7 @@ const SettingsScreen = () => {
             activeOpacity={0.8}
           >
             <Icon name="logout" size={scale(20)} color={colors.error} />
-            <Text style={styles.logoutText}>Terminar Sessao</Text>
+            <Text style={styles.logoutText}>Terminar Sessão</Text>
           </TouchableOpacity>
         </Animated.View>
 
@@ -164,6 +164,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     ...shadows.sm,
+  },
+  headerSpacer: {
+    width: scale(40),
+    height: scale(40),
   },
   headerTitle: {
     fontSize: scale(17),

@@ -181,7 +181,7 @@ const HistoryScreen = () => {
           <Icon name="menu" size={scale(22)} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerText}>HISTÓRICO</Text>
-        <View style={styles.backButton} pointerEvents="none" />
+        <View style={styles.headerSpacer} />
       </Animated.View>
 
       {/* Search Bar */}
@@ -315,6 +315,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     ...shadows.sm,
+  },
+  headerSpacer: {
+    width: scale(40),
+    height: scale(40),
   },
   headerText: {
     fontSize: scale(17),

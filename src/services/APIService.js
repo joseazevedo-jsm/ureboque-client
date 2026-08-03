@@ -142,7 +142,13 @@ api.interceptors.response.use(
 
     const status = error.response?.status;
     const errorMessage = error.response?.data?.error;
-    const isInvalidToken = status === 401 || (status === 403 && errorMessage === 'Invalid token');
+    const errorDetail = error.response?.data?.message;
+    const isStaleUser = status === 404 && typeof errorDetail === 'string' && errorDetail.includes('no longer exists');
+    // Only an authenticated request (one that sent a Bearer token) can have an
+    // invalid/expired token. Unauthenticated requests like login/OTP also return
+    // 401 for wrong credentials, which is not a session-invalidation event.
+    const hadAuthToken = !!error.config?.headers?.Authorization;
+    const isInvalidToken = hadAuthToken && (status === 401 || (status === 403 && errorMessage === 'Invalid token') || isStaleUser);
 
     if (isInvalidToken) {
       Logger.info('APIService', 'Invalid token detected, triggering logout', { status, errorMessage });

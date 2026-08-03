@@ -76,7 +76,7 @@ const AccessibilityModal = ({ visible, onClose }) => {
             <Text style={styles.title}>Acessibilidade</Text>
             <Text style={styles.subtitle}>Informe o condutor das suas necessidades.</Text>
           </View>
-          <View style={styles.circleButton} />
+          <View style={styles.headerSpacer} />
         </Animated.View>
 
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -165,6 +165,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.sm,
+  },
+  headerSpacer: {
+    width: scale(40),
+    height: scale(40),
   },
   headerCenter: { flex: 1, alignItems: 'center', paddingHorizontal: spacing.sm },
   title: { fontSize: scale(18), fontWeight: '800', color: colors.textPrimary },

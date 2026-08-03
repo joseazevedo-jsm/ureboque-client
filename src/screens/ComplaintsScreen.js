@@ -29,12 +29,12 @@ const getDialPhone = () => {
 };
 
 const CONTACT_MESSAGE = [
-  "Ola equipa Ureboque,",
+  "Olá equipa Ureboque,",
   "",
-  "Pretendo apresentar uma reclamacao na app Cliente.",
-  "Numero da viagem:",
+  "Pretendo apresentar uma reclamação na app Cliente.",
+  "Número da viagem:",
   "Data:",
-  "Descricao:",
+  "Descrição:",
 ].join("\n");
 
 const ContactOption = ({ icon, title, subtitle, label, onPress, disabled }) => (
@@ -61,7 +61,7 @@ const ComplaintsScreen = () => {
   const showMissingPhone = () => {
     showAlert({
       type: "error",
-      title: "Contacto indisponivel",
+      title: "Contacto indisponível",
       message: "Configure EXPO_PUBLIC_SUPPORT_PHONE ou EXPO_PUBLIC_SUPPORT_WHATSAPP_PHONE no ambiente da app.",
       buttons: [{ text: "OK" }],
     });
@@ -73,7 +73,7 @@ const ComplaintsScreen = () => {
     } catch (error) {
       showAlert({
         type: "error",
-        title: "Nao foi possivel abrir",
+        title: "Não foi possível abrir",
         message: errorMessage,
         buttons: [{ text: "OK" }],
       });
@@ -94,16 +94,16 @@ const ComplaintsScreen = () => {
     try {
       await Linking.openURL(appUrl);
     } catch (error) {
-      openLink(webUrl, "Nao foi possivel abrir o WhatsApp.");
+      openLink(webUrl, "Não foi possível abrir o WhatsApp.");
     }
   };
 
   const handleEmail = () => {
-    const subject = encodeURIComponent("Reclamacao Ureboque - Cliente");
+    const subject = encodeURIComponent("Reclamação Ureboque - Cliente");
     const body = encodeURIComponent(CONTACT_MESSAGE);
     openLink(
       `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`,
-      "Nao foi possivel abrir a aplicacao de email."
+      "Não foi possível abrir a aplicação de email."
     );
   };
 
@@ -114,7 +114,7 @@ const ComplaintsScreen = () => {
       return;
     }
 
-    openLink(`tel:${phone}`, "Nao foi possivel iniciar a chamada.");
+    openLink(`tel:${phone}`, "Não foi possível iniciar a chamada.");
   };
 
   const hasPhone = isConfiguredPhone(SUPPORT_PHONE || SUPPORT_WHATSAPP_PHONE);
@@ -132,8 +132,8 @@ const ComplaintsScreen = () => {
         >
           <Icon name="menu" size={scale(22)} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>RECLAMACOES</Text>
-        <View style={styles.menuButton} pointerEvents="none" />
+        <Text style={styles.headerTitle}>RECLAMAÇÕES</Text>
+        <View style={styles.headerSpacer} />
       </Animated.View>
 
       <ScrollView
@@ -162,7 +162,7 @@ const ComplaintsScreen = () => {
             <ContactOption
               icon="chat"
               title="WhatsApp"
-              subtitle={hasPhone ? "Mensagem pre-preenchida" : "Numero por configurar"}
+              subtitle={hasPhone ? "Mensagem pré-preenchida" : "Número por configurar"}
               label="Abrir"
               onPress={handleWhatsApp}
               disabled={!isConfiguredPhone(SUPPORT_WHATSAPP_PHONE)}
@@ -179,7 +179,7 @@ const ComplaintsScreen = () => {
             <ContactOption
               icon="phone"
               title="Chamada"
-              subtitle={hasPhone ? getDialPhone() : "Numero por configurar"}
+              subtitle={hasPhone ? getDialPhone() : "Número por configurar"}
               label="Ligar"
               onPress={handleCall}
               disabled={!hasPhone}
@@ -193,7 +193,7 @@ const ComplaintsScreen = () => {
         >
           <Icon name="report-problem" size={scale(20)} color={colors.warning} />
           <Text style={styles.noteText}>
-            Inclua o numero da viagem, data e uma descricao curta para acelerar a analise.
+            Inclua o número da viagem, data e uma descrição curta para acelerar a análise.
           </Text>
         </Animated.View>
       </ScrollView>
@@ -222,6 +222,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     ...shadows.sm,
+  },
+  headerSpacer: {
+    width: scale(40),
+    height: scale(40),
   },
   headerTitle: {
     fontSize: scale(17),

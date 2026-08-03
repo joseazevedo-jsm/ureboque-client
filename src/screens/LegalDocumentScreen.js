@@ -9,69 +9,69 @@ import { colors, spacing, borderRadius, shadows, typography } from "../theme";
 const PRIVACY_SECTIONS = [
   {
     title: "Dados que recolhemos",
-    body: "Podemos recolher dados de conta, contacto, veiculo, localizacao durante pedidos de reboque, historico de servicos, mensagens de suporte e dados tecnicos de funcionamento da app.",
+    body: "Podemos recolher dados de conta, contacto, veículo, localização durante pedidos de reboque, histórico de serviços, mensagens de suporte e dados técnicos de funcionamento da app.",
   },
   {
     title: "Como usamos os dados",
-    body: "Usamos estes dados para criar e gerir pedidos, encontrar motoristas, calcular rotas, comunicar consigo, prestar suporte, prevenir fraude e melhorar a estabilidade do servico.",
+    body: "Usamos estes dados para criar e gerir pedidos, encontrar motoristas, calcular rotas, comunicar consigo, prestar suporte, prevenir fraude e melhorar a estabilidade do serviço.",
   },
   {
-    title: "Localizacao",
-    body: "A localizacao e usada para mostrar o mapa, indicar o ponto de recolha, acompanhar o servico e orientar cliente e motorista. A app deve pedir permissao antes de usar localizacao.",
+    title: "Localização",
+    body: "A localização é usada para mostrar o mapa, indicar o ponto de recolha, acompanhar o serviço e orientar cliente e motorista. A app deve pedir permissão antes de usar localização.",
   },
   {
-    title: "Logs e diagnostico",
-    body: "A app pode enviar logs tecnicos sanitizados para o backend da Ureboque. Estes logs nao devem conter palavra-passe, OTP, tokens, telefone, email, chat, pagamento ou localizacao exata.",
+    title: "Logs e diagnóstico",
+    body: "A app pode enviar logs técnicos sanitizados para o backend da Ureboque. Estes logs não devem conter palavra-passe, OTP, tokens, telefone, email, chat, pagamento ou localização exata.",
   },
   {
     title: "Sentry",
-    body: "O Sentry e usado apenas para crashes e erros tecnicos. O envio e sanitizado para evitar dados sensiveis como email, telefone, localizacao exata, mensagens, OTP ou tokens.",
+    body: "O Sentry é usado apenas para crashes e erros técnicos. O envio é sanitizado para evitar dados sensíveis como email, telefone, localização exata, mensagens, OTP ou tokens.",
   },
   {
     title: "Partilha de dados",
-    body: "Podemos partilhar dados necessarios com fornecedores operacionais, como mapas, envio de email, WhatsApp/OTP, infraestrutura cloud e ferramentas de diagnostico tecnico.",
+    body: "Podemos partilhar dados necessários com fornecedores operacionais, como mapas, envio de email, WhatsApp/OTP, infraestrutura cloud e ferramentas de diagnóstico técnico.",
   },
   {
     title: "Direitos do utilizador",
-    body: "Pode contactar o suporte para pedir acesso, correcao ou eliminacao dos seus dados, conforme aplicavel pela lei local.",
+    body: "Pode contactar o suporte para pedir acesso, correção ou eliminação dos seus dados, conforme aplicável pela lei local.",
   },
 ];
 
 const TERMS_SECTIONS = [
   {
-    title: "Uso do servico",
-    body: "A Ureboque liga clientes que precisam de assistencia/reboque a motoristas ou operadores disponiveis. O utilizador deve fornecer informacao correta e usar a app de forma responsavel.",
+    title: "Uso do serviço",
+    body: "A Ureboque liga clientes que precisam de assistência/reboque a motoristas ou operadores disponíveis. O utilizador deve fornecer informação correta e usar a app de forma responsável.",
   },
   {
     title: "Pedidos e disponibilidade",
-    body: "A disponibilidade de motoristas, tempos estimados, rotas e precos podem variar conforme localizacao, transito, tipo de servico e condicoes operacionais.",
+    body: "A disponibilidade de motoristas, tempos estimados, rotas e preços podem variar conforme localização, trânsito, tipo de serviço e condições operacionais.",
   },
   {
-    title: "Conta e seguranca",
-    body: "O utilizador e responsavel por manter a sua conta segura. Codigos OTP, tokens e palavras-passe nao devem ser partilhados.",
+    title: "Conta e segurança",
+    body: "O utilizador é responsável por manter a sua conta segura. Códigos OTP, tokens e palavras-passe não devem ser partilhados.",
   },
   {
-    title: "Pagamentos e reclamacoes",
-    body: "Valores, metodos de pagamento, recibos e reclamacoes devem seguir as regras operacionais comunicadas pela Ureboque. Reclame pelo ecrã de suporte quando necessario.",
+    title: "Pagamentos e reclamações",
+    body: "Valores, métodos de pagamento, recibos e reclamações devem seguir as regras operacionais comunicadas pela Ureboque. Reclame pelo ecrã de suporte quando necessário.",
   },
   {
     title: "Conduta",
-    body: "Clientes e motoristas devem agir com respeito, seguranca e boa-fe. Abuso, fraude ou comportamento perigoso pode levar a suspensao da conta.",
+    body: "Clientes e motoristas devem agir com respeito, segurança e boa-fé. Abuso, fraude ou comportamento perigoso pode levar a suspensão da conta.",
   },
   {
-    title: "Limitacao tecnica",
-    body: "A app depende de internet, GPS, mapas, notificacoes e servicos de terceiros. Falhas externas podem afetar a experiencia.",
+    title: "Limitação técnica",
+    body: "A app depende de internet, GPS, mapas, notificações e serviços de terceiros. Falhas externas podem afetar a experiência.",
   },
 ];
 
 const DOCUMENTS = {
   privacy: {
-    title: "Politica de Privacidade",
+    title: "Política de Privacidade",
     updatedAt: "Atualizado em julho de 2026",
     sections: PRIVACY_SECTIONS,
   },
   terms: {
-    title: "Termos de Servico",
+    title: "Termos de Serviço",
     updatedAt: "Atualizado em julho de 2026",
     sections: TERMS_SECTIONS,
   },
@@ -97,7 +97,7 @@ const LegalDocumentScreen = () => {
           <Icon name="arrow-back" size={scale(22)} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{document.title}</Text>
-        <View style={styles.menuButton} pointerEvents="none" />
+        <View style={styles.headerSpacer} />
       </Animated.View>
 
       <ScrollView
@@ -117,7 +117,7 @@ const LegalDocumentScreen = () => {
           ))}
         </View>
         <Text style={styles.footerNote}>
-          Para duvidas ou pedidos relacionados com estes documentos, use o ecrã Contacte-nos/Reclamacoes.
+          Para dúvidas ou pedidos relacionados com estes documentos, use o ecrã Contacte-nos/Reclamações.
         </Text>
       </ScrollView>
     </View>
@@ -145,6 +145,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     ...shadows.sm,
+  },
+  headerSpacer: {
+    width: scale(40),
+    height: scale(40),
   },
   headerTitle: {
     flex: 1,

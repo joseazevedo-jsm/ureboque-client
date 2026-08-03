@@ -70,7 +70,7 @@ const InviteScreen = () => {
           <Icon name="menu" size={scale(22)} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>CONVIDAR AMIGOS</Text>
-        <View style={styles.menuButton} pointerEvents="none" />
+        <View style={styles.headerSpacer} />
       </Animated.View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -204,6 +204,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     ...shadows.sm,
+  },
+  headerSpacer: {
+    width: scale(40),
+    height: scale(40),
   },
   headerTitle: {
     fontSize: scale(17),

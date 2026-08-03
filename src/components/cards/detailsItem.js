@@ -50,7 +50,7 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBackPress} style={styles.closeButton}>
-          <Icon name="close" size={scale(20)} color={colors.primary} />
+          <Icon name="close" size={scale(20)} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detalhes da Viagem</Text>
         <View style={styles.headerSpacer} />

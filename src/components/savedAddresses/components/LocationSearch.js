@@ -140,7 +140,7 @@ const LocationSearch = ({
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.closeButton} onPress={() => selectSearchResult({ address: '', coordinates: null, name: '' })} activeOpacity={0.75}>
-          <Icon name="arrow-back" size={scale(25)} />
+          <Icon name="arrow-back" size={scale(25)} color={colors.primary} />
         </TouchableOpacity>
       </View>
 

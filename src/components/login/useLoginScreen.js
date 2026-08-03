@@ -70,7 +70,8 @@ export const useLoginScreen = () => {
       setCodeOTP({ phone: fullPhoneNumber, method: response.data?.method });
       setModalOtpVisible(true);
     } catch (error) {
-      const devOTP = __DEV__ ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
+      const devOTPAllowed = __DEV__ || process.env.EXPO_PUBLIC_ALLOW_DEV_OTP === 'true';
+      const devOTP = devOTPAllowed ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
       if (devOTP) {
         logger.warn('OTP backend unavailable; using development OTP fallback', { errorMessage: error.message });
         setCodeOTP({ phone: fullPhoneNumber, development: true });
@@ -78,11 +79,25 @@ export const useLoginScreen = () => {
         return;
       }
 
+      try {
+        const checkUserResponse = await api.get(`/users/phone/${fullPhoneNumber}`);
+        if (checkUserResponse.data) {
+          logger.warn('OTP backend unavailable; existing user continuing with password login', { errorMessage: error.message });
+          navigation.navigate("Login", {
+            passwordState: 1,
+            phone: fullPhoneNumber,
+          });
+          return;
+        }
+      } catch (checkUserError) {
+        logger.warn('Unable to confirm existing user after OTP failure', { errorMessage: checkUserError.message });
+      }
+
       logger.error('Error sending OTP', error);
       showAlert({
         type: 'error',
-        title: 'Erro ao enviar codigo',
-        message: 'Nao foi possivel enviar o codigo SMS. Verifique o numero e tente novamente.',
+        title: 'Erro ao enviar código',
+        message: 'Não foi possível enviar o código SMS. Verifique o número e tente novamente.',
         buttons: [{ text: 'OK' }],
       });
     }
@@ -116,7 +131,7 @@ export const useLoginScreen = () => {
       if (data.user?.role === 'driver') {
         logger.warn('Driver attempted to login to client app', { userId: data.user.id, role: data.user.role });
         setLoginFailed(true);
-        setWarning("Este tipo de conta nao pode acessar a aplicacao cliente. Use a aplicacao do motorista.");
+        setWarning("Este tipo de conta não pode acessar a aplicação cliente. Use a aplicação do motorista.");
         return;
       }
 
@@ -128,7 +143,7 @@ export const useLoginScreen = () => {
         } catch (loginError) {
           logger.error('Error during login process (user data fetch failed)', loginError);
           setLoginFailed(true);
-          setWarning("Erro ao carregar dados do usuario. Tente novamente.");
+          setWarning("Erro ao carregar dados do usuário. Tente novamente.");
         }
       } else {
         throw new Error("Invalid response data");
@@ -142,7 +157,7 @@ export const useLoginScreen = () => {
       } else if (error.response?.status === 500) {
         setWarning("Erro no servidor. Tente novamente mais tarde.");
       } else if (error.response?.status === 404) {
-        setWarning("Numero de telefone nao encontrado.");
+        setWarning("Número de telefone não encontrado.");
       } else {
         setWarning("Falha no login. Verifique suas credenciais e tente novamente.");
       }
@@ -154,11 +169,12 @@ export const useLoginScreen = () => {
   const verifyOTPCode = async () => {
     const fullPhoneNumber = getFullPhoneNumber();
     const enteredOTP = otpForm.values.otpCode;
-    const devOTP = __DEV__ ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
+    const devOTPAllowed = __DEV__ || process.env.EXPO_PUBLIC_ALLOW_DEV_OTP === 'true';
+    const devOTP = devOTPAllowed ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
 
     if (codeOTP?.development) {
       if (!devOTP || enteredOTP !== devOTP) {
-        showAlert({ type: 'error', title: 'Erro', message: 'Codigo OTP invalido. Tente novamente.' });
+        showAlert({ type: 'error', title: 'Erro', message: 'Código OTP inválido. Tente novamente.' });
         return;
       }
     } else {
@@ -169,7 +185,7 @@ export const useLoginScreen = () => {
         });
       } catch (error) {
         logger.error('OTP verification failed', error);
-        showAlert({ type: 'error', title: 'Erro', message: 'Codigo OTP invalido. Tente novamente.' });
+        showAlert({ type: 'error', title: 'Erro', message: 'Código OTP inválido. Tente novamente.' });
         return;
       }
     }
@@ -202,9 +218,9 @@ export const useLoginScreen = () => {
         const isNetworkError = !error.response;
         showAlert({
           type: 'error',
-          title: 'Erro de ligacao',
+          title: 'Erro de ligação',
           message: isNetworkError
-            ? 'Nao foi possivel ligar ao servidor. Verifique a sua internet e tente novamente.'
+            ? 'Não foi possível ligar ao servidor. Verifique a sua internet e tente novamente.'
             : 'Ocorreu um erro inesperado. Tente novamente.',
           buttons: [{ text: 'OK' }],
         });
@@ -239,7 +255,7 @@ export const useLoginScreen = () => {
 
   const onVerifyOtp = async () => {
     if (phoneForm.values.phoneNumber.length < 9) {
-      setWarning("O numero de telefone deve ter pelo menos 9 caracteres");
+      setWarning("O número de telefone deve ter pelo menos 9 caracteres");
     } else {
       setWarning("");
       const isValid = phoneForm.validate();

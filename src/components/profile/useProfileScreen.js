@@ -93,7 +93,8 @@ const useProfileScreen = (showAlert) => {
       setPhoneChangeOTP({ phone: newPhoneNumber, method: response.data?.method });
       setShowOTPModal(true);
     } catch (error) {
-      const devOTP = __DEV__ ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
+      const devOTPAllowed = __DEV__ || process.env.EXPO_PUBLIC_ALLOW_DEV_OTP === 'true';
+      const devOTP = devOTPAllowed ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
       if (devOTP) {
         logger.warn('OTP backend unavailable; using development OTP fallback for phone change', {
           errorMessage: error.message,
@@ -192,7 +193,8 @@ const useProfileScreen = (showAlert) => {
   };
 
   const verifyPhoneChangeOTP = async (otp) => {
-    const devOTP = __DEV__ ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
+    const devOTPAllowed = __DEV__ || process.env.EXPO_PUBLIC_ALLOW_DEV_OTP === 'true';
+    const devOTP = devOTPAllowed ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
 
     if (phoneChangeOTP?.development) {
       if (!devOTP || otp !== devOTP) {
@@ -209,7 +211,7 @@ const useProfileScreen = (showAlert) => {
 
   const handleOTPVerification = async (otp) => {
     if (!otp || otp.length !== 4) {
-      showAlert?.({ type: 'error', title: 'Erro', message: 'Por favor, digite o codigo de 4 digitos', buttons: [{ text: 'OK' }] });
+      showAlert?.({ type: 'error', title: 'Erro', message: 'Por favor, digite o código de 4 dígitos', buttons: [{ text: 'OK' }] });
       return;
     }
 
@@ -224,7 +226,7 @@ const useProfileScreen = (showAlert) => {
       showAlert?.({
         type: 'error',
         title: 'Erro',
-        message: 'Codigo de verificacao invalido. Tente novamente.',
+        message: 'Código de verificação inválido. Tente novamente.',
         buttons: [{ text: 'OK' }]
       });
       return;

@@ -11,6 +11,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { scale } from 'react-native-size-matters';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useLogger } from '../hooks/useLogger';
+import { colors } from '../theme';
 
 const RegistrationWelcomeScreen = () => {
   const logger = useLogger('RegistrationWelcomeScreen', {
@@ -43,7 +44,7 @@ const RegistrationWelcomeScreen = () => {
           accessibilityLabel="Voltar"
           accessibilityRole="button"
         >
-          <Icon name="arrow-back" size={24} color="#0089FF" />
+          <Icon name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
 

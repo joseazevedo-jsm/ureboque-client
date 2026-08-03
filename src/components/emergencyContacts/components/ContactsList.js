@@ -69,8 +69,8 @@ const ContactsList = ({ contacts, startAdd, startEdit, deleteContact, state, tog
             <Animated.View entering={FadeInDown.delay(300).springify()}>
               <ScalePressable onPress={startAdd}>
                 <View style={styles.addButton}>
-                  <Icon name="add-circle-outline" size={scale(22)} color={colors.error} />
-                  <Text style={[styles.addButtonText, { color: colors.error }]}>Adicionar Contacto</Text>
+                  <Icon name="add-circle-outline" size={scale(22)} color={colors.primary} />
+                  <Text style={[styles.addButtonText, { color: colors.primary }]}>Adicionar Contacto</Text>
                 </View>
               </ScalePressable>
             </Animated.View>
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.errorLight,
+    backgroundColor: colors.primaryLight,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginTop: spacing.sm,

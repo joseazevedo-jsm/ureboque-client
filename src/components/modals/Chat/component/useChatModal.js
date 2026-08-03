@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { UserContext } from "../../../../context/UserContext";
 import { useLogger } from "../../../../hooks/useLogger";
 import api from "../../../../services/APIService";
@@ -8,6 +8,35 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+
+  const normalizeMessages = useCallback((payload) => (
+    (Array.isArray(payload) ? payload : payload?.messages || []).filter(msg => msg?.message)
+  ), []);
+
+  const handleIncomingMessage = useCallback((incomingMessages) => {
+    const nextMessages = normalizeMessages(incomingMessages);
+    logger.info('Incoming chat messages received', { messageCount: nextMessages?.length });
+    setMessages(nextMessages);
+  }, [logger, normalizeMessages]);
+
+  // Function to fetch previous messages from the backend
+  const fetchMessages = useCallback(async (idService) => {
+    try {
+      logger.info('Fetching messages for service', { idService });
+      const response = await api.get(`/chats/${idService}`);
+      logger.info('Previous messages fetched', {
+        idService,
+        messageCount: response.data?.messages?.length,
+        firstMessageId: response.data?.messages?.[0]?._id
+      });
+      const data = await response.data;
+      if(data) {
+        setMessages(normalizeMessages(data.messages));
+      }
+    } catch (error) {
+      logger.error('Error fetching chat messages', { idService, error });
+    }
+  }, [logger, normalizeMessages]);
 
   useEffect(() => {
     // Clear messages when service ID changes (new service)
@@ -21,39 +50,19 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
 
     // Listen for incoming messages via WebSocket and update the chat screen
     if (socket) {
-      socket.on("message", (messages) => {
+      const messageHandler = (messages, meta = {}) => {
+        if (meta.chatRoomId && meta.chatRoomId !== idService) return;
         handleIncomingMessage(messages);
-      });
+      };
+      socket.on("message", messageHandler);
+      return () => {
+        socket.off("message", messageHandler);
+      };
     }
-    return () => {
-      // Clean up the socket event listener when the component is unmounted
-      if (socket) {
-        socket.off("message", handleIncomingMessage);
-      }
-    };
-  }, [socket, idService]);
-
-  // Function to fetch previous messages from the backend
-  const fetchMessages = async (idService) => {
-    try {
-      logger.info('Fetching messages for service', { idService });
-      const response = await api.get(`/chats/${idService}`);
-      logger.info('Previous messages fetched', {
-        idService,
-        messageCount: response.data.messages?.length,
-        firstMessageId: response.data.messages?.[0]?._id
-      });
-      const data = await response.data;
-      if(data) {
-        setMessages(data.messages);
-      }
-    } catch (error) {
-      logger.error('Error fetching chat messages', { idService, error });
-    }
-  };
+  }, [socket, idService, fetchMessages, handleIncomingMessage, logger]);
 
   // Function to send a new message
-  const sendMessage = () => {
+  const sendMessage = useCallback(() => {
     if (!socket) {
       logger.warn('Socket not connected, cannot send message');
       return;
@@ -73,15 +82,7 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
     ]);
 
     setNewMessage("");
-  };
-
-  // Function to handle incoming messages via WebSocket
-  const handleIncomingMessage = (incoming_messages) => {
-    logger.info('Incoming chat messages received', { messageCount: incoming_messages?.length });
-    
-    // When chat is open, just update messages - unread count is handled by global listener when chat is closed
-    setMessages(incoming_messages);
-  };
+  }, [idService, logger, newMessage, socket, user?.id]);
 
   return {
     models: {

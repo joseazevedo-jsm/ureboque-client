@@ -413,7 +413,7 @@ const MapScreen = memo(() => {
       {models.isRouteVisible && !models.service ? (
         <TouchableOpacity style={styles.details} onPress={operations.handleBackButtonPress} activeOpacity={0.8}>
           <BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
-          <Icon name="arrow-back" size={scale(24)} color={colors.textPrimary} />
+          <Icon name="arrow-back" size={scale(24)} color={colors.primary} />
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
@@ -426,7 +426,7 @@ const MapScreen = memo(() => {
             tint="systemMaterialLight"
             style={StyleSheet.absoluteFill}
           />
-          <Icon name="menu" size={scale(24)} color={colors.textPrimary} />
+          <Icon name="menu" size={scale(24)} color={colors.primary} />
         </TouchableOpacity>
       )}
 
@@ -435,7 +435,7 @@ const MapScreen = memo(() => {
         <View style={styles.bellWrapper}>
           <TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('Notificacoes')} activeOpacity={0.8}>
             <BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
-            <Icon name="notifications-none" size={scale(24)} color={colors.textPrimary} />
+            <Icon name="notifications-none" size={scale(24)} color={colors.primary} />
           </TouchableOpacity>
           {models.unreadNotificationsCount > 0 && (
             <View style={styles.bellBadge}>
@@ -450,7 +450,7 @@ const MapScreen = memo(() => {
       {models.detailsInfo && (
         <TouchableOpacity style={styles.backDetails} onPress={operations.handleBackDetailsButtonPress} activeOpacity={0.8}>
           <BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
-          <Icon name="arrow-back" size={scale(24)} color={colors.textPrimary} />
+          <Icon name="arrow-back" size={scale(24)} color={colors.primary} />
         </TouchableOpacity>
       )}
 

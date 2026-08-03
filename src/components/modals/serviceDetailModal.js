@@ -46,7 +46,7 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Detalhes do Serviço</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Icon name="close" size={scale(24)} color={colors.textSecondary} />
+              <Icon name="close" size={scale(24)} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 

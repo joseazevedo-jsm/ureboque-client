@@ -65,7 +65,7 @@ export const spacing = {
   // Layout
   safeTop: Platform.select({ ios: scale(44), android: scale(24) }),
   safeBottom: Platform.select({ ios: scale(34), android: scale(16) }),
-  modalSafeTop: Platform.select({ ios: scale(50), android: scale(20) }),
+  modalSafeTop: Platform.select({ ios: scale(50), android: scale(60) }),
   headerHeight: scale(60),
 };
 
