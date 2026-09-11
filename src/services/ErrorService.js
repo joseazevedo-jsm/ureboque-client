@@ -96,22 +96,22 @@ class ErrorService {
       // Server responded with error status
       switch (error.response.status) {
         case 401:
-          return 'Session expired. Please log in again.';
+          return 'A sua sessão expirou. Inicie sessão novamente.';
         case 403:
-          return 'You do not have permission to perform this action.';
+          return 'Não tem permissão para realizar esta ação.';
         case 404:
-          return 'The requested resource was not found.';
+          return 'O recurso solicitado não foi encontrado.';
         case 500:
-          return 'Server error. Please try again later.';
+          return 'Erro no servidor. Tente novamente mais tarde.';
         default:
-          return error.response.data?.message || 'An unexpected error occurred.';
+          return error.response.data?.message || 'Ocorreu um erro inesperado.';
       }
     } else if (error.request) {
       // Network error
-      return 'Network error. Please check your connection.';
+      return 'Erro de ligação. Verifique a sua internet.';
     } else {
       // Other error
-      return error.message || 'An unexpected error occurred.';
+      return error.message || 'Ocorreu um erro inesperado.';
     }
   }
 

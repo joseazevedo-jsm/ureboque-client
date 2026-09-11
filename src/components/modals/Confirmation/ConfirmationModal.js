@@ -8,7 +8,8 @@ import {
   View,
 } from "react-native";
 import { scale } from "react-native-size-matters";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import Animated, { FadeInUp } from "react-native-reanimated";
 
 import { useConfirmationModal } from "./components/useConfirmationModal";

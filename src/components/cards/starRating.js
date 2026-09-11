@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
 import { colors } from "../../theme";
 

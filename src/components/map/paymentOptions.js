@@ -7,9 +7,15 @@ import { ScalePressable } from "../common/ScalePressable";
 import { colors, spacing, borderRadius, shadows, typography } from "../../theme";
 
 const PaymentOptions = ({ handleConfirmPaymentPress, models }) => {
+  const isSubmitting = !!models.isSubmittingBooking;
+
   const renderPaymentOption = (iconName, label, paymentType) => (
     <View key={paymentType} style={styles.paymentOptionContainer}>
-      <ScalePressable onPress={handleConfirmPaymentPress(paymentType)}>
+      <ScalePressable
+        onPress={handleConfirmPaymentPress(paymentType)}
+        disabled={isSubmitting}
+        style={isSubmitting ? styles.paymentOptionDisabled : null}
+      >
         <LinearGradient
           colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
           style={styles.paymentOption}
@@ -64,6 +70,9 @@ const styles = StyleSheet.create({
   paymentOptionContainer: {
     marginHorizontal: spacing.xl,
     marginBottom: spacing.sm,
+  },
+  paymentOptionDisabled: {
+    opacity: 0.5,
   },
   paymentOption: {
     flexDirection: "row",

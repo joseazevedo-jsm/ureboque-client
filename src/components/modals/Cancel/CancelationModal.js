@@ -11,7 +11,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
 import { colors, spacing, borderRadius, shadows, typography } from "../../../theme";
 
@@ -138,7 +139,7 @@ const CancelationModal = ({
                 <FlatList
                   data={questions}
                   renderItem={renderQuestionItem}
-                  keyExtractor={(item) => item.key.toString()}
+                  keyExtractor={(item, index) => String(item?.key ?? `cancel-question-${index}`)}
                   contentContainerStyle={styles.questionsList}
                   ItemSeparatorComponent={() => <View style={styles.separator} />}
                   showsVerticalScrollIndicator={false}

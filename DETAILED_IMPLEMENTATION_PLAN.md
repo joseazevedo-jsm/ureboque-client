@@ -43,7 +43,7 @@ All 10 critical deployment blockers have been successfully resolved:
 // FILE: app.json (line 24)
 // CURRENT (INSECURE):
 "googleMaps": {
-  "apiKey": "AIzaSyBqPFzMJ7TgohKLMZ8Q0Z1iRVmk63OWWpk"
+  "apiKey": "process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY"
 }
 
 // FIX: Move to environment variables with restrictions

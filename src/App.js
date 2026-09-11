@@ -10,12 +10,14 @@ import { AppLoadingProvider, useAppLoading } from "./context/AppLoadingContext";
 import AppNav from "./navigation/AppNav";
 import ErrorBoundary from './components/common/ErrorBoundary';
 import SplashScreenComponent from './components/common/SplashScreen';
-import Logger from './utils/Logger';
-import { LocationPermissionsService } from './services/LocationPermissionsService';
+import Logger, { sanitizeForRemote } from './utils/Logger';
+import { LocationAccessProvider } from './context/LocationAccessContext';
 import { AlertProvider } from './context/AlertContext';
 import { TripStateProvider } from './context/TripStateContext';
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { colors, spacing, borderRadius } from './theme';
 
 // Keep the native splash screen visible while we fetch resources
@@ -35,21 +37,48 @@ hideNativeSplash();
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || undefined,
   environment: __DEV__ ? "development" : "production",
-  sendDefaultPii: true,
+  sendDefaultPii: false,
   tracesSampleRate: __DEV__ ? 1.0 : 0.2,
   profilesSampleRate: __DEV__ ? 1.0 : 0.2,
   debug: __DEV__,
   enableUserInteractionTracing: false, // Disable to prevent native frames error
   enableNative: false, // Disable native integration to prevent errors
+  // Defense in depth: every call site is expected to sanitize what it logs
+  // (see Logger.js), but this scrubs the actual outgoing Sentry event too, in
+  // case something slips through — request headers/cookies, user, extra,
+  // contexts, and breadcrumb data.
   beforeSend(event) {
-    // Filter out certain errors in development
     if (__DEV__ && event.exception) {
       Logger.debug('App', 'Sentry Event Captured', {
         eventId: event.event_id,
         message: event.exception?.values?.[0]?.value
       });
     }
+
+    if (event.request) {
+      delete event.request.cookies;
+      if (event.request.headers) {
+        delete event.request.headers.Authorization;
+        delete event.request.headers.authorization;
+        delete event.request.headers.Cookie;
+      }
+    }
+    if (event.user) event.user = sanitizeForRemote(event.user);
+    if (event.extra) event.extra = sanitizeForRemote(event.extra);
+    if (event.contexts) event.contexts = sanitizeForRemote(event.contexts);
+    if (Array.isArray(event.breadcrumbs)) {
+      event.breadcrumbs = event.breadcrumbs.map((crumb) => (
+        crumb.data ? { ...crumb, data: sanitizeForRemote(crumb.data) } : crumb
+      ));
+    }
+
     return event;
+  },
+  beforeBreadcrumb(breadcrumb) {
+    if (breadcrumb.data) {
+      breadcrumb.data = sanitizeForRemote(breadcrumb.data);
+    }
+    return breadcrumb;
   },
 });
 
@@ -145,12 +174,15 @@ function AppContent() {
   return (
     <ErrorBoundary>
       <AlertProvider>
-        <LocationPermissionsService />
-        <TripStateProvider>
-          <UserLocationStateContextProvider>
-            <AppNav />
-          </UserLocationStateContextProvider>
-        </TripStateProvider>
+        <LocationAccessProvider>
+          <TripStateProvider>
+            <UserLocationStateContextProvider>
+              <BottomSheetModalProvider>
+                <AppNav />
+              </BottomSheetModalProvider>
+            </UserLocationStateContextProvider>
+          </TripStateProvider>
+        </LocationAccessProvider>
       </AlertProvider>
     </ErrorBoundary>
   );
@@ -178,7 +210,11 @@ function AppWithContexts() {
 }
 
 function App() {
-  return <AppWithContexts />;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppWithContexts />
+    </GestureHandlerRootView>
+  );
 }
 
 export default App;

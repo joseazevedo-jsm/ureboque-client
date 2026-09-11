@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import AlertModal from '../components/modals/Alert/AlertModal';
 import ErrorService from '../services/ErrorService';
 
@@ -20,6 +20,7 @@ export const AlertProvider = ({ children }) => {
     message: '',
     buttons: [{ text: 'OK' }],
   });
+  const dismissTimeoutRef = useRef(null);
 
   const showAlert = useCallback(({ type = 'info', title = '', message = '', buttons } = {}) => {
     setAlertState({
@@ -38,9 +39,17 @@ export const AlertProvider = ({ children }) => {
   const handleDismiss = useCallback((onPress) => {
     hideAlert();
     if (onPress) {
-      setTimeout(onPress, 200);
+      if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current);
+      dismissTimeoutRef.current = setTimeout(() => {
+        dismissTimeoutRef.current = null;
+        onPress();
+      }, 200);
     }
   }, [hideAlert]);
+
+  useEffect(() => () => {
+    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current);
+  }, []);
 
   // Register static handler on ErrorService so non-React code can trigger alerts
   useEffect(() => {
@@ -48,8 +57,10 @@ export const AlertProvider = ({ children }) => {
     return () => ErrorService.setAlertHandler(null);
   }, [showAlert]);
 
+  const value = useMemo(() => ({ showAlert, hideAlert }), [showAlert, hideAlert]);
+
   return (
-    <AlertContext.Provider value={{ showAlert, hideAlert }}>
+    <AlertContext.Provider value={value}>
       {children}
       <AlertModal
         visible={alertState.visible}

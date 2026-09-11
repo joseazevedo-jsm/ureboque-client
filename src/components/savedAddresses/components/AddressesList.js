@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+const Icon = MaterialIcons;
 import PlaceSavedItem from '../../cards/placeSavedItem';
 import { ScalePressable } from '../../common/ScalePressable';
 import { colors, shadows, spacing, borderRadius } from '../../../theme';
@@ -19,9 +20,10 @@ const AddressesList = ({
   const [editMode, setEditMode] = React.useState(false);
 
   const displayAddresses = React.useMemo(() => {
-    const homeAddr = addresses.find(a => a.place.name === 'Casa');
-    const workAddr = addresses.find(a => a.place.name === 'Trabalho');
-    const others = addresses.filter(
+    const validAddresses = (addresses || []).filter((address) => address?.place);
+    const homeAddr = validAddresses.find(a => a.place.name === 'Casa');
+    const workAddr = validAddresses.find(a => a.place.name === 'Trabalho');
+    const others = validAddresses.filter(
       a => a.place.name !== 'Casa' && a.place.name !== 'Trabalho'
     );
 
@@ -102,7 +104,7 @@ const AddressesList = ({
         <FlatList
           data={displayAddresses}
           renderItem={renderItem}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item, index) => String(item._id || `saved-address-${index}`)}
           showsVerticalScrollIndicator={false}
           ListFooterComponent={
             <Animated.View entering={FadeInDown.delay(300).springify()}>

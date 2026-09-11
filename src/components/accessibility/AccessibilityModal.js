@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+const Icon = MaterialIcons;
 import * as Haptics from 'expo-haptics';
 import { ScalePressable } from '../common/ScalePressable';
 import { useAccessibility } from './hooks/useAccessibility';

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, StyleSheet, Text, TouchableOpacity, FlatList } from "react-native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
 import CardSpots from "../cards/cardSpots";
 import { colors, spacing, borderRadius, shadows } from "../../theme";
@@ -9,15 +10,17 @@ import { getPlaceIcon } from "../../assets/icons";
 
 const PlaceSearch = ({ favPlaces, handleMapSearchBarPress, handleAddFavouriteButtonPress, onSeeAll }) => {
   const renderSpotsItem = ({ item, index }) => {
-    const isAddFavorite = item.place.name === "Adicionar Favorito";
+    const place = item?.place || {};
+    const placeName = place.name || 'Local guardado';
+    const isAddFavorite = placeName === "Adicionar Favorito";
     return (
       <CardSpots
-        title={item.place.name}
-        description={item.place.description || item.place.address}
+        title={placeName}
+        description={place.description || place.address}
         onPress={isAddFavorite ? handleAddFavouriteButtonPress : null}
         index={index}
         isAddFavorite={isAddFavorite}
-        iconSource={getPlaceIcon(item.place.name)}
+        iconSource={getPlaceIcon(placeName)}
       />
     );
   };
@@ -36,7 +39,7 @@ const PlaceSearch = ({ favPlaces, handleMapSearchBarPress, handleAddFavouriteBut
       <FlatList
         data={favPlaces}
         renderItem={renderSpotsItem}
-        keyExtractor={(item) => item._id.toString()}
+        keyExtractor={(item, index) => String(item?._id ?? `favorite-${index}`)}
         horizontal={true}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}

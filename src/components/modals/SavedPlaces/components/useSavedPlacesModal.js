@@ -3,7 +3,7 @@ import { useRef } from "react";
 import { useState } from "react";
 import { UserContext } from "../../../../context/UserContext";
 import Geocoder from "react-native-geocoding";
-import { useUserLocationStateContext } from "../../../../context/UserLocationStateContext";
+import { useUserLocation } from "../../../../context/UserLocationStateContext";
 import { useLogger } from "../../../../hooks/useLogger";
 import { useAlert } from "../../../../context/AlertContext";
 
@@ -12,7 +12,7 @@ export const useSavedPlacesModal = () => {
   const { showAlert } = useAlert();
 
   const { user, saveUserFavouriteAddress, removeUserFavouriteAddress, updateUserFavouriteAddress } = useContext(UserContext);
-  const { userLocation } = useUserLocationStateContext();
+  const userLocation = useUserLocation();
   const bottomSheetModalAddAddress = useRef(null);
   const [edit, setEdit] = useState();
   const [addressModalVisible, setAddressModalVisible] = useState(false);
@@ -42,15 +42,14 @@ export const useSavedPlacesModal = () => {
       },
     };
 
-    const data = [...(user?.saved_places || [])];
+    const data = (user?.saved_places || []).filter((item) => item?.place);
     if (user && user.saved_places) {
       if (!data.some((obj) => obj.place.name === "Trabalho"))
         data.unshift(addWork);
       if (!data.some((obj) => obj.place.name === "Casa"))
         data.unshift(addHouse);
-
-      setSavedPlaces(data);
     }
+    setSavedPlaces(data);
 
     //Verificar melhor
   }, [user]);
@@ -110,6 +109,14 @@ export const useSavedPlacesModal = () => {
       place.place.description = callback.city;
     }
 
+    const latitude = Number(place.place.coordinates?.latitude);
+    const longitude = Number(place.place.coordinates?.longitude);
+    if (!place.place.name?.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      showAlert({ type: 'error', title: 'Localização inválida', message: 'Defina um nome e uma localização antes de guardar.' });
+      return;
+    }
+    place.place.coordinates = { latitude, longitude };
+
     switch (type) {
       case "NOVO":
         logger.info("Saving new place", place);
@@ -164,14 +171,17 @@ export const useSavedPlacesModal = () => {
 
   const handleCurrentLocationPress = async () => {
     try {
-      if (!userLocation?.latitude || !userLocation?.longitude) {
+      const latitude = Number(userLocation?.latitude);
+      const longitude = Number(userLocation?.longitude);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
         showAlert({ type: 'error', title: 'Erro', message: 'Não foi possível determinar sua localização. Tente novamente.' });
         return;
       }
 
-      const response = await Geocoder.from(userLocation.latitude, userLocation.longitude);
-      const address = response.results[0]?.formatted_address;
-      const name = response.results[0]?.address_components[0]?.long_name;
+      const response = await Geocoder.from(latitude, longitude);
+      const firstResult = response.results?.[0];
+      const address = firstResult?.formatted_address;
+      const name = firstResult?.address_components?.[0]?.long_name;
 
       if (!address) {
         showAlert({ type: 'error', title: 'Erro', message: 'Não foi possível determinar seu endereço. Tente novamente.' });
@@ -179,8 +189,8 @@ export const useSavedPlacesModal = () => {
       }
 
       setCoordinates({
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude,
+        latitude,
+        longitude,
       });
       setAddress(address);
       setNameFAV(name);

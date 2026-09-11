@@ -14,4 +14,3 @@ export const SEARCH_TIMER_DURATION_S = 180;
 // Caches
 export const GEOCODE_CACHE_MAX = 50;
 export const DISTANCE_CACHE_MAX = 50;
-export const ROUTE_SEARCH_RANGE = 50;

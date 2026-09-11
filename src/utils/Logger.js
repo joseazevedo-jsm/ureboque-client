@@ -136,7 +136,12 @@ class Logger {
   log(level, component, message, data = null) {
     if (!this.shouldLog(level)) return;
 
-    const logEntry = this.formatLogEntry(level, component, message, data);
+    // Sanitize once, here, so every destination (buffer, console, remote)
+    // gets the same redacted data — previously only sendRemoteLog sanitized,
+    // so the in-memory buffer and console output (including production
+    // console.error) carried raw PII.
+    const sanitizedData = data !== null ? sanitizeForRemote(data) : data;
+    const logEntry = this.formatLogEntry(level, component, message, sanitizedData);
 
     // Add to buffer for potential remote logging
     this.addToBuffer(logEntry);
@@ -391,7 +396,7 @@ class Logger {
         message: action,
         data: {
           component,
-          details,
+          details: sanitizeForRemote(details),
         },
         level: 'info',
       });
@@ -485,3 +490,4 @@ class Logger {
 const logger = new Logger();
 
 export default logger;
+export { sanitizeForRemote };

@@ -2,7 +2,8 @@ import React from "react";
 import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { scale } from "react-native-size-matters";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import { colors, shadows, spacing, borderRadius } from "../../theme";
 
 const FIELDS = [

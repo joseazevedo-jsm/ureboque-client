@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { scale } from 'react-native-size-matters';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+const Icon = MaterialIcons;
 import { useRegistrationFlow } from '../hooks/useRegistrationFlow';
 import { useAlert } from '../context/AlertContext';
 import { colors } from '../theme';
@@ -26,6 +27,7 @@ const PersonalInfoScreen = () => {
     uiState,
     validationState,
     personalInfoValidationRules,
+    personalInfoFieldErrors,
     isPersonalInfoValid,
     getEmailSuggestion,
     handleFirstNameChange,
@@ -48,7 +50,11 @@ const PersonalInfoScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <TouchableOpacity 
             onPress={handleBack}
@@ -87,6 +93,9 @@ const PersonalInfoScreen = () => {
                 accessibilityRole="text"
                 autoCapitalize="words"
               />
+              {personalInfoFieldErrors.firstName && (
+                <Text style={styles.inlineFieldError}>{personalInfoFieldErrors.firstName}</Text>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
@@ -101,6 +110,9 @@ const PersonalInfoScreen = () => {
                 accessibilityRole="text"
                 autoCapitalize="words"
               />
+              {personalInfoFieldErrors.lastName && (
+                <Text style={styles.inlineFieldError}>{personalInfoFieldErrors.lastName}</Text>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
@@ -126,6 +138,9 @@ const PersonalInfoScreen = () => {
                     Quer dizer: {getEmailSuggestion()}?
                   </Text>
                 </TouchableOpacity>
+              )}
+              {personalInfoFieldErrors.email && (
+                <Text style={styles.inlineFieldError}>{personalInfoFieldErrors.email}</Text>
               )}
             </View>
 
@@ -225,8 +240,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#0089FF',
     borderRadius: scale(2),
   },
+  // `flex: 1` here collapsed the validation-error rows to a few pixels inside
+  // the ScrollView; flexGrow lets the content size itself and scroll instead.
+  scrollContent: {
+    flexGrow: 1,
+  },
+  inlineFieldError: {
+    fontSize: scale(13),
+    color: '#F44336',
+    marginTop: scale(8),
+    marginLeft: scale(4),
+  },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: scale(20),
   },
   titleSection: {
@@ -282,19 +308,26 @@ const styles = StyleSheet.create({
     color: '#0089FF',
     fontStyle: 'italic',
   },
+  // Without flexShrink: 0 these rows are compressed to a few pixels when the
+  // form is taller than the available space: the message stays in the tree
+  // (and in the a11y output) but is invisible on screen.
   errorsContainer: {
     marginTop: scale(15),
     paddingHorizontal: scale(10),
+    flexShrink: 0,
   },
   errorItem: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: scale(8),
+    flexShrink: 0,
+    minHeight: scale(20),
   },
   errorText: {
     fontSize: scale(14),
     color: '#F44336',
     marginLeft: scale(8),
+    flexShrink: 1,
   },
   infoSection: {
     marginBottom: scale(30),

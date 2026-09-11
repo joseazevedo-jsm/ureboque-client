@@ -9,12 +9,13 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+const Icon = MaterialIcons;
 import * as Haptics from 'expo-haptics';
 import PlaceItem from '../../cards/placeItem';
 import { useTextSearchQuery } from '../../../models/places/useTextSearchQuery';
 import { useDebounce } from 'use-debounce';
-import { useUserLocationStateContext } from '../../../context/UserLocationStateContext';
+import { useUserLocation } from '../../../context/UserLocationStateContext';
 import Geocoder from 'react-native-geocoding';
 import { colors, shadows, borderRadius, spacing } from '../../../theme';
 import { useAlert } from '../../../context/AlertContext';
@@ -27,7 +28,7 @@ const LocationSearch = ({
   onClose,
   onMapDragRequest
 }) => {
-  const { userLocation } = useUserLocationStateContext();
+  const userLocation = useUserLocation();
   const { showAlert } = useAlert();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
@@ -44,12 +45,18 @@ const LocationSearch = ({
 
   const handleLocationSelect = (location) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
+    const latitude = Number(location?.geometry?.location?.lat);
+    const longitude = Number(location?.geometry?.location?.lng);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      showAlert({ type: 'error', title: 'Localização inválida', message: 'Não foi possível usar este resultado. Escolha outra sugestão.' });
+      return;
+    }
     // Transform Google Places API response to expected format and return to form
     selectSearchResult({
       address: location.formatted_address,
       coordinates: {
-        latitude: location.geometry.location.lat,
-        longitude: location.geometry.location.lng
+        latitude,
+        longitude,
       },
       name: location.name
     });
@@ -57,14 +64,17 @@ const LocationSearch = ({
 
   const handleCurrentLocation = async () => {
     try {
-      if (!userLocation?.latitude || !userLocation?.longitude) {
+      const latitude = Number(userLocation?.latitude);
+      const longitude = Number(userLocation?.longitude);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
         showAlert({ type: 'error', title: 'Erro', message: 'Não foi possível determinar sua localização. Tente novamente.' });
         return;
       }
 
-      const response = await Geocoder.from(userLocation.latitude, userLocation.longitude);
-      const address = response.results[0]?.formatted_address;
-      const name = response.results[0]?.address_components[0]?.long_name;
+      const response = await Geocoder.from(latitude, longitude);
+      const firstResult = response.results?.[0];
+      const address = firstResult?.formatted_address;
+      const name = firstResult?.address_components?.[0]?.long_name;
 
       if (!address) {
         showAlert({ type: 'error', title: 'Erro', message: 'Não foi possível determinar seu endereço. Tente novamente.' });
@@ -72,8 +82,8 @@ const LocationSearch = ({
       }
 
       updateCurrentAddress('coordinates', {
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude,
+        latitude,
+        longitude,
       });
       updateCurrentAddress('description', address);
       if (!state.currentAddress.name) {
@@ -82,7 +92,7 @@ const LocationSearch = ({
 
       selectSearchResult({
         address,
-        coordinates: { latitude: userLocation.latitude, longitude: userLocation.longitude },
+        coordinates: { latitude, longitude },
         name: name || 'Localização Atual'
       });
     } catch (error) {
@@ -187,6 +197,7 @@ const LocationSearch = ({
         <FlatList
           data={searchResults}
           renderItem={renderSearchResult}
+          keyExtractor={(item, index) => String(item.place_id ?? `place-${index}`)}
           keyboardShouldPersistTaps="always"
           keyboardDismissMode="on-drag"
           ItemSeparatorComponent={() => <View style={styles.separator} />}

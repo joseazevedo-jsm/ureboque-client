@@ -1,4 +1,4 @@
-import React, { createContext, useEffect } from "react";
+import React, { createContext, useEffect, useCallback, useMemo } from "react";
 import {  useAuth } from './AuthContext';
 import {   useUserData } from './UserDataContext';
 import {  useSocket } from './SocketContext';
@@ -38,16 +38,16 @@ const LegacyUserProvider = ({ children }) => {
   }, [socketData.socket, userData.user?.id, userData.addNotification]);
 
   // Legacy interface - map new context methods to old interface
-  const legacyLogin = async (token, id) => {
+  const legacyLogin = useCallback(async (token, id) => {
     return await auth.login(token, id);
-  };
+  }, [auth.login]);
 
-  const legacyLogout = async () => {
+  const legacyLogout = useCallback(async () => {
     return await auth.logout();
-  };
+  }, [auth.logout]);
 
   // Provide the legacy API context value to consuming components
-  const userContextValue = {
+  const userContextValue = useMemo(() => ({
     socket: socketData.socket,
     user: userData.user,
     setUser: userData.setUser,
@@ -61,12 +61,17 @@ const LegacyUserProvider = ({ children }) => {
     userToken: auth.userToken,
     login: legacyLogin,
     logout: legacyLogout,
-    isLoading: auth.isLoading || userData.isLoading,
+     isLoading: auth.isLoading || userData.isLoading,
+     authLoading: auth.isLoading,
     serviceStatus: userData.serviceStatus,
     setServiceStatus: userData.setServiceStatus,
     prices: userData.prices,
     fetchPrices: userData.fetchPrices
-  };
+  }), [socketData.socket, userData.user, userData.setUser, userData.fetchUserById,
+    userData.updateUser, userData.saveUserFavouriteAddress, userData.removeUserFavouriteAddress,
+    userData.updateUserFavouriteAddress, userData.activateDiscount, userData.removeDiscount,
+    auth.userToken, legacyLogin, legacyLogout, auth.isLoading, userData.isLoading,
+    userData.serviceStatus, userData.setServiceStatus, userData.prices, userData.fetchPrices, auth.isLoading]);
 
   return (
     <UserContext.Provider value={userContextValue}>

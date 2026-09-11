@@ -10,7 +10,8 @@ import {
   Image,
 } from "react-native";
 import { useChatModal } from "./component/useChatModal";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
 import ChatItem from "../../cards/chatItem";
 import { colors, shadows, borderRadius, spacing } from "../../../theme";
@@ -80,7 +81,10 @@ const ChatModal = ({ visible, closeModal, idService, driver, setUnreadMessageCou
         {/* Messages */}
         <FlatList
           data={models.messages}
-          keyExtractor={(_, index) => index.toString()}
+          keyExtractor={(item, index) => String(
+            item?._id ||
+            `${item?.message?.createdAt || item?.createdAt || item?.message?.timestamp || 'message'}-${item?.message?.sender || 'unknown'}-${index}`
+          )}
           renderItem={renderItem}
           contentContainerStyle={styles.messageList}
           ListFooterComponent={<View style={{ height: scale(8) }} />}

@@ -45,6 +45,10 @@ const OTPModal = ({
 
   useEffect(() => {
     if (hasError) {
+      // Clear the boxes so a retry starts from a known state and the caret is
+      // back in the first box; leaving the rejected digits in place made the
+      // next attempt edit a half-stale code.
+      operations.resetOtp();
       shakeX.value = withSequence(
         withTiming(-8, { duration: 50 }),
         withTiming(8, { duration: 50 }),

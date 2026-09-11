@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { scale } from 'react-native-size-matters';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+const Icon = MaterialIcons;
 import { useRegistrationFlow } from '../hooks/useRegistrationFlow';
 import { useAlert } from '../context/AlertContext';
 import { colors } from '../theme';
@@ -56,7 +57,11 @@ const PasswordCreationScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <TouchableOpacity 
             onPress={handleBack}
@@ -137,6 +142,15 @@ const PasswordCreationScreen = () => {
                   />
                 </TouchableOpacity>
               </View>
+              {/* The matching rule lives at the bottom of the requirement list,
+                  below the fold on shorter screens, so a mismatch left the
+                  disabled button unexplained. Say it where the user is typing. */}
+              {formData.confirmPassword.length > 0 &&
+                formData.password !== formData.confirmPassword && (
+                  <Text style={styles.inlineFieldError}>
+                    As senhas não coincidem
+                  </Text>
+                )}
             </View>
 
             {formData.password.length > 0 && (
@@ -247,8 +261,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#0089FF',
     borderRadius: scale(2),
   },
+  // flexGrow rather than flex so the requirement rows keep their height inside
+  // the ScrollView instead of being squeezed below the fold.
+  scrollContent: {
+    flexGrow: 1,
+  },
+  inlineFieldError: {
+    fontSize: scale(13),
+    color: '#F44336',
+    marginTop: scale(8),
+    marginLeft: scale(4),
+  },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: scale(20),
   },
   titleSection: {

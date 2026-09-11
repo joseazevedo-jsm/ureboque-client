@@ -1,15 +1,22 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { UserContext } from "../../context/UserContext";
 import { useForm } from "../../hooks/useForm";
 import { loginValidationSchema, otpValidationSchema } from "../../utils/validationSchemas";
+import { validateForm } from "../../utils/validation";
 import { useNavigation } from "@react-navigation/native";
 import api from "../../services/APIService";
 import { useLogger } from "../../hooks/useLogger";
 import { useAlert } from "../../context/AlertContext";
 
+const MIN_PHONE_DIGITS = 9;
+const MAX_PHONE_DIGITS = 15; // ITU E.164 upper bound
+
 export const useLoginScreen = () => {
   const logger = useLogger('useLoginScreen');
   const { showAlert } = useAlert();
+  // Synchronous guard: `isLoading` state updates too late to stop a second tap
+  // dispatched in the same frame, so rapid taps produced duplicate requests.
+  const submitInFlight = useRef(false);
 
   const phoneForm = useForm(
     { phoneNumber: "", callingCode: "244" },
@@ -28,6 +35,7 @@ export const useLoginScreen = () => {
   const { setUser, login } = useContext(UserContext);
   const [warning, setWarning] = useState("");
   const [loginFailed, setLoginFailed] = useState(false);
+  const [otpError, setOtpError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const navigation = useNavigation();
@@ -46,11 +54,16 @@ export const useLoginScreen = () => {
   };
 
   const handleNumberChange = (text) => {
-    phoneForm.setValue("phoneNumber", text);
+    // Accept digits only and cap the length: pasted input bypasses the numeric
+    // keyboard, and an unnormalized number reaches the API as a different
+    // identity than the same user's canonical one (e.g. "912 345 666").
+    const digitsOnly = String(text ?? "").replace(/\D/g, "").slice(0, MAX_PHONE_DIGITS);
+    phoneForm.setValue("phoneNumber", digitsOnly);
     setWarning("");
   };
 
   const handleOTPChange = (text) => {
+    if (text) setOtpError(false);
     otpForm.setValue("otpCode", text);
   };
 
@@ -60,6 +73,14 @@ export const useLoginScreen = () => {
 
   const handleOnConfirmNumber = async () => {
     const fullPhoneNumber = getFullPhoneNumber();
+    const devOTPAllowed = __DEV__ || process.env.EXPO_PUBLIC_ALLOW_DEV_OTP === 'true';
+    const devOTP = devOTPAllowed ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
+
+    if (__DEV__ && devOTP) {
+      setCodeOTP({ phone: fullPhoneNumber, development: true });
+      setModalOtpVisible(true);
+      return;
+    }
 
     try {
       const response = await api.post("/users/send-otp", {
@@ -70,8 +91,6 @@ export const useLoginScreen = () => {
       setCodeOTP({ phone: fullPhoneNumber, method: response.data?.method });
       setModalOtpVisible(true);
     } catch (error) {
-      const devOTPAllowed = __DEV__ || process.env.EXPO_PUBLIC_ALLOW_DEV_OTP === 'true';
-      const devOTP = devOTPAllowed ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
       if (devOTP) {
         logger.warn('OTP backend unavailable; using development OTP fallback', { errorMessage: error.message });
         setCodeOTP({ phone: fullPhoneNumber, development: true });
@@ -113,7 +132,19 @@ export const useLoginScreen = () => {
   };
 
   const onLogin = async (phone) => {
+    if (submitInFlight.current) {
+      logger.debug('Login already in flight, ignoring duplicate submit');
+      return;
+    }
+
+    if (!password) {
+      setLoginFailed(true);
+      setWarning("Introduza a sua senha.");
+      return;
+    }
+
     try {
+      submitInFlight.current = true;
       setIsLoading(true);
       setWarning("");
       setLoginFailed(false);
@@ -123,6 +154,7 @@ export const useLoginScreen = () => {
       const response = await api.post("/users/login", {
         password: password,
         phone: phone,
+        app: "client",
       });
 
       const data = response.data;
@@ -152,16 +184,27 @@ export const useLoginScreen = () => {
       logger.error('Login failed', error);
       setLoginFailed(true);
 
-      if (error.response?.status === 401) {
+      if (!error.response) {
+        // No response at all: the request never reached the server. Blaming the
+        // user's credentials for a dead network sends them chasing the wrong fix.
+        setWarning(
+          error.code === 'ECONNABORTED'
+            ? "O servidor demorou a responder. Tente novamente."
+            : "Sem ligação à internet. Verifique a sua ligação e tente novamente."
+        );
+      } else if (error.response.status === 403) {
+        setWarning("Este tipo de conta não pode acessar a aplicação cliente. Use a aplicação do motorista.");
+      } else if (error.response.status === 401) {
         setWarning("Credenciais incorretas. Verifique sua senha.");
-      } else if (error.response?.status === 500) {
+      } else if (error.response.status === 500) {
         setWarning("Erro no servidor. Tente novamente mais tarde.");
-      } else if (error.response?.status === 404) {
+      } else if (error.response.status === 404) {
         setWarning("Número de telefone não encontrado.");
       } else {
         setWarning("Falha no login. Verifique suas credenciais e tente novamente.");
       }
     } finally {
+      submitInFlight.current = false;
       setIsLoading(false);
     }
   };
@@ -172,9 +215,18 @@ export const useLoginScreen = () => {
     const devOTPAllowed = __DEV__ || process.env.EXPO_PUBLIC_ALLOW_DEV_OTP === 'true';
     const devOTP = devOTPAllowed ? process.env.EXPO_PUBLIC_OTP_DEFAULT : undefined;
 
+    // Clearing the entered code is what makes a retry possible: the verify
+    // effect keys off the code string, so re-entering the *same* wrong code
+    // would otherwise leave the value unchanged and never fire again.
+    const rejectOtp = () => {
+      setOtpError(true);
+      otpForm.setValue("otpCode", "");
+      showAlert({ type: 'error', title: 'Erro', message: 'Código OTP inválido. Tente novamente.' });
+    };
+
     if (codeOTP?.development) {
       if (!devOTP || enteredOTP !== devOTP) {
-        showAlert({ type: 'error', title: 'Erro', message: 'Código OTP inválido. Tente novamente.' });
+        rejectOtp();
         return;
       }
     } else {
@@ -185,11 +237,12 @@ export const useLoginScreen = () => {
         });
       } catch (error) {
         logger.error('OTP verification failed', error);
-        showAlert({ type: 'error', title: 'Erro', message: 'Código OTP inválido. Tente novamente.' });
+        rejectOtp();
         return;
       }
     }
 
+    setOtpError(false);
     setModalOtpVisible(false);
 
     try {
@@ -254,14 +307,41 @@ export const useLoginScreen = () => {
   };
 
   const onVerifyOtp = async () => {
-    if (phoneForm.values.phoneNumber.length < 9) {
-      setWarning("O número de telefone deve ter pelo menos 9 caracteres");
-    } else {
-      setWarning("");
-      const isValid = phoneForm.validate();
-      if (isValid) {
-        await handleOnConfirmNumber();
-      }
+    if (phoneForm.values.phoneNumber.length < MIN_PHONE_DIGITS) {
+      setWarning(`O número de telefone deve ter pelo menos ${MIN_PHONE_DIGITS} caracteres`);
+      return;
+    }
+
+    setWarning("");
+
+    // `validate()` writes phoneForm.errors via setState, so it is still stale on
+    // this tick — and the screen never renders those errors anyway. Compute the
+    // message synchronously so an invalid number explains itself instead of
+    // leaving the button looking broken.
+    const phoneValidation = validateForm(
+      { phoneNumber: phoneForm.values.phoneNumber },
+      { phoneNumber: loginValidationSchema.phoneNumber }
+    );
+    phoneForm.validate();
+
+    if (!phoneValidation.isValid) {
+      setWarning(
+        phoneValidation.errors.phoneNumber ||
+          "Número de telefone inválido. Verifique e tente novamente."
+      );
+      return;
+    }
+
+    if (submitInFlight.current) {
+      logger.debug('Phone confirmation already in flight, ignoring duplicate submit');
+      return;
+    }
+
+    try {
+      submitInFlight.current = true;
+      await handleOnConfirmNumber();
+    } finally {
+      submitInFlight.current = false;
     }
   };
 
@@ -274,6 +354,7 @@ export const useLoginScreen = () => {
       otpCode: otpForm.values.otpCode,
       modalRegisterVisible,
       modalOtpVisible,
+      otpError,
       warning,
       loginFailed,
       isLoading,

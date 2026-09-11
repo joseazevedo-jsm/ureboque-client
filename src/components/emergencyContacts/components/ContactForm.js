@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+const Icon = MaterialIcons;
 import * as Haptics from 'expo-haptics';
 import { ScalePressable } from '../../common/ScalePressable';
 import { colors, shadows, borderRadius, spacing } from '../../../theme';
@@ -13,9 +14,19 @@ const ContactForm = ({ state, updateCurrentContact, saveContact, deleteContact, 
   const isEdit = state.mode === 'edit';
   const { currentContact } = state;
 
-  const canSave =
-    currentContact.name.trim().length > 0 &&
-    currentContact.phone.trim().replace(/\D/g, '').length >= 7;
+  const phoneDigits = currentContact.phone.trim().replace(/\D/g, '');
+  const canSave = currentContact.name.trim().length > 0 && phoneDigits.length >= 7;
+
+  // Say why GUARDAR is inert. Without this the form silently refuses to save
+  // and the button just looks broken.
+  const fieldHint = {
+    name: currentContact.name.length > 0 && !currentContact.name.trim()
+      ? 'Introduza um nome'
+      : null,
+    phone: currentContact.phone.length > 0 && phoneDigits.length < 7
+      ? 'O telefone deve ter pelo menos 7 dígitos'
+      : null,
+  };
 
   const handleSave = async () => {
     try {
@@ -84,6 +95,9 @@ const ContactForm = ({ state, updateCurrentContact, saveContact, deleteContact, 
               keyboardType={field.keyboardType}
               autoCapitalize={field.autoCapitalize}
             />
+            {fieldHint[field.key] ? (
+              <Text style={styles.fieldError}>{fieldHint[field.key]}</Text>
+            ) : null}
           </Animated.View>
         ))}
       </ScrollView>
@@ -124,6 +138,7 @@ const styles = StyleSheet.create({
   },
   deleteButtonWrap: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   deleteText: { fontWeight: '600', color: colors.error, fontSize: scale(14) },
+  fieldError: { color: colors.error, fontSize: scale(13), marginTop: scale(6), marginLeft: scale(4) },
   scroll: { flex: 1, paddingHorizontal: spacing.xl },
   title: {
     fontSize: scale(18),

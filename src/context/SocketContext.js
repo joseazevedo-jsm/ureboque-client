@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import SocketService from '../services/SocketService';
 import { useAuth } from './AuthContext';
 import { useLogger } from '../hooks/useLogger';
@@ -20,13 +20,33 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const isConnectingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const authGenerationRef = useRef(0);
+  const currentTokenRef = useRef(userToken);
+  const authenticatedRef = useRef(isAuthenticated);
+  const connectedTokenRef = useRef(null);
 
-  const connectSocket = async (token) => {
+  useEffect(() => {
+    currentTokenRef.current = userToken;
+    authenticatedRef.current = isAuthenticated;
+    authGenerationRef.current += 1;
+  }, [userToken, isAuthenticated]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      SocketService.disconnect();
+    };
+  }, []);
+
+  const connectSocket = useCallback(async (token) => {
     if (isConnectingRef.current) {
       logger.warn('Socket connection already in progress, skipping duplicate call');
       return;
     }
     isConnectingRef.current = true;
+    const connectionGeneration = authGenerationRef.current;
     const timer = logger.startTimer('socket_connection');
     logger.info('Attempting socket connection');
     
@@ -38,9 +58,21 @@ export const SocketProvider = ({ children }) => {
     
     try {
       const socketConnection = await SocketService.connect(token);
+      if (!mountedRef.current ||
+          connectionGeneration !== authGenerationRef.current ||
+          currentTokenRef.current !== token ||
+          !authenticatedRef.current) {
+        SocketService.disconnect();
+        return;
+      }
       setSocket(socketConnection);
-      setIsConnected(true);
-      
+      connectedTokenRef.current = token;
+      // isConnected is driven by the socket's own connect/disconnect events
+      // (wired in the effect below) — io() returns this object before the
+      // handshake completes, so assuming success here would report "connected"
+      // while the socket is still mid-handshake or has already failed.
+      setIsConnected(!!socketConnection?.connected);
+
       // Add Sentry breadcrumb for successful connection
       sentryService.addSocketEvent('connection_success', {
         duration: timer.end(),
@@ -67,14 +99,14 @@ export const SocketProvider = ({ children }) => {
       }, { socket_operation: 'connect' });
 
       logger.logError(error, { operation: 'socket_connection', duration: timer.end() });
-      setIsConnected(false);
+      if (mountedRef.current) setIsConnected(false);
       logger.logStateChange('isConnected', null, false, 'connection_failed');
     } finally {
       isConnectingRef.current = false;
     }
-  };
+  }, [logger]);
 
-  const disconnectSocket = () => {
+  const disconnectSocket = useCallback(() => {
     logger.info('Disconnecting socket');
     
     // Add Sentry breadcrumb for disconnection
@@ -82,8 +114,11 @@ export const SocketProvider = ({ children }) => {
     
     try {
       SocketService.disconnect();
-      setSocket(null);
-      setIsConnected(false);
+      if (mountedRef.current) {
+        setSocket(null);
+        setIsConnected(false);
+      }
+      connectedTokenRef.current = null;
       
       // Update socket context in Sentry
       sentryService.setContext('socket', {
@@ -105,15 +140,51 @@ export const SocketProvider = ({ children }) => {
       
       logger.logError(error, { operation: 'socket_disconnection' });
     }
-  };
+  }, [logger]);
+
+  // Track the socket's actual connection lifecycle — not just whether the
+  // object exists — so isConnected reflects reality across drops/reconnects,
+  // not only the initial handshake.
+  useEffect(() => {
+    if (!socket) return;
+
+    const onConnect = () => {
+      logger.debug('Socket connect event');
+      if (mountedRef.current) setIsConnected(true);
+    };
+    const onDisconnect = (reason) => {
+      logger.warn('Socket disconnect event', { reason });
+      if (mountedRef.current) setIsConnected(false);
+    };
+    const onConnectError = (error) => {
+      logger.warn('Socket connect_error event', { message: error?.message });
+      if (mountedRef.current) setIsConnected(false);
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
+    if (socket.connected) onConnect();
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
+    };
+  }, [socket]);
 
   // Connect socket when user logs in
   useEffect(() => {
+    if (isAuthenticated && userToken && socket && connectedTokenRef.current !== userToken) {
+      logger.info('Auth token changed - reconnecting socket');
+      disconnectSocket();
+      return;
+    }
     if (isAuthenticated && userToken && !socket) {
       logger.debug('Auth state changed - connecting socket', { isAuthenticated, hasToken: !!userToken });
       connectSocket(userToken);
     }
-  }, [isAuthenticated, userToken]);
+  }, [isAuthenticated, userToken, socket, connectSocket, disconnectSocket, logger]);
 
   // Disconnect socket when user logs out
   useEffect(() => {
@@ -123,12 +194,12 @@ export const SocketProvider = ({ children }) => {
     }
   }, [isAuthenticated]);
 
-  const value = {
+  const value = useMemo(() => ({
     socket,
     isConnected,
     connectSocket,
     disconnectSocket,
-  };
+  }), [socket, isConnected, connectSocket, disconnectSocket]);
 
   return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
 };

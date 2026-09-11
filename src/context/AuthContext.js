@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLogger } from '../hooks/useLogger';
 import sentryService from '../services/SentryService';
@@ -19,8 +19,12 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userToken, setUserToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const rejectedBearerRef = useRef(null);
+  const mountedRef = useRef(true);
+  const authOperationRef = useRef(0);
 
-  const login = async (token, userId) => {
+  const login = useCallback(async (token, userId) => {
+    const operationId = ++authOperationRef.current;
     const timer = logger.startTimer('login_operation');
     logger.info('Login attempt started', { userId });
     
@@ -34,9 +38,14 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.setItem('userToken', token);
       await AsyncStorage.setItem('userId', userId);
 
+      if (!mountedRef.current || operationId !== authOperationRef.current) return { success: false };
       setUserToken(token);
       setIsAuthenticated(true);
       logger.logStateChange('isAuthenticated', false, true, 'login_success');
+      // A fresh session must be able to react to its own future invalid-token
+      // event even if a previous session's rejection happened to carry the
+      // same bearer value (extremely unlikely, but free to guard against).
+      rejectedBearerRef.current = null;
       
       // Set Sentry user context on successful login
       sentryService.setUser({
@@ -64,12 +73,13 @@ export const AuthProvider = ({ children }) => {
       logger.logError(error, { userId, operation: 'login' });
       return { success: false, error: error.message };
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current && operationId === authOperationRef.current) setIsLoading(false);
       logger.logStateChange('isLoading', true, false, 'login_finished');
     }
-  };
+  }, [logger]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
+    const operationId = ++authOperationRef.current;
     const timer = logger.startTimer('logout_operation');
     logger.info('Logout started');
     
@@ -80,6 +90,7 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(true);
       logger.logStateChange('isLoading', false, true, 'logout_started');
       
+      if (!mountedRef.current || operationId !== authOperationRef.current) return;
       setUserToken(null);
       setIsAuthenticated(false);
       logger.logStateChange('isAuthenticated', true, false, 'logout_success');
@@ -106,12 +117,13 @@ export const AuthProvider = ({ children }) => {
       
       logger.logError(error, { operation: 'logout' });
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current && operationId === authOperationRef.current) setIsLoading(false);
       logger.logStateChange('isLoading', true, false, 'logout_finished');
     }
-  };
+  }, [logger]);
 
   const checkAuthState = async () => {
+    const operationId = authOperationRef.current;
     const timer = logger.startTimer('auth_state_check');
     logger.debug('Checking authentication state');
 
@@ -120,6 +132,7 @@ export const AuthProvider = ({ children }) => {
       const userId = await AsyncStorage.getItem('userId');
 
       if (token && userId) {
+        if (!mountedRef.current || operationId !== authOperationRef.current) return;
         setUserToken(token);
         setIsAuthenticated(true);
 
@@ -153,7 +166,7 @@ export const AuthProvider = ({ children }) => {
 
       logger.logError(error, { operation: 'auth_state_check' });
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current && operationId === authOperationRef.current) setIsLoading(false);
       logger.logStateChange('isLoading', true, false, 'auth_check_finished');
       timer.end({ authenticated: isAuthenticated });
     }
@@ -161,14 +174,36 @@ export const AuthProvider = ({ children }) => {
 
 
   useEffect(() => {
+    mountedRef.current = true;
     checkAuthState();
+    return () => { mountedRef.current = false; };
   }, []);
 
   const logoutRef = useRef(logout);
   logoutRef.current = logout;
 
+  // The active session's bearer, and the last rejection we already acted on —
+  // together these make invalid-token handling session-aware and single-flight:
+  // a delayed 401 from a token that isn't the current session's is ignored
+  // (it can't mean anything about the session that's active now), and several
+  // concurrent 401s for the same session's token trigger logout() only once.
+  const currentBearerRef = useRef(null);
   useEffect(() => {
-    const unsubscribe = AuthEventService.subscribe(() => {
+    currentBearerRef.current = userToken ? `Bearer ${userToken}` : null;
+  }, [userToken]);
+
+  useEffect(() => {
+    const unsubscribe = AuthEventService.subscribe((rejectedBearer) => {
+      if (rejectedBearer && rejectedBearer !== currentBearerRef.current) {
+        logger.info('Ignoring invalid-token event for a non-current session');
+        return;
+      }
+      if (rejectedBearerRef.current === rejectedBearer) {
+        logger.debug('Invalid-token event already processed for this session, skipping');
+        return;
+      }
+      rejectedBearerRef.current = rejectedBearer;
+
       logger.info('Invalid token event received, logging out');
       logoutRef.current();
     });
@@ -176,13 +211,13 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     isAuthenticated,
     userToken,
     isLoading,
     login,
     logout,
-  };
+  }), [isAuthenticated, userToken, isLoading, login, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

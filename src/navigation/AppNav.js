@@ -45,7 +45,7 @@ const fadeTransition = {
 };
 
 const AppNav = () => {
-  const { isLoading, userToken } = useContext(UserContext);
+  const { authLoading, userToken } = useContext(UserContext);
   const routeNameRef = useRef();
 
   // Navigation state change handler
@@ -114,7 +114,7 @@ const AppNav = () => {
   // Show a neutral loading screen while the auth token is being read from storage.
   // AppLoadingContext handles the splash, but this prevents a brief flash of the
   // wrong screen if the token is still undefined.
-  if (isLoading) {
+  if (authLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />

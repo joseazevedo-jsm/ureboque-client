@@ -16,11 +16,11 @@ import Animated, { FadeIn, FadeInDown, FadeInRight, FadeInUp, useSharedValue, us
 import { colors, spacing, shadows, animations } from '../theme';
 import { getPlaceIcon, ICON_ADD } from '../assets/icons';
 import { useMapScreen } from "../components/map/useMapScreen";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
-import {
-  BottomSheetModal,
-  BottomSheetModalProvider,
+import BottomSheet, {
+  BottomSheetView,
   BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
 import { Platform } from "react-native";
@@ -47,6 +47,55 @@ import CustomMarker from "../components/map/customMarker";
 import { KeyboardAvoidingView } from "react-native";
 import { useLogger } from "../hooks/useLogger";
 import { TRIP_STATUS } from "../constants/tripStatus";
+import { useDriverLocation, useDriverLocationStale } from "../hooks/useMapDrivers";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// The modal/portal variant can preserve a closed internal index across Fast
+// Refresh even after present() is called. Flow sheets are already mutually
+// exclusive, so a regular controlled BottomSheet is simpler and deterministic.
+// Keep the former imperative API so the flow manager does not need to care
+// which Gorhom shell renders the sheet.
+const FlowBottomSheet = React.forwardRef(({
+  onDismiss,
+  stackBehavior: _stackBehavior,
+  onChange,
+  snapPoints,
+  ...props
+}, forwardedRef) => {
+  const sheetRef = useRef(null);
+  const { bottom: bottomInset } = useSafeAreaInsets();
+  // Some Huawei/EMUI builds report a zero navigation inset while the classic
+  // three-button bar still covers the bottom of an edge-to-edge React view.
+  const effectiveBottomInset = Platform.OS === 'android'
+    ? Math.max(bottomInset, scale(32))
+    : bottomInset;
+  const safeSnapPoints = useMemo(
+    () => snapPoints?.map((point) => typeof point === 'number' ? point + effectiveBottomInset : point),
+    [snapPoints, effectiveBottomInset],
+  );
+
+  React.useImperativeHandle(forwardedRef, () => ({
+    present: () => sheetRef.current?.snapToIndex(0),
+    dismiss: () => sheetRef.current?.close(),
+    snapToIndex: (index) => sheetRef.current?.snapToIndex(index),
+    close: () => sheetRef.current?.close(),
+  }), []);
+
+  const handleChange = useCallback((index) => {
+    onChange?.(index);
+    if (index === -1) onDismiss?.();
+  }, [onChange, onDismiss]);
+
+  return (
+    <BottomSheet
+      ref={sheetRef}
+      onChange={handleChange}
+      snapPoints={safeSnapPoints}
+      {...props}
+    />
+  );
+});
+FlowBottomSheet.displayName = 'FlowBottomSheet';
 
 // Memoized car icon mapping for performance
 const carIconMap = {
@@ -62,6 +111,18 @@ const MIN_DRIVER_MARKER_ANIMATION_MS = 900;
 const MAX_DRIVER_MARKER_ANIMATION_MS = 15000;
 const DEFAULT_DRIVER_MARKER_ANIMATION_MS = 6000;
 const DRIVER_MARKER_FRAME_MS = 120;
+
+// Centralized bottom-sheet sizing so related sheets stay consistent instead of
+// drifting via hand-tuned magic numbers. tripStarted/driverArriving/tripEnding all
+// render the same DriverStatus layout — the two that can show the "Cancelar
+// viagem" row (en-route and arrived) need the same expanded height; tripEnding
+// (in-progress, no cancel row) is shorter.
+const SHEET_SNAP_POINTS = {
+  driverStatusExpanded: scale(500),
+  driverStatusExpandedNoCancel: scale(435),
+  driverStatusCollapsed: scale(310),
+  details: scale(520),
+};
 
 const getCarIconByColor = (color) => {
   try {
@@ -91,7 +152,7 @@ const getNearestHeading = (currentHeading, nextHeading) => {
 };
 
 // --- Reusable Glass Components ---
-const GlassBackground = ({ style }) => (
+const GlassBackground = memo(({ style }) => (
   <BlurView
     intensity={Platform.select({ ios: 40, android: 90 })}
     tint={Platform.select({ ios: 'light', android: 'light' })}
@@ -107,15 +168,15 @@ const GlassBackground = ({ style }) => (
       }
     ]}
   />
-);
+));
 
-const GlassHandle = () => (
+const GlassHandle = memo(() => (
   <View style={styles.glassHandleContainer}>
     <View style={styles.glassHandleIndicator} />
   </View>
-);
+));
 
-const SmoothDriverMarker = memo(({ driver, location }) => {
+const SmoothDriverMarker = memo(({ driver, location, isStale }) => {
   const lastUpdateAtRef = useRef(null);
   const animationFrameRef = useRef(null);
   const [displayLocation, setDisplayLocation] = React.useState(() => (
@@ -191,12 +252,208 @@ const SmoothDriverMarker = memo(({ driver, location }) => {
     >
       <Animated.Image
         source={getCarIconByColor(driver?.car?.color)}
-        style={[styles.driverCarIcon, carAnimatedStyle]}
+        style={[styles.driverCarIcon, carAnimatedStyle, isStale && styles.driverCarIconStale]}
         resizeMode="contain"
       />
     </Marker>
   );
 });
+
+const DriverTrackingLayer = memo(({ driver }) => {
+  const location = useDriverLocation();
+  const isStale = useDriverLocationStale();
+  return <SmoothDriverMarker driver={driver} location={location} isStale={isStale} />;
+});
+
+const MapViewport = memo(({ models, operations, mapMarkers, carsAround }) => (
+  <MapView
+    provider={PROVIDER_GOOGLE}
+    ref={models.mapRef}
+    showsUserLocation={models.showsUserLocation}
+    userLocationPriority={models.userLocationPriority}
+    userLocationUpdateInterval={models.userLocationUpdateInterval}
+    userLocationFastestInterval={models.userLocationFastestInterval}
+    onUserLocationChange={operations.handleUserLocationChange}
+    showsMyLocationButton={false}
+    onRegionChangeComplete={operations.handleDragMarkerPositionChange}
+    toolbarEnabled={false}
+    customMapStyle={customStyleMap}
+    style={styles.map}
+  >
+    {models?.showsUserLocation && isValidCoordinate(models?.userLocation) && (
+      <Circle center={models.userLocation} radius={models.userLocation.accuracy || 50} strokeWidth={1} strokeColor="rgba(0, 0, 255, 0.5)" fillColor="rgba(0, 0, 255, 0.2)" />
+    )}
+    {mapMarkers}
+    <DriverTrackingLayer driver={models.driver} />
+    {models.isRouteVisible && models.routeMarkers?.length === 2 && (
+      <>
+        <MapViewDirections origin={models.routeMarkers[0]} destination={models.routeMarkers[1]} apikey={process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY} strokeWidth={0} onReady={operations.handleMapDirectionsReady} resetOnChange={false} />
+        {models.currentRoute?.length > 0 && <Polyline coordinates={models.currentRoute} strokeColor={colors.primary} strokeWidth={scale(7)} lineJoin="round" lineCap="round" tappable={false} />}
+      </>
+    )}
+    {carsAround}
+  </MapView>
+));
+
+const MapControls = memo(({ models, operations, navigation, recenterAnimatedStyle, openDrawer }) => (
+  <>
+    {(models.isRouteVisible || models.canGoBackBottomSheet) && !models.service ? (
+      <TouchableOpacity style={styles.details} onPress={operations.handleBackButtonPress} activeOpacity={0.8}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="arrow-back" size={scale(24)} color={colors.primary} /></TouchableOpacity>
+    ) : (
+      <TouchableOpacity style={styles.menuGlassButton} onPress={openDrawer} activeOpacity={0.8}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="menu" size={scale(24)} color={colors.primary} /></TouchableOpacity>
+    )}
+    {!models.isRouteVisible && !models.service && <View style={styles.bellWrapper}><TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('Notificacoes')} activeOpacity={0.8}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="notifications-none" size={scale(24)} color={colors.primary} /></TouchableOpacity>{models.unreadNotificationsCount > 0 && <View style={styles.bellBadge}><Text style={styles.bellBadgeText}>{models.unreadNotificationsCount > 99 ? '99+' : models.unreadNotificationsCount}</Text></View>}</View>}
+    {!models.isRouteVisible && !models.service && !models.markerVisible && <Animated.View entering={FadeIn.duration(300)} style={styles.locationChipWrapper}><ScalePressable onPress={operations.handleRecenterMap} style={styles.locationChip}><Icon name="my-location" size={scale(14)} color={colors.primary} style={{ marginRight: spacing.xs }} /><View><Text style={styles.locationChipLabel}>Sua Localização</Text><Text style={styles.locationChipAddress} numberOfLines={1}>{models.currentLocationLabel || 'Obtendo localização...'}</Text></View></ScalePressable></Animated.View>}
+    {models.markerVisible && models.activeBottomSheet === 'dragMarker' && <View style={styles.markerOverlay} pointerEvents="none"><CustomMarker title={models.markerCity || 'Carregando...'} color={models.inputLocationObject === 0 ? colors.primary : colors.destinationPin} /></View>}
+    {(models.isRouteVisible || models.service) && <Animated.View entering={FadeIn.duration(200)} style={[styles.recenterButtonWrapper, recenterAnimatedStyle]}><ScalePressable onPress={operations.handleRecenterMap} style={styles.recenterButton}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="my-location" size={scale(24)} color={colors.primary} /></ScalePressable></Animated.View>}
+  </>
+));
+
+const DriverStatusSheet = memo(({
+  sheetRef,
+  sheetName,
+  activeBottomSheet,
+  expandedSnapPoint,
+  status,
+  models,
+  operations,
+  onShareLocation,
+  onCancelTrip,
+  driverStatusSheetRef,
+}) => activeBottomSheet === sheetName ? (
+  <FlowBottomSheet
+    ref={sheetRef}
+    onDismiss={() => operations.handleBottomSheetDismiss(sheetName)}
+    index={0}
+    snapPoints={[SHEET_SNAP_POINTS.driverStatusCollapsed, expandedSnapPoint]}
+    enablePanDownToClose={false}
+    enableDynamicSizing={false}
+    stackBehavior="replace"
+    keyboardBehavior="interactive"
+    android_keyboardInputMode="adjustResize"
+    backgroundStyle={{ backgroundColor: 'transparent' }}
+    backgroundComponent={GlassBackground}
+    handleComponent={GlassHandle}
+  >
+    <Animated.View
+      key={activeBottomSheet}
+      style={{ flex: 1 }}
+      entering={FadeIn.duration(240)}
+    >
+      <DriverStatus
+        status={status}
+        driver={models?.driver}
+        origin={models.originCity}
+        destination={models.destinationCity}
+        tripDuration={models.tripDuration}
+        onCancelTrip={onCancelTrip}
+        onDetailsTrip={operations.handleDetailsForm}
+        onShareLocation={onShareLocation}
+        onMessageDriver={operations.handleMessageDriver}
+        onCallDriver={operations.handleCallDriver}
+        bttmSheetRef={driverStatusSheetRef}
+        unreadMessageCount={models.unreadMessageCount}
+      />
+    </Animated.View>
+  </FlowBottomSheet>
+) : null);
+
+const TripStatusSheets = memo(({ models, operations, onShareLocation }) => (
+  <>
+    <DriverStatusSheet
+      sheetRef={models.tripStartedSheetRef}
+      sheetName="tripStarted"
+      activeBottomSheet={models.activeBottomSheet}
+      expandedSnapPoint={SHEET_SNAP_POINTS.driverStatusExpanded}
+      status={TRIP_STATUS.DRIVER_EN_ROUTE}
+      models={models}
+      operations={operations}
+      onShareLocation={onShareLocation}
+      onCancelTrip={operations.handlePreCancelButtonPress}
+      driverStatusSheetRef={models.tripStartedSheetRef}
+    />
+    <DriverStatusSheet
+      sheetRef={models.driverArrivingSheetRef}
+      sheetName="driverArriving"
+      activeBottomSheet={models.activeBottomSheet}
+      expandedSnapPoint={SHEET_SNAP_POINTS.driverStatusExpanded}
+      status={TRIP_STATUS.DRIVER_ARRIVED}
+      models={models}
+      operations={operations}
+      onShareLocation={onShareLocation}
+      onCancelTrip={operations.handlePreCancelButtonPress}
+      driverStatusSheetRef={models.driverArrivingSheetRef}
+    />
+    <DriverStatusSheet
+      sheetRef={models.tripEndingSheetRef}
+      sheetName="tripEnding"
+      activeBottomSheet={models.activeBottomSheet}
+      expandedSnapPoint={SHEET_SNAP_POINTS.driverStatusExpandedNoCancel}
+      status={TRIP_STATUS.IN_PROGRESS}
+      models={models}
+      operations={operations}
+      onShareLocation={onShareLocation}
+      onCancelTrip={operations.handleCancelTrip}
+      driverStatusSheetRef={models.driverArrivingSheetRef}
+    />
+  </>
+));
+
+const MapModalHost = memo(({ models, operations }) => (
+  <>
+    <DestinationModal
+      visible={models.modalVisible}
+      closeModal={operations.closeDestinationModal}
+      onPlaceItemPress={operations.handlePressItemPress}
+      onMarkerDragPress={operations.handleInitiateDragMarkerSelection()}
+      onLocationTextInputFocus={operations.handleLocationTextInputFocus}
+      origin={models.locationSelection?.origin?.address || models.originCity}
+      destination={models.locationSelection?.destination?.address || models.destinationCity}
+      inputCurr={models.locationSelection?.origin?.isCurrentLocation || models.isCurrLocation}
+      activeInputIndex={models.inputLocationObject}
+      userLocation={models.userLocation}
+    />
+    <SavedAddressesModal
+      visible={models.modalSavedPlacesVisible}
+      onClose={operations.closeSavedPlacesModal}
+      onMapDragRequest={operations.handleSavedAddressMapDragRequest}
+    />
+    <ChatModal
+      visible={models.modalChatVisible}
+      closeModal={operations.closeChatModel}
+      idService={models.service?._id}
+      driver={models?.driver}
+      setUnreadMessageCount={operations.setUnreadMessageCount}
+      onCallDriver={operations.handleCallDriver}
+    />
+    <PreCancelationModal
+      visible={models.modalPreCancelVisible}
+      closeModal={operations.closePreCancelModal}
+      onPressCancel={operations.handlePressCancel}
+    />
+    <CancelationModal
+      questions={models.questions}
+      onPressQuestion={operations.handlePressQuestion}
+      visible={models.modalCancelVisible}
+      closeModal={operations.closeCancelModal}
+      alert={operations.handleCancelAlert}
+    />
+    <ConfirmationModal
+      visible={models.modalConfirmationVisible}
+      closeModal={operations.closeConfirmationModal}
+      driver={{
+        photo: models.driver?.photo,
+        name: models.driver?.name,
+      }}
+      payment_total={models.ridePrice}
+      payment_type={models.service?.payment?.method}
+      service={{
+        service: models.service,
+        driver: models.driver,
+      }}
+    />
+  </>
+));
 
 const MapScreen = memo(() => {
   const logger = useLogger('MapScreen');
@@ -238,7 +495,8 @@ const MapScreen = memo(() => {
   // Memoized map markers for performance
   const memoizedMapMarkers = useMemo(() => {
     return models.mapMarkers.map((item, index) => {
-      if (models.driver && models.driverLocation && models.tripState && index === 0) {
+      if (!isValidCoordinate(item)) return null;
+      if (models.driver && models.tripState && index === 0) {
         return null;
       }
 
@@ -270,7 +528,6 @@ const MapScreen = memo(() => {
     models.mapMarkers,
     models.tripState,
     models.driver,
-    models.driverLocation,
     models.originCity,
     models.destinationCity,
     models.tripDuration,
@@ -278,22 +535,26 @@ const MapScreen = memo(() => {
   ]);
 
   const handleShareLocation = useCallback(async () => {
-    if (!models.userLocation) return;
-    const { latitude, longitude } = models.userLocation;
+    if (!isValidCoordinate(models.userLocation)) return;
+    const { latitude, longitude, receivedAt } = models.userLocation;
     const url = `https://maps.google.com/?q=${latitude},${longitude}`;
+    const isStale = receivedAt && Date.now() - receivedAt > 120000;
     try {
-      await Share.share({ message: `A minha localização atual: ${url}`, url });
+      const label = isStale ? 'A última localização conhecida do meu telemóvel' : 'A minha localização atual';
+      await Share.share({ message: `${label}: ${url}`, url });
     } catch (_) {}
   }, [models.userLocation]);
 
   // Memoized spots item renderer
   const renderSpotsItem = useCallback(({ item, index }) => {
-    const isAddFavorite = item.place.name === "Adicionar Favorito";
-    const iconSource = getPlaceIcon(item.place.name);
+    const place = item?.place || {};
+    const placeName = place.name || 'Local guardado';
+    const isAddFavorite = placeName === "Adicionar Favorito";
+    const iconSource = getPlaceIcon(placeName);
     return (
       <CardSpots
-        title={item.place.name}
-        description={item.place.description || item.place.address}
+        title={placeName}
+        description={place.description || place.address}
         onPress={isAddFavorite
           ? operations.handleAddFavouriteButtonPress
           : operations.handleOnFavouriteButtonPress(item)}
@@ -304,8 +565,30 @@ const MapScreen = memo(() => {
     );
   }, [operations.handleAddFavouriteButtonPress, operations.handleOnFavouriteButtonPress]);
 
+  // The route is normally a second or two behind opening this sheet, so an
+  // outright failure message here would cry wolf on every request. Only call it
+  // unroutable once the two points are effectively the same, which is the case
+  // the route can never resolve; otherwise say we are still calculating.
+  const sameOriginAndDestination =
+    models.markers?.length === 2 &&
+    isValidCoordinate(models.markers[0]) &&
+    isValidCoordinate(models.markers[1]) &&
+    Math.hypot(
+      (models.markers[1].latitude - models.markers[0].latitude) * 111320,
+      (models.markers[1].longitude - models.markers[0].longitude) * 111320 *
+        Math.cos((models.markers[0].latitude * Math.PI) / 180),
+    ) < 25;
+
+  const carTypesEmptyMessage = sameOriginAndDestination
+    ? 'O destino é praticamente o mesmo que o local de recolha. Escolha um destino diferente.'
+    : 'A calcular percurso...';
+
   // Memoized car types item renderer
   const renderCarTypesItem = useCallback(({ item }) => {
+    // Returning undefined here renders an empty list with no explanation. When
+    // the route cannot be computed (identical origin and destination, or a
+    // failed Directions call) that leaves the user on a dead-end sheet with no
+    // options, no price and no way to understand why — see ListEmptyComponent.
     if (models.mapDirections && models.prices) {
       const priceperkm =
         Math.floor(models.mapDirections.distance) * 1000 + Number(item.price);
@@ -326,182 +609,59 @@ const MapScreen = memo(() => {
         />
       );
     }
-  }, [models.mapDirections, models.prices, models.user?.discount || {}, operations.handleTypeCarPress]);
+  }, [models.mapDirections, models.prices, models.user?.discount, operations.handleTypeCarPress]);
 
   // Memoized cars around markers for performance
   const memoizedCarsAround = useMemo(() => {
     if (models?.service) return null;
 
-    return models.carsAround.map((item, index) => (
-      <Marker coordinate={item} key={`car-around-${index}-${item.latitude}-${item.longitude}`}>
-        <Image
-          source={getCarIconByColor(item.color || 'default')}
-          style={{
-            width: 50,
-            height: 50,
-            transform: [{ rotate: "-90deg" }],
-          }}
-          resizeMode="contain"
-        />
-      </Marker>
-    ));
+    return models.carsAround
+      .filter(isValidCoordinate)
+      .map((item, index) => (
+        <Marker coordinate={item} key={`car-around-${index}-${item.latitude}-${item.longitude}`}>
+          <Image
+            source={getCarIconByColor(item.color || 'default')}
+            style={{
+              width: 50,
+              height: 50,
+              transform: [{ rotate: "-90deg" }],
+            }}
+            resizeMode="contain"
+          />
+        </Marker>
+      ));
   }, [models.carsAround, models?.service]);
 
   const navigation = useNavigation();
+  const drawerReturnSheetRef = useRef('initial');
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('drawerClose', () => {
+      if (!models.modalVisible && !models.modalSavedPlacesVisible && !models.service) {
+        operations.presentBottomSheet(drawerReturnSheetRef.current || 'initial');
+      }
+    });
+    return unsubscribe;
+  }, [navigation, models.modalVisible, models.modalSavedPlacesVisible, models.service, operations.presentBottomSheet]);
 
   const openDrawer = () => {
+    // Do not leave a sheet portal above the drawer. This also prevents a
+    // dismissed sheet from intercepting touches when the drawer closes.
+    drawerReturnSheetRef.current = models.activeBottomSheet || 'initial';
+    operations.dismissAllBottomSheets();
     navigation.openDrawer();
   };
 
   return (
     <View style={styles.container}>
-      <MapView
-        provider={PROVIDER_GOOGLE}
-        ref={models.mapRef}
-        showsUserLocation
-        onUserLocationChange={operations.handleUserLocationChange}
-        showsMyLocationButton={false}
-        onRegionChangeComplete={operations.handleDragMarkerPositionChange}
-        toolbarEnabled={false}
-        customMapStyle={customStyleMap}
-        style={styles.map}
-      >
-        {models?.userLocation && (
-          <Circle
-            center={models?.userLocation}
-            radius={50}
-            strokeWidth={1}
-            strokeColor="rgba(0, 0, 255, 0.5)"
-            fillColor="rgba(0, 0, 255, 0.2)"
-          />
-        )}
-
-        {memoizedMapMarkers}
-
-        <SmoothDriverMarker
-          driver={models.driver}
-          location={models.driverLocation}
-        />
-
-        {models.isRouteVisible && (
-          <>
-            <MapViewDirections
-              origin={models.mapMarkers[0]}
-              destination={models.mapMarkers[1]}
-              apikey={process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}
-              strokeWidth={0} // Invisible: we only use it for calculation logic
-              onReady={operations.handleMapDirectionsReady}
-              resetOnChange={false}
-            />
-            {models.currentRoute && models.currentRoute.length > 0 && (
-              <Polyline
-                coordinates={models.currentRoute}
-                strokeColor={colors.primary}
-                strokeWidth={scale(7)}
-                lineJoin="round"
-                lineCap="round"
-                tappable={false}
-              />
-            )}
-          </>
-        )}
-
-        {memoizedCarsAround}
-      </MapView>
+      <MapViewport models={models} operations={operations} mapMarkers={memoizedMapMarkers} carsAround={memoizedCarsAround} />
 
 
-      {models.isRouteVisible && !models.service ? (
-        <TouchableOpacity style={styles.details} onPress={operations.handleBackButtonPress} activeOpacity={0.8}>
-          <BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
-          <Icon name="arrow-back" size={scale(24)} color={colors.primary} />
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={styles.menuGlassButton}
-          onPress={() => openDrawer()}
-          activeOpacity={0.8}
-        >
-          <BlurView
-            intensity={90}
-            tint="systemMaterialLight"
-            style={StyleSheet.absoluteFill}
-          />
-          <Icon name="menu" size={scale(24)} color={colors.primary} />
-        </TouchableOpacity>
-      )}
+      <MapControls models={models} operations={operations} navigation={navigation} recenterAnimatedStyle={recenterAnimatedStyle} openDrawer={openDrawer} />
 
-
-      {!models.isRouteVisible && !models.service && (
-        <View style={styles.bellWrapper}>
-          <TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('Notificacoes')} activeOpacity={0.8}>
-            <BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
-            <Icon name="notifications-none" size={scale(24)} color={colors.primary} />
-          </TouchableOpacity>
-          {models.unreadNotificationsCount > 0 && (
-            <View style={styles.bellBadge}>
-              <Text style={styles.bellBadgeText}>
-                {models.unreadNotificationsCount > 99 ? '99+' : models.unreadNotificationsCount}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {models.detailsInfo && (
-        <TouchableOpacity style={styles.backDetails} onPress={operations.handleBackDetailsButtonPress} activeOpacity={0.8}>
-          <BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
-          <Icon name="arrow-back" size={scale(24)} color={colors.primary} />
-        </TouchableOpacity>
-      )}
-
-      {!models.isRouteVisible && !models.service && (
-        <Animated.View entering={FadeIn.duration(300)} style={styles.locationChipWrapper}>
-          <ScalePressable onPress={operations.handleRecenterMap} style={styles.locationChip}>
-            <Icon name="my-location" size={scale(14)} color={colors.primary} style={{ marginRight: spacing.xs }} />
-            <View>
-              <Text style={styles.locationChipLabel}>Sua Localização</Text>
-              <Text style={styles.locationChipAddress} numberOfLines={1}>
-                {models.currentLocationLabel || 'Obtendo localização...'}
-              </Text>
-            </View>
-          </ScalePressable>
-        </Animated.View>
-      )}
-
-      {models.markerVisible && (
-        <View
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: "50%",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            zIndex: 100,
-          }}
-          pointerEvents="none"
-        >
-          <CustomMarker
-            title={models.markerCity || "Carregando..."}
-            color={models.inputLocationObject === 0 ? colors.primary : colors.destinationPin}
-          />
-        </View>
-      )}
-
-      {models.isRouteVisible && (
-        <Animated.View entering={FadeIn.duration(200)} style={[styles.recenterButtonWrapper, recenterAnimatedStyle]}>
-          <ScalePressable onPress={operations.handleRecenterMap} style={styles.recenterButton}>
-            <BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
-            <Icon name="my-location" size={scale(24)} color={colors.primary} />
-          </ScalePressable>
-        </Animated.View>
-      )}
-
-      <BottomSheetModalProvider>
-
-        <BottomSheetModal
+        {models.activeBottomSheet === 'initial' && <FlowBottomSheet
           ref={models.bottomSheetModalRef}
+          onDismiss={() => operations.handleBottomSheetDismiss('initial')}
           index={0}
           snapPoints={[scale(260)]}
           enableDynamicSizing={false}
@@ -513,7 +673,7 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <View style={styles.sheetContainerGlass}>
+          <BottomSheetView style={styles.sheetContainerGlass}>
             {/* Section header: Rebocar para + Ver tudo */}
             <Animated.View entering={FadeInDown.delay(60).springify()} style={styles.sectionHeaderRow}>
               <Text style={styles.sectionHeaderTitle}>Rebocar para</Text>
@@ -527,7 +687,7 @@ const MapScreen = memo(() => {
               <FlatList
                 data={models.favPlaces}
                 renderItem={renderSpotsItem}
-                keyExtractor={(item) => item._id.toString()}
+                keyExtractor={(item, index) => String(item?._id ?? `favorite-${index}`)}
                 horizontal={true}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: scale(8) }}
@@ -551,11 +711,12 @@ const MapScreen = memo(() => {
                 </View>
               </ScalePressable>
             </Animated.View>
-          </View>
-        </BottomSheetModal>
+          </BottomSheetView>
+        </FlowBottomSheet>}
 
-        <BottomSheetModal
+        {models.activeBottomSheet === 'carType' && <FlowBottomSheet
           ref={models.carTypeSelectionSheetRef}
+          onDismiss={() => operations.handleBottomSheetDismiss('carType')}
           index={0}
           snapPoints={[scale(270)]}
           enablePanDownToClose={false}
@@ -580,15 +741,21 @@ const MapScreen = memo(() => {
               SELECIONE O TIPO DE CARRO
             </Text>
             <FlatList
-              data={models.prices}
+              data={models.mapDirections && models.prices ? models.prices : []}
               renderItem={renderCarTypesItem}
-              keyExtractor={(item) => item._id.toString()}
+              keyExtractor={(item, index) => String(item?._id ?? `price-${index}`)}
+              ListEmptyComponent={
+                <Text style={styles.carTypesEmptyText}>
+                  {carTypesEmptyMessage}
+                </Text>
+              }
             />
           </Animated.View>
-        </BottomSheetModal>
+        </FlowBottomSheet>}
 
-        <BottomSheetModal
+        {models.activeBottomSheet === 'userCarInfo' && <FlowBottomSheet
           ref={models.userCarInfoSheetRef}
+          onDismiss={() => operations.handleBottomSheetDismiss('userCarInfo')}
           index={0}
           snapPoints={[scale(380), scale(500)]}
           enableDynamicSizing={false}
@@ -616,10 +783,11 @@ const MapScreen = memo(() => {
               }}
             />
           </Animated.View>
-        </BottomSheetModal>
+        </FlowBottomSheet>}
 
-        <BottomSheetModal
+        {models.activeBottomSheet === 'payment' && <FlowBottomSheet
           ref={models.paymentOptionsSheetRef}
+          onDismiss={() => operations.handleBottomSheetDismiss('payment')}
           index={0}
           snapPoints={[scale(320)]}
           enablePanDownToClose={false}
@@ -634,9 +802,10 @@ const MapScreen = memo(() => {
           <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
             <PaymentOptions handleConfirmPaymentPress={operations.handleConfirmPaymentPress} models={models} />
           </Animated.View>
-        </BottomSheetModal>
-        <BottomSheetModal
+        </FlowBottomSheet>}
+        {models.activeBottomSheet === 'rideSearch' && <FlowBottomSheet
           ref={models.rideSearchSheetRef}
+          onDismiss={() => operations.handleBottomSheetDismiss('rideSearch')}
           index={0}
           snapPoints={[scale(270), scale(350)]}
           enablePanDownToClose={false}
@@ -663,117 +832,19 @@ const MapScreen = memo(() => {
               calculateProgress={operations.calculateProgress}
             />
           </Animated.View>
-        </BottomSheetModal>
+        </FlowBottomSheet>}
 
-        <BottomSheetModal
-          ref={models.tripStartedSheetRef}
-          index={0}
-          snapPoints={[scale(310), scale(500)]}
-          enablePanDownToClose={false}
-          enableDynamicSizing={false}
-          stackBehavior="replace"
-          keyboardBehavior="interactive"
-          android_keyboardInputMode="adjustResize"
-          backgroundStyle={{ backgroundColor: 'transparent' }}
-          backgroundComponent={GlassBackground}
-          handleComponent={GlassHandle}
-        >
-          <Animated.View
-            key={models.activeBottomSheet}
-            style={{ flex: 1 }}
-            entering={FadeIn.duration(240)}
-          >
-            <DriverStatus
-              status={TRIP_STATUS.DRIVER_EN_ROUTE}
-              driver={models?.driver}
-              origin={models.originCity}
-              destination={models.destinationCity}
-              tripDuration={models.tripDuration}
-              onCancelTrip={operations.handlePreCancelButtonPress}
-              onDetailsTrip={operations.handleDetailsForm}
-              onShareLocation={handleShareLocation}
-              onMessageDriver={operations.handleMessageDriver}
-              onCallDriver={operations.handleCallDriver}
-              bttmSheetRef={models.tripStartedSheetRef}
-              unreadMessageCount={models.unreadMessageCount}
-            />
-          </Animated.View>
-        </BottomSheetModal>
+        <TripStatusSheets
+          models={models}
+          operations={operations}
+          onShareLocation={handleShareLocation}
+        />
 
-        <BottomSheetModal
-          ref={models.driverArrivingSheetRef}
-          index={0}
-          snapPoints={[scale(310), scale(425)]}
-          enablePanDownToClose={false}
-          enableDynamicSizing={false}
-          stackBehavior="replace"
-          keyboardBehavior="interactive"
-          android_keyboardInputMode="adjustResize"
-          backgroundStyle={{ backgroundColor: 'transparent' }}
-          backgroundComponent={GlassBackground}
-          handleComponent={GlassHandle}
-        >
-          <Animated.View
-            key={models.activeBottomSheet}
-            style={{ flex: 1 }}
-            entering={FadeIn.duration(240)}
-          >
-            <DriverStatus
-              status={TRIP_STATUS.DRIVER_ARRIVED}
-              driver={models?.driver}
-              origin={models.originCity}
-              destination={models.destinationCity}
-              tripDuration={models.tripDuration}
-              onCancelTrip={operations.handleCancelTrip}
-              onDetailsTrip={operations.handleDetailsForm}
-              onShareLocation={handleShareLocation}
-              onMessageDriver={operations.handleMessageDriver}
-              onCallDriver={operations.handleCallDriver}
-              bttmSheetRef={models.driverArrivingSheetRef}
-              unreadMessageCount={models.unreadMessageCount}
-            />
-          </Animated.View>
-        </BottomSheetModal>
-
-        <BottomSheetModal
-          ref={models.tripEndingSheetRef}
-          index={0}
-          snapPoints={[scale(310), scale(435)]}
-          enablePanDownToClose={false}
-          enableDynamicSizing={false}
-          stackBehavior="replace"
-          keyboardBehavior="interactive"
-          android_keyboardInputMode="adjustResize"
-          backgroundStyle={{ backgroundColor: 'transparent' }}
-          backgroundComponent={GlassBackground}
-          handleComponent={GlassHandle}
-        >
-          <Animated.View
-            key={models.activeBottomSheet}
-            style={{ flex: 1 }}
-            entering={FadeIn.duration(240)}
-          >
-            <DriverStatus
-              status={TRIP_STATUS.IN_PROGRESS}
-              driver={models?.driver}
-              origin={models.originCity}
-              destination={models.destinationCity}
-              tripDuration={models.tripDuration}
-              onCancelTrip={operations.handleCancelTrip}
-              onDetailsTrip={operations.handleDetailsForm}
-              onShareLocation={handleShareLocation}
-              onMessageDriver={operations.handleMessageDriver}
-              onCallDriver={operations.handleCallDriver}
-              bttmSheetRef={models.driverArrivingSheetRef}
-              unreadMessageCount={models.unreadMessageCount}
-            />
-          </Animated.View>
-        </BottomSheetModal>
-
-        <BottomSheetModal
+        {models.activeBottomSheet === 'details' && <FlowBottomSheet
           ref={models.bottomSheetModalRefDetails}
+          onDismiss={() => operations.handleBottomSheetDismiss('details')}
           index={0}
-          snapPoints={[scale(520)]}
+          snapPoints={[SHEET_SNAP_POINTS.details]}
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
@@ -794,13 +865,15 @@ const MapScreen = memo(() => {
                 paymentPrice={models.ridePrice}
                 type={models?.service?.type_car}
                 onBackPress={operations.handleBackDetailsButtonPress}
+                onMessageDriver={operations.handleMessageDriver}
               />
             )}
           </Animated.View>
-        </BottomSheetModal>
+        </FlowBottomSheet>}
 
-        <BottomSheetModal
+        {models.activeBottomSheet === 'dragMarker' && <FlowBottomSheet
           ref={models.bottomSheetModalDragMarker}
+          onDismiss={() => operations.handleBottomSheetDismiss('dragMarker')}
           index={0}
           snapPoints={snapPoints}
           enablePanDownToClose={false}
@@ -851,81 +924,45 @@ const MapScreen = memo(() => {
               </TouchableOpacity>
             </View>
           </View>
-        </BottomSheetModal>
+        </FlowBottomSheet>}
 
-      </BottomSheetModalProvider>
-
-      <DestinationModal
-        visible={models.modalVisible}
-        closeModal={operations.closeDestinationModal}
-        onPlaceItemPress={operations.handlePressItemPress}
-        onMarkerDragPress={operations.handleInitiateDragMarkerSelection()}
-        onLocationTextInputFocus={operations.handleLocationTextInputFocus}
-        origin={models.locationSelection?.origin?.address || models.originCity}
-        destination={models.locationSelection?.destination?.address || models.destinationCity}
-        inputCurr={models.locationSelection?.origin?.isCurrentLocation || models.isCurrLocation}
-        activeInputIndex={models.inputLocationObject}
-      />
-
-      {/* NEW: Simplified saved addresses system - no complex state management */}
-      <SavedAddressesModal
-        visible={models.modalSavedPlacesVisible}
-        onClose={operations.closeSavedPlacesModal}
-        onMapDragRequest={operations.handleSavedAddressMapDragRequest}
-      />
-
-      <ChatModal
-        visible={models.modalChatVisible}
-        closeModal={operations.closeChatModel}
-        idService={models.service?._id}
-        driver={models?.driver}
-        setUnreadMessageCount={operations.setUnreadMessageCount}
-        onCallDriver={operations.handleCallDriver}
-      />
-
-
-      <PreCancelationModal
-        visible={models.modalPreCancelVisible}
-        closeModal={operations.closePreCancelModal}
-        onPressCancel={operations.handlePressCancel}
-      />
-
-      <CancelationModal
-        questions={models.questions}
-        onPressQuestion={operations.handlePressQuestion}
-        visible={models.modalCancelVisible}
-        closeModal={operations.closeCancelModal}
-        alert={operations.handleCancelAlert}
-      />
-
-      <ConfirmationModal
-        visible={models.modalConfirmationVisible}
-        closeModal={operations.closeConfirmationModal}
-        driver={{
-          photo: models.driver?.photo,
-          name: models.driver?.name,
-        }}
-        payment_total={models.ridePrice}
-        payment_type={models.service?.payment?.method}
-        service={{
-          service: models.service,
-          driver: models.driver
-        }}
-      />
+      <MapModalHost models={models} operations={operations} />
     </View>
   );
 });
 
 const styles = StyleSheet.create({
+  markerOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: '50%',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    zIndex: 100,
+  },
   container: {
     flex: 1,
   },
   map: {
     flex: 1,
   },
+  carTypesEmptyText: {
+    textAlign: 'center',
+    color: colors.textSecondary,
+    fontSize: scale(14),
+    paddingHorizontal: scale(24),
+    paddingVertical: scale(16),
+    lineHeight: scale(20),
+  },
   driverCarIcon: {
     width: scale(50),
     height: scale(50),
+  },
+  // Faded: this is the last position reported, not a confirmed live one.
+  driverCarIconStale: {
+    opacity: 0.4,
   },
   bellWrapper: {
     position: 'absolute',

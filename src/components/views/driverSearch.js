@@ -3,7 +3,8 @@ import { StyleSheet, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import ProgressBar from "react-native-progress-bar-horizontal";
 import RouteItem from "../cards/routeItem";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import { colors, spacing, borderRadius } from "../../theme";
 
 const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCancelSearch, calculateProgress }) => {

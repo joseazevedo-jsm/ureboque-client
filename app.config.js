@@ -6,6 +6,7 @@ export default {
         slug: "ureboque-client",
         scheme: "ureboque-client",
         version: "1.0.0",
+        newArchEnabled: true,
         assetBundlePatterns: [
             "**/*"
         ],
@@ -17,7 +18,18 @@ export default {
                 }
             ],
             [
-                "@sentry/react-native/expo",
+                "expo-location",
+                {
+                    "locationAlwaysAndWhenInUsePermission": "This app uses your location during an active roadside assistance service, including when the screen is locked."
+                }
+            ],
+            "expo-asset",
+            "expo-font",
+            "expo-splash-screen",
+            "expo-status-bar",
+            "./plugins/withAndroidGoogleMapsEnv",
+            [
+                "@sentry/react-native",
                 {
                     "organization": "ureboque",
                     "project": "client"
@@ -28,14 +40,10 @@ export default {
             permissions: [
                 "android.permission.RECORD_AUDIO",
                 "android.permission.ACCESS_FINE_LOCATION",
-                "android.permission.ACCESS_COARSE_LOCATION"
+                "android.permission.ACCESS_COARSE_LOCATION",
+                "android.permission.ACCESS_BACKGROUND_LOCATION"
             ],
-            package: "com.ureboque.client",
-            config: {
-                googleMaps: {
-                    apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
-                }
-            }
+            package: "com.ureboque.client"
         },
         ios: {
             bundleIdentifier: "com.ureboque.client",

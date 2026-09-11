@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import useProfileScreen from "../components/profile/useProfileScreen";
 import { useLogger } from "../hooks/useLogger";
 import { extractCountryCode, extractPhoneNumber } from "../utils/phoneUtils";

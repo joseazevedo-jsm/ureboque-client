@@ -10,7 +10,8 @@ import {
   Keyboard,
   ActivityIndicator,
 } from "react-native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import CountryPickerWithFlag from "../components/login/CountryPickerWithFlag";
 import { scale } from "react-native-size-matters";
 import { useLoginScreen } from "../components/login/useLoginScreen";
@@ -83,6 +84,7 @@ const LoginScreen = () => {
                           style={styles.input}
                           placeholderTextColor="#999"
                           keyboardType="numeric"
+                          maxLength={15}
                           placeholder="Telefone"
                           value={models.number}
                           onChangeText={operations.handleNumberChange}
@@ -180,6 +182,7 @@ const LoginScreen = () => {
       </KeyboardAvoidingWrapper>
       <OTPModal
         visible={models.modalOtpVisible}
+        hasError={models.otpError}
         OTPChange={operations.handleOTPChange}
         code={models.codeOTP}
         number={`+ ${models.callingCode} ${models.number}`}

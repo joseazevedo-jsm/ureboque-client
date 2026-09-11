@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+const Icon = MaterialIcons;
 import { ScalePressable } from '../../common/ScalePressable';
 import { colors, shadows, spacing, borderRadius } from '../../../theme';
 
@@ -57,7 +58,7 @@ const InsuranceList = ({ insurances, startAdd, startEdit, deleteInsuranceRecord,
         <FlatList
           data={insurances}
           renderItem={renderItem}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item, index) => String(item?._id ?? `insurance-${index}`)}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.emptyState}>

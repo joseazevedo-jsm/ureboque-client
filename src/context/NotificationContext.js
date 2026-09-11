@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import NotificationService from '../services/NotificationService';
 import { useLogger } from '../hooks/useLogger';
 import { AppState } from 'react-native';
@@ -19,22 +19,25 @@ export const NotificationProvider = ({ children }) => {
   const logger = useLogger('NotificationContext');
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [notificationPermissions, setNotificationPermissions] = useState(false);
+  const mountedRef = useRef(true);
 
   // Initialize notification permissions and response handling on mount
   useEffect(() => {
+    mountedRef.current = true;
     let subscription = null;
     
     try {
       // Request permissions
       NotificationService.requestPermissions()
         .then(granted => {
+          if (!mountedRef.current) return;
           setNotificationPermissions(granted);
           logger.info('Notification permissions requested', { granted });
         })
         .catch(error => {
           logger.error('Failed to request notification permissions', error);
           // Set permissions to false on error to prevent further notification attempts
-          setNotificationPermissions(false);
+          if (mountedRef.current) setNotificationPermissions(false);
         });
 
       // Handle notification responses (when user taps notification)
@@ -54,6 +57,7 @@ export const NotificationProvider = ({ children }) => {
     }
 
     return () => {
+      mountedRef.current = false;
       if (subscription) {
         subscription.remove();
       }
@@ -61,8 +65,8 @@ export const NotificationProvider = ({ children }) => {
   }, [logger]);
 
   // Handle incoming messages for notifications
-  const handleIncomingMessages = (messages, user, chatModalOpen = false) => {
-    if (!messages || messages.length === 0) return;
+  const handleIncomingMessages = useCallback((messages, user, chatModalOpen = false) => {
+    if (!mountedRef.current || !messages || messages.length === 0) return;
 
     // Only process if chat modal is closed
     if (chatModalOpen) return;
@@ -79,26 +83,34 @@ export const NotificationProvider = ({ children }) => {
       // Update unread count
       setUnreadMessageCount(prev => prev + driverMessages.length);
 
-      // Show notification if app is in background
-      if (notificationPermissions) {
+      // The in-app unread badge handles foreground messages. Only show a
+      // system notification while the app is backgrounded.
+      if (notificationPermissions && AppState.currentState !== 'active') {
         NotificationService.showDriverMessageNotification(driverMessages.length)
           .catch(error => logger.error('Failed to show notification', error));
       }
     }
-  };
+  }, [notificationPermissions, logger]);
 
   // Reset unread count (when chat opens)
-  const resetUnreadCount = () => {
+  const resetUnreadCount = useCallback(() => {
+    if (!mountedRef.current) return;
     logger.info('Resetting unread message count');
     setUnreadMessageCount(0);
-  };
+  }, [logger]);
 
   // Increment unread count manually
-  const incrementUnreadCount = (count = 1) => {
+  const incrementUnreadCount = useCallback((count = 1) => {
+    if (!mountedRef.current) return;
     setUnreadMessageCount(prev => prev + count);
-  };
+  }, []);
 
-  const contextValue = {
+  const setUnreadMessageCountSafe = useCallback((value) => {
+    if (!mountedRef.current) return;
+    setUnreadMessageCount(value);
+  }, []);
+
+  const contextValue = useMemo(() => ({
     // State
     unreadMessageCount,
     notificationPermissions,
@@ -107,8 +119,8 @@ export const NotificationProvider = ({ children }) => {
     handleIncomingMessages,
     resetUnreadCount,
     incrementUnreadCount,
-    setUnreadMessageCount,
-  };
+    setUnreadMessageCount: setUnreadMessageCountSafe,
+  }), [unreadMessageCount, notificationPermissions, handleIncomingMessages, resetUnreadCount, incrementUnreadCount, setUnreadMessageCountSafe]);
 
   return (
     <NotificationContext.Provider value={contextValue}>

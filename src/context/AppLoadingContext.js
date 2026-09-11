@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import { useUserData } from './UserDataContext';
@@ -60,14 +60,11 @@ export const AppLoadingProvider = ({ children }) => {
     if (loadingPhases.auth && loadingPhases.userData) {
       logger.info('Navigation phase completed - app ready');
       setLoadingPhases(prev => ({ ...prev, navigation: true }));
-
-      const timer = setTimeout(() => {
-        logger.info('App is ready to show');
-        appReadyRef.current = true;
-        setAppReady(true);
-      }, 2000);
-
-      return () => clearTimeout(timer);
+      // All prerequisites are already complete. Deferring this state change
+      // behind a timer leaves the splash permanently mounted if the provider
+      // is refreshed/remounted before the callback runs.
+      appReadyRef.current = true;
+      setAppReady(true);
     }
   }, [loadingPhases.auth, loadingPhases.userData, logger]);
 
@@ -105,13 +102,13 @@ export const AppLoadingProvider = ({ children }) => {
     setRetryKey(k => k + 1);
   }, [isAuthenticated, userToken, fetchUserById, logger]);
 
-  const value = {
+  const value = useMemo(() => ({
     appReady,
     loadingTimedOut,
     loadingPhases,
     isLoading: !appReady,
     retryLoading,
-  };
+  }), [appReady, loadingTimedOut, loadingPhases, retryLoading]);
 
   return (
     <AppLoadingContext.Provider value={value}>

@@ -51,21 +51,26 @@ export const useSavedAddresses = () => {
   });
 
   // Form Handlers
-  const updateCurrentAddress = (field, value) => {
-    updateState({
-      currentAddress: { ...state.currentAddress, [field]: value }
-    });
-  };
+  const updateCurrentAddress = (field, value) => setState((prev) => ({
+    ...prev,
+    currentAddress: { ...prev.currentAddress, [field]: value },
+  }));
 
   const saveAddress = async () => {
     try {
       updateState({ isLoading: true, error: null });
 
+      const latitude = Number(state.currentAddress.coordinates?.latitude);
+      const longitude = Number(state.currentAddress.coordinates?.longitude);
+      if (!state.currentAddress.name?.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        throw new Error('Nome e localização são obrigatórios.');
+      }
+
       const addressData = {
         place: {
           name: state.currentAddress.name,
           description: state.currentAddress.description,
-          coordinates: state.currentAddress.coordinates,
+          coordinates: { latitude, longitude },
           instructions: state.currentAddress.instructions,
          }
       };

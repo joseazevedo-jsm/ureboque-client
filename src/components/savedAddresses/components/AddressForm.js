@@ -7,7 +7,8 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+const Icon = MaterialIcons;
 import * as Haptics from 'expo-haptics';
 import { ScalePressable } from '../../common/ScalePressable';
 import { colors, shadows, borderRadius, spacing, componentStyles } from '../../../theme';
@@ -60,6 +61,14 @@ const AddressForm = ({
 
   // Calculate if save button should be enabled
   const canSave = currentAddress.name && currentAddress.coordinates;
+
+  // A name with no location looks complete but cannot be saved; say so rather
+  // than leaving SALVAR inert.
+  const missingFields = [
+    !currentAddress.name && 'um nome',
+    !currentAddress.coordinates && 'uma localização',
+  ].filter(Boolean);
+  const hasStarted = !!currentAddress.name || !!currentAddress.coordinates;
 
   return (
     <View style={styles.container}>
@@ -119,6 +128,10 @@ const AddressForm = ({
             />
           </Animated.View>
         </View>
+
+        {hasStarted && missingFields.length > 0 ? (
+          <Text style={styles.formError}>{`Falta ${missingFields.join(' e ')}`}</Text>
+        ) : null}
 
         {/* Save Button - Same design */}
         <Animated.View entering={FadeInUp.delay(300).springify()}>
@@ -215,6 +228,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     ...shadows.sm,
   },
+  formError: { color: colors.error, fontSize: scale(13), marginTop: scale(6), marginLeft: scale(4) },
   saveButton: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.xl,

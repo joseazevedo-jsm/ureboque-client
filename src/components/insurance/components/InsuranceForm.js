@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+const Icon = MaterialIcons;
 import * as Haptics from 'expo-haptics';
 import { ScalePressable } from '../../common/ScalePressable';
 import { colors, shadows, borderRadius, spacing } from '../../../theme';
@@ -17,6 +18,17 @@ const InsuranceForm = ({ state, updateCurrentInsurance, saveInsuranceRecord, del
     currentInsurance.company.trim().length > 0 &&
     currentInsurance.policyNumber.trim().length > 0 &&
     currentInsurance.vehicleLicense.trim().length > 0;
+
+  // Name the missing field instead of leaving GUARDAR inert with no reason.
+  const missingFields = [
+    !currentInsurance.company.trim() && 'Seguradora',
+    !currentInsurance.policyNumber.trim() && 'Número de Apólice',
+    !currentInsurance.vehicleLicense.trim() && 'Matrícula do Veículo',
+  ].filter(Boolean);
+  const hasStarted =
+    currentInsurance.company.length > 0 ||
+    currentInsurance.policyNumber.length > 0 ||
+    currentInsurance.vehicleLicense.length > 0;
 
   const handleSave = async () => {
     try {
@@ -86,6 +98,11 @@ const InsuranceForm = ({ state, updateCurrentInsurance, saveInsuranceRecord, del
             />
           </Animated.View>
         ))}
+        {hasStarted && missingFields.length > 0 ? (
+          <Text style={styles.formError}>
+            {`Preencha ${missingFields.join(', ')} para guardar`}
+          </Text>
+        ) : null}
       </ScrollView>
 
       <Animated.View entering={FadeInUp.delay(400).springify()} style={styles.footer}>
@@ -134,6 +151,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   fieldGroup: { marginBottom: spacing.lg },
+  formError: { color: colors.error, fontSize: scale(13), marginTop: scale(4), marginLeft: scale(4) },
   fieldLabel: { fontSize: scale(13), fontWeight: '600', color: colors.textSecondary, marginBottom: spacing.xs },
   input: {
     backgroundColor: colors.surface,

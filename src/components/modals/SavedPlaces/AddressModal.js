@@ -9,7 +9,8 @@ import {
   View,
 } from "react-native";
 import { scale } from "react-native-size-matters";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import { useSavedPlacesModal } from "./components/useSavedPlacesModal.js";
 import {
   BottomSheetModal,
@@ -53,6 +54,9 @@ const AddressModal = ({
 
 
   const renderFlatListItem = ({ item }) => {
+    const latitude = Number(item?.geometry?.location?.lat);
+    const longitude = Number(item?.geometry?.location?.lng);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
     return (
       <PlaceItem
         key={item.place_id}
@@ -61,8 +65,8 @@ const AddressModal = ({
         address={item.formatted_address}
         onPress={onPressItem(
           {
-            latitude: item.geometry.location.lat,
-            longitude: item.geometry.location.lng,
+            latitude,
+            longitude,
           },
           item.formatted_address,
           models.bottomSheetModalAddAddress,

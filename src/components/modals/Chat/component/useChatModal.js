@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { UserContext } from "../../../../context/UserContext";
 import { useLogger } from "../../../../hooks/useLogger";
 import api from "../../../../services/APIService";
@@ -8,6 +8,7 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+  const requestGenerationRef = useRef(0);
 
   const normalizeMessages = useCallback((payload) => (
     (Array.isArray(payload) ? payload : payload?.messages || []).filter(msg => msg?.message)
@@ -21,6 +22,7 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
 
   // Function to fetch previous messages from the backend
   const fetchMessages = useCallback(async (idService) => {
+    const requestGeneration = requestGenerationRef.current;
     try {
       logger.info('Fetching messages for service', { idService });
       const response = await api.get(`/chats/${idService}`);
@@ -29,8 +31,8 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
         messageCount: response.data?.messages?.length,
         firstMessageId: response.data?.messages?.[0]?._id
       });
-      const data = await response.data;
-      if(data) {
+      const data = response.data;
+      if (data && requestGeneration === requestGenerationRef.current) {
         setMessages(normalizeMessages(data.messages));
       }
     } catch (error) {
@@ -39,6 +41,7 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
   }, [logger, normalizeMessages]);
 
   useEffect(() => {
+    requestGenerationRef.current += 1;
     // Clear messages when service ID changes (new service)
     logger.info('Chat service changed, clearing old messages', { idService });
     setMessages([]);
@@ -56,9 +59,11 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
       };
       socket.on("message", messageHandler);
       return () => {
+        requestGenerationRef.current += 1;
         socket.off("message", messageHandler);
       };
     }
+    return () => { requestGenerationRef.current += 1; };
   }, [socket, idService, fetchMessages, handleIncomingMessage, logger]);
 
   // Function to send a new message

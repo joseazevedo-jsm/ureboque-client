@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 const TripStateContext = createContext(null);
 
@@ -22,14 +22,16 @@ export const TripStateProvider = ({ children }) => {
     setTripStatus(status);
   }, []);
 
+  const value = useMemo(() => ({
+    isTripActive,
+    tripStatus,
+    setTripActive: updateTripActive,
+    setTripStatus: updateTripStatus,
+  }), [isTripActive, tripStatus, updateTripActive, updateTripStatus]);
+
   return (
     <TripStateContext.Provider
-      value={{
-        isTripActive,
-        tripStatus,
-        setTripActive: updateTripActive,
-        setTripStatus: updateTripStatus,
-      }}
+      value={value}
     >
       {children}
     </TripStateContext.Provider>

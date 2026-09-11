@@ -12,7 +12,8 @@ import {
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useInviteScreen } from "../components/invite/useInviteScreen";
 import { useLogger } from "../hooks/useLogger";

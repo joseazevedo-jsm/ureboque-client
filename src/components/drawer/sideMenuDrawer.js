@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scale } from "react-native-size-matters";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import Animated, { FadeInLeft } from "react-native-reanimated";
 import { UserContext } from "../../context/UserContext";
 import { useUserData } from "../../context/UserDataContext";

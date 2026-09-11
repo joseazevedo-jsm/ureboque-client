@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+const Icon = MaterialIcons;
 import { useNotifications } from './hooks/useNotifications';
 import { colors, shadows, spacing, borderRadius } from '../../theme';
 
@@ -100,7 +101,7 @@ const NotificationsModal = ({ visible, onClose }) => {
           <FlatList
             data={notifications}
             renderItem={renderItem}
-            keyExtractor={(item) => item._id}
+            keyExtractor={(item, index) => String(item?._id ?? `notification-${index}`)}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.list}
             ListEmptyComponent={

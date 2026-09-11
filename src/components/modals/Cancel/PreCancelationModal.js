@@ -2,7 +2,8 @@ import React from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import { BlurView } from "expo-blur";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import { colors, spacing, borderRadius, shadows, typography } from "../../../theme";
 import Animated, { FadeInUp } from "react-native-reanimated";
 

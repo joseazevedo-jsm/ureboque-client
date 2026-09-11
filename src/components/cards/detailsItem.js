@@ -1,6 +1,7 @@
 import React, { memo, useMemo } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, Image } from "react-native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
 import { colors, spacing, borderRadius, shadows } from "../../theme";
 
@@ -17,7 +18,7 @@ const PAYMENT_LABELS = {
 const imgDef =
   "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
 
-const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMethod, paymentPrice, type, onBackPress }) => {
+const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMethod, paymentPrice, type, onBackPress, onMessageDriver }) => {
   const carInfoParts = useMemo(() => {
     if (!clientCar) return { brand: '', model: '', color: '', license: '' };
     const parts = clientCar.split(' | ');
@@ -71,8 +72,8 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
               Eu não consigo falar em portug...
             </Text>
           </View>
-          <TouchableOpacity style={styles.actionButton}>
-            <Icon name="near-me" size={scale(20)} color={colors.surface} />
+          <TouchableOpacity style={styles.actionButton} onPress={onMessageDriver}>
+            <Icon name="message" size={scale(20)} color={colors.surface} />
           </TouchableOpacity>
         </View>
 

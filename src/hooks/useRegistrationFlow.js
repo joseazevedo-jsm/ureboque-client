@@ -103,6 +103,21 @@ export const useRegistrationFlow = (initialPhone = '', initialPassword = '', sho
     }
   }, [formData.firstName, formData.lastName, formData.email]);
 
+  // Per-field messages, so each error can be shown next to the input it refers
+  // to. The combined list at the bottom of the form is clipped by the
+  // ScrollView on shorter screens and never becomes visible without scrolling.
+  const personalInfoFieldErrors = {
+    firstName: formData.firstName.length > 0 && !formData.firstName.trim()
+      ? 'Nome é obrigatório'
+      : null,
+    lastName: formData.lastName.length > 0 && !formData.lastName.trim()
+      ? 'Sobrenome é obrigatório'
+      : null,
+    email: formData.email.length > 0 && !isValidEmail(formData.email)
+      ? 'Email deve ter um formato válido'
+      : null,
+  };
+
   // Form field update functions
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -298,6 +313,7 @@ export const useRegistrationFlow = (initialPhone = '', initialPassword = '', sho
     // Validation helpers
     passwordValidationRules,
     personalInfoValidationRules,
+    personalInfoFieldErrors,
     isPasswordValid,
     isPersonalInfoValid,
     calculatePasswordStrength,

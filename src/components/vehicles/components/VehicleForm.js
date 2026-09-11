@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, TextInput, Switch, StyleSheet, ScrollView } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+const Icon = MaterialIcons;
 import * as Haptics from 'expo-haptics';
 import { ScalePressable } from '../../common/ScalePressable';
 import { colors, shadows, borderRadius, spacing } from '../../../theme';
@@ -25,6 +26,22 @@ const VehicleForm = ({ state, updateCurrentVehicle, saveVehicle, deleteVehicle, 
     currentVehicle.model.trim() &&
     currentVehicle.color.trim() &&
     /^[A-Z0-9-]{5,9}$/.test(currentVehicle.license.trim().toUpperCase());
+
+  // The licence rule in particular is invisible: without this the button just
+  // stays inert and the user has no way to know what shape is expected.
+  const licenseTyped = currentVehicle.license.length > 0;
+  const licenseInvalid =
+    licenseTyped && !/^[A-Z0-9-]{5,9}$/.test(currentVehicle.license.trim().toUpperCase());
+  const missingFields = [
+    !currentVehicle.brand.trim() && 'Marca',
+    !currentVehicle.model.trim() && 'Modelo',
+    !currentVehicle.color.trim() && 'Cor',
+  ].filter(Boolean);
+  const hasStarted =
+    currentVehicle.brand.length > 0 ||
+    currentVehicle.model.length > 0 ||
+    currentVehicle.color.length > 0 ||
+    licenseTyped;
 
   const handleSave = async () => {
     try {
@@ -105,6 +122,14 @@ const VehicleForm = ({ state, updateCurrentVehicle, saveVehicle, deleteVehicle, 
         {currentVehicle.isDefault && (
           <Text style={styles.switchHint}>Este veículo será pré-preenchido automaticamente ao solicitar um reboque.</Text>
         )}
+        {licenseInvalid ? (
+          <Text style={styles.formError}>
+            A matrícula deve ter entre 5 e 9 caracteres (letras, números e hífen)
+          </Text>
+        ) : null}
+        {hasStarted && missingFields.length > 0 ? (
+          <Text style={styles.formError}>{`Preencha ${missingFields.join(', ')} para guardar`}</Text>
+        ) : null}
       </ScrollView>
 
       <Animated.View entering={FadeInUp.delay(400).springify()} style={styles.footer}>
@@ -154,6 +179,7 @@ const styles = StyleSheet.create({
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   gridItem: { width: '48%' },
+  formError: { color: colors.error, fontSize: scale(13), marginTop: scale(6), marginLeft: scale(4) },
   fieldLabel: { fontSize: scale(13), fontWeight: '600', color: colors.textSecondary, marginBottom: spacing.xs },
   input: {
     backgroundColor: colors.surface,

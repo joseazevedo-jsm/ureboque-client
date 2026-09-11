@@ -50,7 +50,7 @@ Based on the SYSTEM_ARCHITECTURE.md analysis, I've created a detailed, step-by-s
 ```json
 // app.json (line 24) - EXPOSED API KEY
 "googleMaps": {
-  "apiKey": "AIzaSyBqPFzMJ7TgohKLMZ8Q0Z1iRVmk63OWWpk"
+  "apiKey": "process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY"
 }
 ```
 
@@ -65,7 +65,7 @@ touch .env .env.development .env.staging .env.production
 2. **Update .env files**
 ```bash
 # .env.development
-EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBqPFzMJ7TgohKLMZ8Q0Z1iRVmk63OWWpk
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 EXPO_PUBLIC_UREBOQUE_API=http://localhost:3000
 EXPO_PUBLIC_SOCKET_URL=http://localhost:3000
 
@@ -1001,7 +1001,7 @@ import Header from 'react-native-elements/src/header/Header';
    // Before: Hardcoded credentials
    const apiOTP = axios.create({
      headers: {
-       Authorization: "Bearer hardcoded_token_here"
+       Authorization: "Bearer <token>"
      }
    });
    

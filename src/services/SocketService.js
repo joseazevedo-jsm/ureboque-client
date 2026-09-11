@@ -66,6 +66,7 @@ class SocketService {
   disconnect() {
     if (this.socket) {
       Logger.info('SocketService', 'Disconnecting socket', { socketId: this.socket.id });
+      this.socket.removeAllListeners();
       this.socket.disconnect();
       this.socket = null;
       Logger.debug('SocketService', 'Socket disconnected and cleaned up');

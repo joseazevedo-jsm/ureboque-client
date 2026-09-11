@@ -13,7 +13,8 @@ import {
   Keyboard,
 } from "react-native";
 import { scale } from "react-native-size-matters";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import { useDestinationModal } from "./components/useDestinationModal";
 import { colors, spacing, shadows, borderRadius, animations } from "../../../theme";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -28,12 +29,14 @@ const DestinationModal = ({
   destination,
   inputCurr,
   activeInputIndex,
+  userLocation,
 }) => {
   const { models, operations } = useDestinationModal(
     inputCurr,
     activeInputIndex,
     origin,
-    destination
+    destination,
+    userLocation
   );
 
   return (
@@ -111,20 +114,16 @@ const DestinationModal = ({
               </TouchableOpacity>
             </View>
 
-            {/* Drag on Map Option */}
-            <TouchableOpacity style={styles.mapOption} onPress={onMarkerDragPress}>
-              <View style={[styles.iconBubble, { backgroundColor: colors.mapOptionBubble }]}>
-                <Icon name="map" size={scale(20)} color={colors.mapOptionIcon} />
-              </View>
-              <Text style={styles.mapOptionText}>Definir localização no mapa</Text>
-              <Icon name="chevron-right" size={scale(20)} color={colors.textDisabled} />
-            </TouchableOpacity>
-
             <View style={styles.divider} />
 
             {/* Results List */}
             <View style={styles.listContainer}>
               <Text style={styles.sectionTitle}>Sugestões</Text>
+              {models.searchFailed && (
+                <Text style={styles.searchErrorText}>
+                  Não foi possível pesquisar endereços. Verifique a sua ligação à internet.
+                </Text>
+              )}
               <FlatList
                 data={models.places}
                 initialNumToRender={5}
@@ -135,17 +134,21 @@ const DestinationModal = ({
                     <TouchableOpacity
                       style={styles.suggestionItem}
                       onPress={() => {
+                        if (item.isMapOption) {
+                          onMarkerDragPress();
+                          return;
+                        }
                         onPlaceItemPress(item, models.activeInput);
                         if (models.activeInput === 'origin') {
                           operations.handleDestinationFocus();
                         }
                       }}
                     >
-                      <View style={[styles.iconBubble, { backgroundColor: colors.background }]}>
+                      <View style={[styles.iconBubble, { backgroundColor: item.isMapOption ? colors.mapOptionBubble : colors.background }]}>
                         <Icon
                           name={item.place_id === -1 ? "map" : item.place_id === 0 ? "my-location" : "place"}
                           size={scale(20)}
-                          color={colors.textSecondary}
+                          color={item.isMapOption ? colors.mapOptionIcon : colors.textSecondary}
                         />
                       </View>
                       <View style={styles.suggestionText}>
@@ -154,6 +157,13 @@ const DestinationModal = ({
                           <Text style={styles.suggestionAddress} numberOfLines={1}>{item.formatted_address}</Text>
                         )}
                       </View>
+                      {item.distanceKm != null && (
+                        <Text style={styles.suggestionDistance}>
+                          {item.distanceKm < 1
+                            ? `${Math.round(item.distanceKm * 1000)} m`
+                            : `${item.distanceKm.toFixed(1)} km`}
+                        </Text>
+                      )}
                       <Icon name="chevron-right" size={scale(20)} color={colors.textDisabled} />
                     </TouchableOpacity>
                   </Animated.View>
@@ -252,22 +262,6 @@ const styles = StyleSheet.create({
     marginLeft: scale(23),
     marginVertical: scale(2),
   },
-  mapOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing.xl,
-    padding: spacing.sm,
-    borderRadius: borderRadius.xl,
-    ...shadows.sm,
-  },
-  mapOptionText: {
-    flex: 1,
-    fontSize: scale(13),
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginLeft: spacing.md,
-  },
   divider: {
     height: 1,
     backgroundColor: colors.borderLight,
@@ -277,6 +271,12 @@ const styles = StyleSheet.create({
   listContainer: {
     flex: 1,
     paddingHorizontal: spacing.xl,
+  },
+  searchErrorText: {
+    fontSize: scale(13),
+    color: '#F44336',
+    marginBottom: spacing.md,
+    marginLeft: scale(4),
   },
   sectionTitle: {
     fontSize: scale(14),
@@ -306,6 +306,11 @@ const styles = StyleSheet.create({
     fontSize: scale(12),
     color: colors.textSecondary,
     marginTop: scale(2),
+  },
+  suggestionDistance: {
+    fontSize: scale(12),
+    color: colors.textMuted,
+    marginRight: spacing.xs,
   },
 });
 

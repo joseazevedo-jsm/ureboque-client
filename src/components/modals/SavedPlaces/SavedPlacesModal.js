@@ -8,7 +8,8 @@ import {
   View,
 } from "react-native";
 import { scale } from "react-native-size-matters";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import PlaceSavedItem from "../../cards/placeSavedItem";
 import { useSavedPlacesModal } from "./components/useSavedPlacesModal.js";
 import AddressModal from "./AddressModal";
@@ -28,20 +29,22 @@ const SavedPlacesModal = ({
   logger.debug("Modal props received", { addressCallBack, mapDrag });
 
   const renderFlatListItem = ({ item }) => {
+    const place = item?.place || {};
+    const placeName = place.name || 'Local guardado';
     const isAddHome =
-      item.place.name === "Adicionar Casa" && !item.place.coordinates;
+      placeName === "Adicionar Casa" && !place.coordinates;
     const isAddWork =
-      item.place.name === "Adicionar Trabalho" && !item.place.coordinates;
+      placeName === "Adicionar Trabalho" && !place.coordinates;
 
     if (isAddHome || isAddWork) {
       return (
         <PlaceSavedItem
           key={item._id}
-          place={item.place}
+          place={place}
           edit={models.edit}
           onPressEditItem={operations.handleAddFavouriteButtonPress()}
           add={true}
-          iconSource={getPlaceIcon(item.place.name)}
+          iconSource={getPlaceIcon(placeName)}
         />
       );
     }
@@ -49,15 +52,15 @@ const SavedPlacesModal = ({
     return (
       <PlaceSavedItem
         key={item._id}
-        place={item.place}
+        place={place}
         edit={models.edit}
         onPressEditItem={operations.handleAddressEditButtonPress(
           item.place,
           item._id
         )}
         add={false}
-        iconSource={getPlaceIcon(item.place.name)}
-        description={item.place.description || item.place.address}
+        iconSource={getPlaceIcon(placeName)}
+        description={place.description || place.address}
       />
     );
   };
@@ -108,7 +111,7 @@ const SavedPlacesModal = ({
                 <FlatList
                   data={models.savedPlaces}
                   renderItem={renderFlatListItem}
-                  keyExtractor={(item) => item._id.toString()}
+                  keyExtractor={(item, index) => String(item?._id ?? `saved-place-${index}`)}
                   keyboardShouldPersistTaps="always"
                   keyboardDismissMode="on-drag"
                   showsVerticalScrollIndicator={false}

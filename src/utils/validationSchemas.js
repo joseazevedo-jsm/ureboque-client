@@ -1,19 +1,25 @@
 import { validators } from './validation';
 
 // Login form validation schema
+// Messages here are surfaced directly on the login screen, so they are in the
+// app's language (pt).
 export const loginValidationSchema = {
   phoneNumber: [
     {
       validator: validators.required,
-      message: 'Phone number is required'
+      message: 'Introduza o seu número de telefone'
     },
     {
       validator: validators.phone,
-      message: 'Please enter a valid phone number'
+      message: 'Número de telefone inválido. Use apenas dígitos.'
     },
     {
       validator: (value) => validators.minLength(value, 9),
-      message: 'Phone number must be at least 9 digits'
+      message: 'O número de telefone deve ter pelo menos 9 caracteres'
+    },
+    {
+      validator: (value) => validators.maxLength(value, 15),
+      message: 'O número de telefone tem no máximo 15 dígitos'
     }
   ]
 };

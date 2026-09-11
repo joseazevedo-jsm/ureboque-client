@@ -1,14 +1,33 @@
 import { useContext, useState } from "react";
 import { useTextSearchQuery } from "../../../../models/places/useTextSearchQuery";
-import { useDebounce } from "use-debounce";
 import { useRef } from "react";
 import { useEffect } from "react";
 import { UserContext } from "../../../../context/UserContext";
+// Haversine distance in km between two lat/lng points.
+const distanceKm = (from, to) => {
+  const fromLatitude = Number(from?.latitude);
+  const fromLongitude = Number(from?.longitude);
+  const toLatitude = Number(to?.lat);
+  const toLongitude = Number(to?.lng);
+  if (!Number.isFinite(fromLatitude) || !Number.isFinite(fromLongitude) ||
+      !Number.isFinite(toLatitude) || !Number.isFinite(toLongitude)) return null;
+  const R = 6371;
+  const dLat = ((toLatitude - fromLatitude) * Math.PI) / 180;
+  const dLng = ((toLongitude - fromLongitude) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((fromLatitude * Math.PI) / 180) *
+      Math.cos((toLatitude * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
 export const useDestinationModal = (
   externalIsCurrLocation,
   externalActiveInputIndex,
   externalOrigin,
-  externalDestination
+  externalDestination,
+  userLocation
 ) => {
   const { user } = useContext(UserContext);
 
@@ -20,17 +39,26 @@ export const useDestinationModal = (
   const [inputIndex, setInputIndex] = useState();
 
   useEffect(() => {
-    const savedPlaces = user?.saved_places ? user.saved_places.map((item) => ({
-      place_id: item._id,
-      name: item.place.name,
-      geometry: {
-        location: {
-          lat: item.place.coordinates.latitude,
-          lng: item.place.coordinates.longitude,
+    const savedPlaces = (user?.saved_places || [])
+      .map((item) => ({
+        ...item,
+        normalizedCoordinates: {
+          latitude: Number(item?.place?.coordinates?.latitude),
+          longitude: Number(item?.place?.coordinates?.longitude),
         },
-      },
-      formatted_address: item.place.description,
-    })) : [];
+      }))
+      .filter((item) => Number.isFinite(item.normalizedCoordinates.latitude) && Number.isFinite(item.normalizedCoordinates.longitude))
+      .map((item) => ({
+        place_id: item._id,
+        name: item.place.name || 'Local guardado',
+        geometry: {
+          location: {
+            lat: item.normalizedCoordinates.latitude,
+            lng: item.normalizedCoordinates.longitude,
+          },
+        },
+        formatted_address: item.place.description,
+      }));
 
     setData(savedPlaces);
   }, [user?.saved_places]);
@@ -46,22 +74,23 @@ export const useDestinationModal = (
   }, [externalActiveInputIndex]);
 
   useEffect(() => {
-    // Keep internal input values empty so the external address shows as a placeholder
-    // unless the user has explicitly typed something.
+    // The parent owns the selected address. Clear stale search text when that
+    // address changes so the new value is visible through the placeholder.
+    setOriginInputValue("");
   }, [externalOrigin]);
 
   useEffect(() => {
-    // Keep internal input values empty so the external address shows as a placeholder
-    // unless the user has explicitly typed something.
+    // See the origin effect above: a map/favourite selection must replace any
+    // text left from the previous destination search.
+    setDestinationInputValue("");
   }, [externalDestination]);
   const textInputOriginRef = useRef(null);
   const textInputDestinationRef = useRef(null);
 
   const activeInputValue = activeInput === "origin" ? originInputValue : destinationInputValue;
-  const debounceActiveInputValue = useDebounce(activeInputValue, 500);
 
-  const { responseData, setResponseData } = useTextSearchQuery(
-    debounceActiveInputValue[0] || ""
+  const { responseData, setResponseData, searchFailed } = useTextSearchQuery(
+    activeInputValue || ""
   );
 
   const handleOriginInputValueChange = (text) => {
@@ -94,8 +123,20 @@ export const useDestinationModal = (
   }
 
   const handleSetResponseData = (data) => {
-    setResponseData();
+    setResponseData(data);
   }
+
+  const rawPlaces = responseData?.results || data;
+  const placesWithDistance = rawPlaces.map((item) => ({
+    ...item,
+    distanceKm: distanceKm(userLocation, item.geometry?.location),
+  }));
+  const mapOptionItem = {
+    place_id: -1,
+    name: "Definir localização no mapa",
+    isMapOption: true,
+  };
+  const places = [mapOptionItem, ...placesWithDistance];
 
   return {
     models: {
@@ -105,12 +146,13 @@ export const useDestinationModal = (
       destination: destinationInputValue,
       activeInput,
       queryResponseData: responseData?.results || data,
-      places: responseData?.results || data,
+      places,
       queryResponseDataSave: responseData?.results,
       data,
       textInputOriginRef,
       textInputDestinationRef,
-      inputIndex
+      inputIndex,
+      searchFailed: searchFailed && !!(activeInputValue || "").trim(),
     },
     operations: {
       handleOriginInputValueChange,

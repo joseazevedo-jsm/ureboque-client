@@ -152,7 +152,7 @@ api.interceptors.response.use(
 
     if (isInvalidToken) {
       Logger.info('APIService', 'Invalid token detected, triggering logout', { status, errorMessage });
-      AuthEventService.emitInvalidToken();
+      AuthEventService.emitInvalidToken(error.config?.headers?.Authorization);
     } else {
       ErrorService.handleAPIError(error, false, 'APIService');
     }

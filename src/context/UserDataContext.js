@@ -1,10 +1,15 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/APIService';
 import { useAuth } from './AuthContext';
 import { useLogger } from '../hooks/useLogger';
 import ErrorService from '../services/ErrorService';
-import { ACTIVE_SERVICE_STATUSES } from '../utils/serviceState';
+import {
+  SERVICES_PAGE_LIMIT,
+  getPromotionErrorMessage,
+  isRecoverableActiveService,
+  normalizeNotification,
+} from './userDataHelpers';
 
 const UserDataContext = createContext();
 
@@ -29,20 +34,23 @@ export const UserDataProvider = ({ children }) => {
   const [servicesHasMore, setServicesHasMore] = useState(false);
   const [servicesLoadedUserId, setServicesLoadedUserId] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const mountedRef = useRef(true);
+  const sessionGenerationRef = useRef(0);
+  const actionsRef = useRef({});
+  const pricesRequestRef = useRef(null);
+  const previousSessionKeyRef = useRef(null);
 
-  const SERVICES_PAGE_LIMIT = 20;
-  const ACTIVE_SERVICE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
-
-  const isRecoverableActiveService = (item) => {
-    const service = item?.service;
-    if (!ACTIVE_SERVICE_STATUSES.includes(service?.status) || !service?.driver || service?.review?.rating) {
-      return false;
-    }
-    const createdAt = service?.createdAt ? new Date(service.createdAt).getTime() : 0;
-    return createdAt > 0 && Date.now() - createdAt <= ACTIVE_SERVICE_MAX_AGE_MS;
-  };
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      sessionGenerationRef.current += 1;
+    };
+  }, []);
 
   const fetchUserById = async (userId) => {
+    const requestGeneration = sessionGenerationRef.current;
+    if (!userId || !mountedRef.current || !isAuthenticated) return;
     const timer = logger.startTimer('fetch_user_by_id');
     logger.logApiRequest('GET', `/users/${userId}`);
 
@@ -54,36 +62,55 @@ export const UserDataProvider = ({ children }) => {
       const data = response.data;
 
       logger.logApiResponse('GET', `/users/${userId}`, response.status, data, timer.end());
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       setUser(data);
       logger.logStateChange('user', null, 'loaded', 'user_data_fetched');
 
     } catch (error) {
       logger.logError(error, { operation: 'fetchUserById', userId });
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current && requestGeneration === sessionGenerationRef.current) {
+        setIsLoading(false);
+      }
       logger.logStateChange('isLoading', true, false, 'fetch_user_finished');
     }
   };
 
   const fetchPrices = async () => {
+    const requestGeneration = sessionGenerationRef.current;
+    if (!mountedRef.current || !isAuthenticated) return;
+    if (pricesRequestRef.current) return pricesRequestRef.current;
+
+    const request = (async () => {
     try {
       const response = await api.get("/prices/all");
       logger.info('UserDataContext', 'Prices fetched successfully', response.data);
       const data = response.data;
-      setPrices(data);
+      if (mountedRef.current && requestGeneration === sessionGenerationRef.current && isAuthenticated) {
+        setPrices(data);
+      }
     } catch (error) {
       logger.error('Error fetching prices', error.response?.data?.error);
+    } finally {
+      if (pricesRequestRef.current === request) pricesRequestRef.current = null;
     }
+    })();
+    pricesRequestRef.current = request;
+    return request;
   };
 
   const saveUserFavouriteAddress = async (place) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !place || typeof place !== 'object') return;
     const timer = logger.startTimer('save_favourite_address');
-    logger.info('Saving favourite address', { placeName: place.name, userId: user?.id });
-    logger.logApiRequest('PUT', `/users/${user.id}/places`, place);
+    logger.info('Saving favourite address', { placeName: place.name, userId });
+    logger.logApiRequest('PUT', `/users/${userId}/places`, place);
 
     try {
-      const response = await api.put(`/users/${user.id}/places`, place);
-      logger.logApiResponse('PUT', `/users/${user.id}/places`, response.status, response.data, timer.end());
+      const response = await api.put(`/users/${userId}/places`, place);
+      logger.logApiResponse('PUT', `/users/${userId}/places`, response.status, response.data, timer.end());
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
 
       setUser((prevState) => ({
         ...prevState,
@@ -101,8 +128,12 @@ export const UserDataProvider = ({ children }) => {
   };
 
   const removeUserFavouriteAddress = async (placeId) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !placeId) return;
     try {
-      const response = await api.delete(`/users/${user.id}/places/${placeId}`);
+      const response = await api.delete(`/users/${userId}/places/${placeId}`);
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
 
       logger.info('Delete API response received', response.data);
 
@@ -127,9 +158,13 @@ export const UserDataProvider = ({ children }) => {
   };
 
   const updateUserFavouriteAddress = async (place, placeId) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !placeId) return;
     try {
-      const response = await api.put(`/users/${user.id}/places/${placeId}`, place);
+      const response = await api.put(`/users/${userId}/places/${placeId}`, place);
       logger.info('Update API response received', response.data);
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
 
       if (response.data && response.data.saved_places) {
         setUser((prevState) => ({
@@ -144,12 +179,16 @@ export const UserDataProvider = ({ children }) => {
   };
 
   const activateDiscount = async (code) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || typeof code !== 'string' || !code.trim()) return { success: false };
     try {
       const response = await api.post(
-        `/promotions/${code}/activate/${user.id}`
+        `/promotions/${code}/activate/${userId}`
       );
       logger.info('UserDataContext', 'Discount operation completed', response.data.discount);
       const newDiscount = response.data.discount;
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return { success: false };
       setUser((prevState) => ({
         ...prevState,
         discount: newDiscount,
@@ -157,42 +196,20 @@ export const UserDataProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       logger.error('UserDataContext', 'API operation failed', error);
-      const serverError = error.response?.data?.error;
-      let errorMessage = 'Falha ao activar código promocional';
-
-      // Translate common server errors to Portuguese
-      if (serverError) {
-        switch (serverError) {
-          case 'User who generated the code cannot use it':
-            errorMessage = 'O utilizador que gerou o código não pode utilizá-lo';
-            break;
-          case 'Promotion code not found':
-            errorMessage = 'Código promocional não encontrado';
-            break;
-          case 'Promotion code expired':
-            errorMessage = 'Código promocional expirado';
-            break;
-          case 'Promotion code already used':
-            errorMessage = 'Código promocional já utilizado';
-            break;
-          case 'Invalid promotion code':
-            errorMessage = 'Código promocional inválido';
-            break;
-          default:
-            errorMessage = serverError;
-        }
-      }
-
-      throw new Error(errorMessage);
+      throw new Error(getPromotionErrorMessage(error.response?.data?.error));
     }
   };
 
   const removeDiscount = async (code) => {
-    logger.info('[DEBUG] removeDiscount called', { code, userId: user.id });
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || typeof code !== 'string' || !code.trim()) return;
+    logger.info('[DEBUG] removeDiscount called', { code, userId });
     try {
-      const response = await api.put(`/promotions/${code}/remove/${user.id}`);
+      const response = await api.put(`/promotions/${code}/remove/${userId}`);
       logger.info('[DEBUG] removeDiscount response', response.data);
       const newDiscount = response.data.discount;
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       setUser((prevState) => ({
         ...prevState,
         discount: newDiscount,
@@ -203,6 +220,8 @@ export const UserDataProvider = ({ children }) => {
   };
 
   const updateUser = async (userId, userData) => {
+    const requestGeneration = sessionGenerationRef.current;
+    if (!userId || !isAuthenticated || !userData || typeof userData !== 'object') return;
     const timer = logger.startTimer('update_user');
     logger.info('Updating user data', { userId, fields: Object.keys(userData) });
     logger.logApiRequest('PUT', `/users/${userId}`, userData);
@@ -212,6 +231,7 @@ export const UserDataProvider = ({ children }) => {
       const response = await api.put(`/users/${userId}`, userData);
 
       logger.logApiResponse('PUT', `/users/${userId}`, response.status, response.data, timer.end());
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
 
       setUser((prevState) => ({
         ...prevState,
@@ -227,11 +247,16 @@ export const UserDataProvider = ({ children }) => {
       logger.logError(error, { operation: 'updateUser', userId, userData });
       throw error; // Re-throw the error so calling code knows update failed
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current && requestGeneration === sessionGenerationRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   const fetchUserServices = async (userId, { page = 1, refreshing = false } = {}) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const currentUserId = user?.id || user?._id;
+    if (!userId || !currentUserId || String(userId) !== String(currentUserId) || !mountedRef.current || !isAuthenticated) return;
     const url = `/service/allMonthlyClient/${userId}`;
     const timer = logger.startTimer('fetch_user_services');
     logger.logApiRequest('GET', url);
@@ -243,6 +268,8 @@ export const UserDataProvider = ({ children }) => {
         params: { page, limit: SERVICES_PAGE_LIMIT },
         validateStatus: (status) => (status >= 200 && status < 300) || status === 404,
       });
+
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
 
       logger.logApiResponse('GET', url, response.status, response.data, timer.end());
 
@@ -274,12 +301,24 @@ export const UserDataProvider = ({ children }) => {
         if (page === 1 || refreshing) setServicesLoadedUserId(userId);
       }
     } catch (error) {
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       ErrorService.handleAPIError(error, false, 'UserDataContext');
       logger.logError(error, { operation: 'fetchUserServices', userId, page });
-      if (page === 1 || refreshing) setServices([]);
+      if (page === 1 || refreshing) {
+        setServices([]);
+        // Mark this userId as attempted even on failure — otherwise the
+        // auto-fetch effect below (gated on servicesLoadedUserId !== userId)
+        // sees servicesLoadedUserId still empty and refires on every render,
+        // hammering a failing endpoint in a tight loop. Explicit retries
+        // (pull-to-refresh, a retry button) call fetchUserServices directly
+        // and are unaffected by this gate.
+        setServicesLoadedUserId(userId);
+      }
       setServicesHasMore(false);
     } finally {
-      setServicesLoading(false);
+      if (mountedRef.current && requestGeneration === sessionGenerationRef.current) {
+        setServicesLoading(false);
+      }
     }
   };
 
@@ -292,14 +331,36 @@ export const UserDataProvider = ({ children }) => {
     await fetchUserServices(userId);
   };
 
+  // Recovers the user's current unresolved trip independent of the monthly
+  // history's pagination/age window. Returns the service, null when the
+  // server confirms there isn't one, or undefined when the check itself
+  // failed (network/etc) — callers must treat undefined as "unknown", not
+  // "no trip", so they don't silently drop an active trip on a flaky request.
+  const fetchCurrentTrip = useCallback(async () => {
+    const requestGeneration = sessionGenerationRef.current;
+    if (!mountedRef.current || !isAuthenticated) return undefined;
+    try {
+      const response = await api.get('/service/current');
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return undefined;
+      return response.data?.service ?? null;
+    } catch (error) {
+      logger.logError(error, { operation: 'fetchCurrentTrip' });
+      return undefined;
+    }
+  }, [logger, isAuthenticated]);
+
   // --- Vehicles ---
 
   const saveUserVehicle = async (vehicle) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !vehicle || typeof vehicle !== 'object') return;
     const timer = logger.startTimer('save_vehicle');
-    logger.logApiRequest('POST', `/users/${user.id}/vehicles`, vehicle);
+    logger.logApiRequest('POST', `/users/${userId}/vehicles`, vehicle);
     try {
-      const response = await api.post(`/users/${user.id}/vehicles`, vehicle);
-      logger.logApiResponse('POST', `/users/${user.id}/vehicles`, response.status, response.data, timer.end());
+      const response = await api.post(`/users/${userId}/vehicles`, vehicle);
+      logger.logApiResponse('POST', `/users/${userId}/vehicles`, response.status, response.data, timer.end());
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       setUser((prev) => ({ ...prev, vehicles: response.data.vehicles }));
     } catch (error) {
       ErrorService.handleAPIError(error, true, 'UserDataContext');
@@ -309,11 +370,15 @@ export const UserDataProvider = ({ children }) => {
   };
 
   const updateUserVehicle = async (vehicle, vehicleId) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !vehicle || typeof vehicle !== 'object' || !vehicleId) return;
     const timer = logger.startTimer('update_vehicle');
-    logger.logApiRequest('PUT', `/users/${user.id}/vehicles/${vehicleId}`, vehicle);
+    logger.logApiRequest('PUT', `/users/${userId}/vehicles/${vehicleId}`, vehicle);
     try {
-      const response = await api.put(`/users/${user.id}/vehicles/${vehicleId}`, vehicle);
-      logger.logApiResponse('PUT', `/users/${user.id}/vehicles/${vehicleId}`, response.status, response.data, timer.end());
+      const response = await api.put(`/users/${userId}/vehicles/${vehicleId}`, vehicle);
+      logger.logApiResponse('PUT', `/users/${userId}/vehicles/${vehicleId}`, response.status, response.data, timer.end());
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       setUser((prev) => ({ ...prev, vehicles: response.data.vehicles }));
     } catch (error) {
       ErrorService.handleAPIError(error, true, 'UserDataContext');
@@ -323,8 +388,12 @@ export const UserDataProvider = ({ children }) => {
   };
 
   const removeUserVehicle = async (vehicleId) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !vehicleId) return;
     try {
-      const response = await api.delete(`/users/${user.id}/vehicles/${vehicleId}`);
+      const response = await api.delete(`/users/${userId}/vehicles/${vehicleId}`);
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       if (response.data?.vehicles) {
         setUser((prev) => ({ ...prev, vehicles: response.data.vehicles }));
       } else {
@@ -339,8 +408,12 @@ export const UserDataProvider = ({ children }) => {
   // --- Emergency Contacts ---
 
   const saveEmergencyContact = async (contact) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !contact || typeof contact !== 'object') return;
     try {
-      const response = await api.post(`/users/${user.id}/emergency-contacts`, contact);
+      const response = await api.post(`/users/${userId}/emergency-contacts`, contact);
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       setUser((prev) => ({ ...prev, emergency_contacts: response.data.emergency_contacts }));
     } catch (error) {
       ErrorService.handleAPIError(error, true, 'UserDataContext');
@@ -350,8 +423,12 @@ export const UserDataProvider = ({ children }) => {
   };
 
   const updateEmergencyContact = async (contact, contactId) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !contact || typeof contact !== 'object' || !contactId) return;
     try {
-      const response = await api.put(`/users/${user.id}/emergency-contacts/${contactId}`, contact);
+      const response = await api.put(`/users/${userId}/emergency-contacts/${contactId}`, contact);
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       setUser((prev) => ({ ...prev, emergency_contacts: response.data.emergency_contacts }));
     } catch (error) {
       logger.logError(error, { operation: 'updateEmergencyContact', contactId });
@@ -360,8 +437,12 @@ export const UserDataProvider = ({ children }) => {
   };
 
   const removeEmergencyContact = async (contactId) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !contactId) return;
     try {
-      const response = await api.delete(`/users/${user.id}/emergency-contacts/${contactId}`);
+      const response = await api.delete(`/users/${userId}/emergency-contacts/${contactId}`);
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       if (response.data?.emergency_contacts) {
         setUser((prev) => ({ ...prev, emergency_contacts: response.data.emergency_contacts }));
       } else {
@@ -376,8 +457,12 @@ export const UserDataProvider = ({ children }) => {
   // --- Insurance ---
 
   const saveInsurance = async (insurance) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !insurance || typeof insurance !== 'object') return;
     try {
-      const response = await api.post(`/users/${user.id}/insurance`, insurance);
+      const response = await api.post(`/users/${userId}/insurance`, insurance);
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       setUser((prev) => ({ ...prev, insurance: response.data.insurance }));
     } catch (error) {
       ErrorService.handleAPIError(error, true, 'UserDataContext');
@@ -387,8 +472,12 @@ export const UserDataProvider = ({ children }) => {
   };
 
   const updateInsurance = async (insurance, insuranceId) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !insurance || typeof insurance !== 'object' || !insuranceId) return;
     try {
-      const response = await api.put(`/users/${user.id}/insurance/${insuranceId}`, insurance);
+      const response = await api.put(`/users/${userId}/insurance/${insuranceId}`, insurance);
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       setUser((prev) => ({ ...prev, insurance: response.data.insurance }));
     } catch (error) {
       logger.logError(error, { operation: 'updateInsurance', insuranceId });
@@ -397,8 +486,12 @@ export const UserDataProvider = ({ children }) => {
   };
 
   const removeInsurance = async (insuranceId) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !insuranceId) return;
     try {
-      const response = await api.delete(`/users/${user.id}/insurance/${insuranceId}`);
+      const response = await api.delete(`/users/${userId}/insurance/${insuranceId}`);
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       if (response.data?.insurance) {
         setUser((prev) => ({ ...prev, insurance: response.data.insurance }));
       } else {
@@ -413,8 +506,12 @@ export const UserDataProvider = ({ children }) => {
   // --- Accessibility ---
 
   const updateAccessibility = async (accessibilityData) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !accessibilityData || typeof accessibilityData !== 'object') return;
     try {
-      const response = await api.put(`/users/${user.id}/accessibility`, accessibilityData);
+      const response = await api.put(`/users/${userId}/accessibility`, accessibilityData);
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       setUser((prev) => ({ ...prev, accessibility: response.data.accessibility }));
     } catch (error) {
       logger.logError(error, { operation: 'updateAccessibility', accessibilityData });
@@ -424,26 +521,30 @@ export const UserDataProvider = ({ children }) => {
 
   // --- Notifications ---
 
-  // Normalise backend field isRead → read so all consumers use a single field name
-  const normalizeNotification = (n) => ({
-    ...n,
-    read: n.read ?? n.isRead ?? false,
-  });
-
   const fetchUserNotifications = async () => {
+    const userId = user?.id || user?._id;
+    const requestGeneration = sessionGenerationRef.current;
+    if (!userId || !mountedRef.current || !isAuthenticated) return;
     try {
-      const response = await api.get(`/notifications/user/${user.id}`);
-      setNotifications((response.data || []).map(normalizeNotification));
+      const response = await api.get(`/notifications/user/${userId}`);
+      const currentUserId = user?.id || user?._id;
+      if (mountedRef.current && requestGeneration === sessionGenerationRef.current && isAuthenticated && String(currentUserId) === String(userId)) {
+        setNotifications((response.data || []).map(normalizeNotification));
+      }
     } catch (error) {
       logger.logError(error, { operation: 'fetchUserNotifications' });
     }
   };
 
   const deleteUserNotifications = async (onlyRead = false) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated) return 0;
     try {
-      const response = await api.delete(`/notifications/user/${user.id}`, {
+      const response = await api.delete(`/notifications/user/${userId}`, {
         params: onlyRead ? { onlyRead: true } : {},
       });
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return 0;
       if (onlyRead) {
         setNotifications((prev) => prev.filter((n) => !n.read));
       } else {
@@ -457,8 +558,12 @@ export const UserDataProvider = ({ children }) => {
   };
 
   const deleteNotificationsByIds = async (ids) => {
+    const requestGeneration = sessionGenerationRef.current;
+    const userId = user?.id || user?._id;
+    if (!userId || !isAuthenticated || !Array.isArray(ids) || ids.length === 0) return;
     try {
-      await api.delete(`/notifications/user/${user.id}/bulk`, { data: { ids } });
+      await api.delete(`/notifications/user/${userId}/bulk`, { data: { ids } });
+      if (!mountedRef.current || requestGeneration !== sessionGenerationRef.current || !isAuthenticated) return;
       setNotifications((prev) => prev.filter((n) => !ids.includes(n._id)));
     } catch (error) {
       logger.logError(error, { operation: 'deleteNotificationsByIds', ids });
@@ -500,10 +605,37 @@ export const UserDataProvider = ({ children }) => {
 
   // Auto-fetch user data when authenticated
   useEffect(() => {
+    // Bumping the generation invalidates in-flight requests from the previous
+    // session. Doing it on every run of this effect also killed requests the
+    // NEW session had already started: on login, trip recovery fires as soon as
+    // MapScreen mounts, and this effect then ran and discarded its response —
+    // leaving an active ride unrecovered, with no retry (the 15s reconcile
+    // interval is gated on a service already being known). Only invalidate when
+    // the session identity actually changes.
+    const sessionKey = isAuthenticated && userToken ? userToken : null;
+    if (previousSessionKeyRef.current !== sessionKey) {
+      if (previousSessionKeyRef.current !== null) sessionGenerationRef.current += 1;
+      previousSessionKeyRef.current = sessionKey;
+    }
+    if (!isAuthenticated || !userToken) {
+      pricesRequestRef.current = null;
+      setUser(null);
+      setPrices(null);
+      setServices([]);
+      setServiceStatus(null);
+      setServicesPage(1);
+      setServicesHasMore(false);
+      setNotifications([]);
+      setServicesLoadedUserId(null);
+      setServicesLoading(false);
+      return;
+    }
+
+    const requestGeneration = sessionGenerationRef.current;
     if (isAuthenticated && userToken) {
       const loadUserData = async () => {
         const userId = await AsyncStorage.getItem('userId');
-        if (userId) {
+        if (userId && mountedRef.current && requestGeneration === sessionGenerationRef.current) {
           fetchUserById(userId);
           getAppStatus(userId);
         }
@@ -526,22 +658,13 @@ export const UserDataProvider = ({ children }) => {
     }
   }, [user?.id]);
 
-  const value = {
-    user,
-    setUser,
-    prices,
-    services,
-    setServices,
-    serviceStatus,
-    setServiceStatus,
-    isLoading,
-    servicesLoading,
-    servicesPage,
-    servicesHasMore,
-    servicesLoadedUserId,
+  // Keep action identities stable for context consumers. Implementations are
+  // refreshed below so wrappers always use the latest user/session closure.
+  actionsRef.current = {
     fetchUserById,
     fetchPrices,
     fetchUserServices,
+    fetchCurrentTrip,
     loadMoreServices,
     updateUser,
     saveUserFavouriteAddress,
@@ -560,8 +683,6 @@ export const UserDataProvider = ({ children }) => {
     updateInsurance,
     removeInsurance,
     updateAccessibility,
-    notifications,
-    unreadNotificationsCount,
     fetchUserNotifications,
     addNotification,
     markNotificationAsRead,
@@ -569,6 +690,58 @@ export const UserDataProvider = ({ children }) => {
     deleteUserNotifications,
     deleteNotificationsByIds,
   };
+
+  const stableActions = useMemo(() => {
+    const wrap = (name) => (...args) => actionsRef.current[name](...args);
+    return {
+      fetchUserById: wrap('fetchUserById'),
+      fetchPrices: wrap('fetchPrices'),
+      fetchUserServices: wrap('fetchUserServices'),
+      fetchCurrentTrip: wrap('fetchCurrentTrip'),
+      loadMoreServices: wrap('loadMoreServices'),
+      updateUser: wrap('updateUser'),
+      saveUserFavouriteAddress: wrap('saveUserFavouriteAddress'),
+      removeUserFavouriteAddress: wrap('removeUserFavouriteAddress'),
+      updateUserFavouriteAddress: wrap('updateUserFavouriteAddress'),
+      activateDiscount: wrap('activateDiscount'),
+      removeDiscount: wrap('removeDiscount'),
+      getAppStatus: wrap('getAppStatus'),
+      saveUserVehicle: wrap('saveUserVehicle'),
+      updateUserVehicle: wrap('updateUserVehicle'),
+      removeUserVehicle: wrap('removeUserVehicle'),
+      saveEmergencyContact: wrap('saveEmergencyContact'),
+      updateEmergencyContact: wrap('updateEmergencyContact'),
+      removeEmergencyContact: wrap('removeEmergencyContact'),
+      saveInsurance: wrap('saveInsurance'),
+      updateInsurance: wrap('updateInsurance'),
+      removeInsurance: wrap('removeInsurance'),
+      updateAccessibility: wrap('updateAccessibility'),
+      fetchUserNotifications: wrap('fetchUserNotifications'),
+      addNotification: wrap('addNotification'),
+      markNotificationAsRead: wrap('markNotificationAsRead'),
+      deleteNotification: wrap('deleteNotification'),
+      deleteUserNotifications: wrap('deleteUserNotifications'),
+      deleteNotificationsByIds: wrap('deleteNotificationsByIds'),
+    };
+  }, []);
+
+  const value = useMemo(() => ({
+    user,
+    setUser,
+    prices,
+    services,
+    setServices,
+    serviceStatus,
+    setServiceStatus,
+    isLoading,
+    servicesLoading,
+    servicesPage,
+    servicesHasMore,
+    servicesLoadedUserId,
+    ...stableActions,
+    notifications,
+    unreadNotificationsCount,
+  }), [user, prices, services, serviceStatus, isLoading, servicesLoading, servicesPage, servicesHasMore, servicesLoadedUserId, notifications, unreadNotificationsCount, stableActions]);
 
   return <UserDataContext.Provider value={value}>{children}</UserDataContext.Provider>;
 };

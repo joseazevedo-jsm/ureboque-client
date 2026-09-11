@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import ServiceHistoryItem from "../components/cards/serviceHistoryItem";
 import ServiceDetailModal from "../components/modals/serviceDetailModal";
 import useHistoryScreen from "../components/history/useHistoryScreen";
@@ -262,7 +263,7 @@ const HistoryScreen = () => {
       ) : (
         <FlatList
           data={getFilteredServices()}
-          keyExtractor={(item) => (item.service?._id || item._id)}
+          keyExtractor={(item, index) => String(item?.service?._id || item?._id || `history-${index}`)}
           renderItem={renderServiceItem}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}

@@ -1,12 +1,14 @@
+import React, { memo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import RouteItem from "../cards/routeItem";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+const Icon = MaterialIcons;
 import DriverItem from "../cards/driverItem";
 import { colors, spacing, borderRadius, shadows } from "../../theme";
 import { TRIP_STATUS } from "../../constants/tripStatus";
 
-const DriverStatus = ({
+const DriverStatus = memo(({
   status,
   driver,
   origin,
@@ -66,8 +68,8 @@ const DriverStatus = ({
           <Text style={[styles.btnText, styles.detailsBtnText]}>Detalhes da viagem</Text>
         </TouchableOpacity>
 
-        {/* Cancel — only when driver is en route */}
-        {status === TRIP_STATUS.DRIVER_EN_ROUTE && (
+        {/* Cancel — available any time before the trip is actually in progress */}
+        {status !== TRIP_STATUS.IN_PROGRESS && (
           <TouchableOpacity
             style={[styles.actionBtn, styles.cancelBtn]}
             onPress={onCancelTrip}
@@ -82,7 +84,7 @@ const DriverStatus = ({
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
