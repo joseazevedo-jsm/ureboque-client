@@ -421,8 +421,6 @@ const DriverStatusSheet = memo(({
     enablePanDownToClose={false}
     enableDynamicSizing={false}
     stackBehavior="replace"
-    keyboardBehavior="interactive"
-    android_keyboardInputMode="adjustResize"
     backgroundStyle={{ backgroundColor: 'transparent' }}
     backgroundComponent={GlassBackground}
     handleComponent={GlassHandle}
@@ -756,8 +754,6 @@ const MapScreen = memo(() => {
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
-          keyboardBehavior="interactive"
-          android_keyboardInputMode="adjustResize"
           backgroundStyle={{ backgroundColor: 'rgba(255,255,255,0.0)' }}
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
@@ -811,8 +807,6 @@ const MapScreen = memo(() => {
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
-          keyboardBehavior="interactive"
-          android_keyboardInputMode="adjustResize"
           backgroundStyle={{ backgroundColor: 'transparent' }}
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
@@ -866,6 +860,9 @@ const MapScreen = memo(() => {
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
+          // Only this sheet has text fields. Sheets without inputs must not react
+          // to the keyboard: the next sheet mounts while the keyboard is still
+          // closing and would be lifted, then slide down after it.
           keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
           backgroundStyle={{ backgroundColor: 'transparent' }}
@@ -898,8 +895,6 @@ const MapScreen = memo(() => {
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
-          keyboardBehavior="interactive"
-          android_keyboardInputMode="adjustResize"
           backgroundStyle={{ backgroundColor: 'transparent' }}
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
@@ -916,8 +911,6 @@ const MapScreen = memo(() => {
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
-          keyboardBehavior="interactive"
-          android_keyboardInputMode="adjustResize"
           backgroundStyle={{ backgroundColor: 'transparent' }}
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
@@ -953,8 +946,6 @@ const MapScreen = memo(() => {
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
-          keyboardBehavior="interactive"
-          android_keyboardInputMode="adjustResize"
           backgroundStyle={{ backgroundColor: 'transparent' }}
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
@@ -984,8 +975,6 @@ const MapScreen = memo(() => {
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
-          keyboardBehavior="interactive"
-          android_keyboardInputMode="adjustResize"
           backgroundStyle={{ backgroundColor: 'transparent' }}
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}

@@ -103,7 +103,8 @@ export const useMapScreen = () => {
 
   // ── Map UI State ─────────────────────────────────────────────────────────
   const [markers, setMarkers] = useState([]);
-  const [mapMovedByUser, setMapMovedByUser] = useState(false);
+  // Sheet the user was on when they last moved the map, or null.
+  const [mapMovedOnSheet, setMapMovedOnSheet] = useState(null);
   // Route requests must not follow every live driver coordinate.
   const [routeMarkers, setRouteMarkers] = useState([]);
   const lastRouteRequestAtRef = useRef(0);
@@ -601,17 +602,18 @@ export const useMapScreen = () => {
       mapRef.current?.fitToCoordinates(routing.directions.coordinates, {
         edgePadding: { bottom: scale(250), top: scale(50), left: scale(20), right: scale(20) },
       });
-      setMapMovedByUser(false);
+      setMapMovedOnSheet(null);
     }
   }, [routing.directions?.coordinates]);
 
   // The recenter button only appears once the user has moved the map. It hides
   // again when the map is refitted (by the button or a route refresh) and when
   // the sheet changes step or snap point, so it never sits over a resizing sheet.
-  useEffect(() => {
-    setMapMovedByUser(false);
-  }, [activeBottomSheet]);
-  const handleSheetMoved = useCallback(() => setMapMovedByUser(false), []);
+  // Tying it to the sheet it was shown for hides it in the same render as a sheet
+  // change; resetting it in an effect let it render one frame at the next
+  // sheet's height, so it visibly dropped before fading out.
+  const mapMovedByUser = mapMovedOnSheet !== null && mapMovedOnSheet === activeBottomSheet;
+  const handleSheetMoved = useCallback(() => setMapMovedOnSheet(null), []);
 
 
   // Opens the booking sheet whenever nothing else owns the screen: on first
@@ -970,7 +972,7 @@ export const useMapScreen = () => {
   // isGesture is true only for pans/pinches, never for the app's own
   // fitToCoordinates/animateToRegion, so programmatic moves don't show it.
   const handleRegionChangeComplete = useCallback((region, details) => {
-    if (details?.isGesture) setMapMovedByUser(true);
+    if (details?.isGesture) setMapMovedOnSheet(activeBottomSheetRef.current);
     handleDragMarkerPositionChange(region);
   }, [handleDragMarkerPositionChange]);
 
@@ -1189,7 +1191,7 @@ export const useMapScreen = () => {
   ]);
 
   const handleRecenterMap = useCallback(() => {
-    setMapMovedByUser(false);
+    setMapMovedOnSheet(null);
     if (routing.directions?.coordinates?.length > 0) {
       mapRef.current?.fitToCoordinates(routing.directions.coordinates, {
         edgePadding: { bottom: scale(250), top: scale(50), left: scale(50), right: scale(50) },
