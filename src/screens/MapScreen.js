@@ -13,8 +13,8 @@ import MapView, { Circle, Marker, PROVIDER_GOOGLE, Polyline } from "react-native
 import { LinearGradient } from "expo-linear-gradient";
 import { ScalePressable } from "../components/common/ScalePressable";
 import { BlurView } from "expo-blur";
-import Animated, { FadeIn, FadeInDown, FadeInRight, FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withTiming } from "react-native-reanimated";
-import { colors, spacing, shadows, animations } from '../theme';
+import Animated, { FadeIn, FadeInDown, FadeInRight, FadeInUp, useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
+import { colors, spacing, shadows } from '../theme';
 import { getPlaceIcon, ICON_ADD } from '../assets/icons';
 import { useMapScreen } from "../components/map/useMapScreen";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -358,7 +358,16 @@ const MapViewport = memo(({ models, operations, mapMarkers, carsAround }) => (
   </MapView>
 ));
 
-const MapControls = memo(({ models, operations, navigation, recenterAnimatedStyle, openDrawer }) => (
+// Booking sheets change height at every step, so a button floating above them
+// kept landing on or under the sheet. Until a driver is assigned the top
+// location pill does the recentring; from then on every ride sheet
+// (driverArriving, tripStarted, tripEnding) shares one collapsed height, so the
+// recenter button sits at a single fixed spot within thumb reach.
+const RIDE_ACTIVE_STATUSES = ['assigned', 'in-progress', 'completed'];
+
+const MapControls = memo(({ models, operations, navigation, openDrawer }) => {
+  const rideActive = !!models.driver || RIDE_ACTIVE_STATUSES.includes(models.tripState);
+  return (
   <>
     {(models.isRouteVisible || models.canGoBackBottomSheet) && !models.service ? (
       <TouchableOpacity style={styles.details} onPress={operations.handleBackButtonPress} activeOpacity={0.8}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="arrow-back" size={scale(24)} color={colors.primary} /></TouchableOpacity>
@@ -366,11 +375,12 @@ const MapControls = memo(({ models, operations, navigation, recenterAnimatedStyl
       <TouchableOpacity style={styles.menuGlassButton} onPress={openDrawer} activeOpacity={0.8}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="menu" size={scale(24)} color={colors.primary} /></TouchableOpacity>
     )}
     {!models.isRouteVisible && !models.service && <View style={styles.bellWrapper}><TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('Notificacoes')} activeOpacity={0.8}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="notifications-none" size={scale(24)} color={colors.primary} /></TouchableOpacity>{models.unreadNotificationsCount > 0 && <View style={styles.bellBadge}><Text style={styles.bellBadgeText}>{models.unreadNotificationsCount > 99 ? '99+' : models.unreadNotificationsCount}</Text></View>}</View>}
-    {!models.isRouteVisible && !models.service && !models.markerVisible && <Animated.View entering={FadeIn.duration(300)} style={styles.locationChipWrapper}><ScalePressable onPress={operations.handleRecenterMap} style={styles.locationChip}><Icon name="my-location" size={scale(14)} color={colors.primary} style={{ marginRight: spacing.xs }} /><View><Text style={styles.locationChipLabel}>Sua Localização</Text><Text style={styles.locationChipAddress} numberOfLines={1}>{models.currentLocationLabel || 'Obtendo localização...'}</Text></View></ScalePressable></Animated.View>}
+    {!rideActive && !models.markerVisible && <Animated.View entering={FadeIn.duration(300)} style={styles.locationChipWrapper}><ScalePressable onPress={operations.handleRecenterMap} style={styles.locationChip}><Icon name="my-location" size={scale(14)} color={colors.primary} style={{ marginRight: spacing.xs }} /><View><Text style={styles.locationChipLabel}>Sua Localização</Text><Text style={styles.locationChipAddress} numberOfLines={1}>{models.currentLocationLabel || 'Obtendo localização...'}</Text></View></ScalePressable></Animated.View>}
     {models.markerVisible && models.activeBottomSheet === 'dragMarker' && <View style={styles.markerOverlay} pointerEvents="none"><CustomMarker title={models.markerCity || 'Carregando...'} color={models.inputLocationObject === 0 ? colors.primary : colors.destinationPin} /></View>}
-    {(models.isRouteVisible || models.service) && <Animated.View entering={FadeIn.duration(200)} style={[styles.recenterButtonWrapper, recenterAnimatedStyle]}><ScalePressable onPress={operations.handleRecenterMap} style={styles.recenterButton}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="my-location" size={scale(24)} color={colors.primary} /></ScalePressable></Animated.View>}
+    {rideActive && <Animated.View entering={FadeIn.duration(200)} style={styles.recenterButtonWrapper}><ScalePressable onPress={operations.handleRecenterMap} style={styles.recenterButton}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="my-location" size={scale(24)} color={colors.primary} /></ScalePressable></Animated.View>}
   </>
-));
+  );
+});
 
 const DriverStatusSheet = memo(({
   sheetRef,
@@ -524,26 +534,6 @@ const MapModalHost = memo(({ models, operations }) => (
 const MapScreen = memo(() => {
   const logger = useLogger('MapScreen');
   const { models, operations } = useMapScreen();
-
-  // Dynamic recenter button — always 20pt above the active sheet's minimum snap
-  const buttonBottom = useSharedValue(scale(300));
-  useEffect(() => {
-    const snapMap = {
-      initial:        scale(260),
-      carType:        scale(270),
-      userCarInfo:    scale(380),
-      payment:        scale(320),
-      rideSearch:     scale(270),
-      tripStarted:    scale(310),
-      driverArriving: scale(310),
-      tripEnding:     scale(310),
-      details:        scale(520),
-      dragMarker:     scale(230),
-    };
-    const target = snapMap[models.activeBottomSheet] ?? scale(280);
-    buttonBottom.value = withSpring(target + spacing.xl, animations.spring.enter);
-  }, [models.activeBottomSheet]);
-  const recenterAnimatedStyle = useAnimatedStyle(() => ({ bottom: buttonBottom.value }));
 
   logger.debug('MapScreen rendered', {
     activeBottomSheet: models.activeBottomSheet,
@@ -736,7 +726,7 @@ const MapScreen = memo(() => {
       <MapViewport models={models} operations={operations} mapMarkers={memoizedMapMarkers} carsAround={memoizedCarsAround} />
 
 
-      <MapControls models={models} operations={operations} navigation={navigation} recenterAnimatedStyle={recenterAnimatedStyle} openDrawer={openDrawer} />
+      <MapControls models={models} operations={operations} navigation={navigation} openDrawer={openDrawer} />
 
         <FlowBottomSheet
           isActive={models.activeBottomSheet === 'initial'}
@@ -1187,6 +1177,7 @@ const styles = StyleSheet.create({
   recenterButtonWrapper: {
     position: 'absolute',
     right: spacing.xl,
+    bottom: SHEET_SNAP_POINTS.driverStatusCollapsed + spacing.xxxl,
   },
   recenterButton: {
     width: scale(48),
