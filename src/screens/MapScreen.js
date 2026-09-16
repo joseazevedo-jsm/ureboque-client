@@ -1,4 +1,4 @@
-import React, { useEffect, memo, useMemo, useCallback, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, memo, useMemo, useCallback, useRef, useState } from "react";
 import {
   Image,
   Modal,
@@ -59,6 +59,21 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Rendered only while it is the active sheet, and opened imperatively once its
 // ref attaches. See the note on showBottomSheet: a BottomSheet measures its
 // container once on mount, which is the source of the recovery effects below.
+// Snap points are authored at the default text size and exclude the navigation
+// bar. The rendered sheet grows with the font scale (capped) and sits above the
+// bar; some Huawei/EMUI builds report a zero inset while the three-button bar
+// still covers the bottom of an edge-to-edge view. Shared so anything placed
+// above a sheet uses the same height the sheet really has.
+const useSheetHeight = () => {
+  const { bottom: bottomInset } = useSafeAreaInsets();
+  const inset = Platform.OS === 'android' ? Math.max(bottomInset, scale(32)) : bottomInset;
+  const fontScale = Math.min(Math.max(PixelRatio.getFontScale(), 1), 1.6);
+  return useCallback((point) => Math.round(point * fontScale) + inset, [fontScale, inset]);
+};
+
+// Lets any mounted sheet report that it moved to another snap point.
+const SheetMovedContext = createContext(null);
+
 const FlowBottomSheet = React.forwardRef(({
   stackBehavior: _stackBehavior,
   onChange,
@@ -69,24 +84,10 @@ const FlowBottomSheet = React.forwardRef(({
   ...props
 }, forwardedRef) => {
   const sheetRef = useRef(null);
-  const { bottom: bottomInset } = useSafeAreaInsets();
-  // Some Huawei/EMUI builds report a zero navigation inset while the classic
-  // three-button bar still covers the bottom of an edge-to-edge React view.
-  const effectiveBottomInset = Platform.OS === 'android'
-    ? Math.max(bottomInset, scale(32))
-    : bottomInset;
-  // Snap points are authored at the default text size. When the user enlarges
-  // system text the content grows but a fixed snap point does not, so the last
-  // rows are pushed under the navigation bar — at 1.3x this made the Multicaixa
-  // payment option unreachable, leaving cash as the only selectable method.
-  // Grow the sheet with the font scale, capped so a very large setting cannot
-  // make the sheet taller than the screen.
-  const fontScale = Math.min(Math.max(PixelRatio.getFontScale(), 1), 1.6);
+  const sheetHeight = useSheetHeight();
   const safeSnapPoints = useMemo(
-    () => snapPoints?.map((point) => typeof point === 'number'
-      ? Math.round(point * fontScale) + effectiveBottomInset
-      : point),
-    [snapPoints, effectiveBottomInset, fontScale],
+    () => snapPoints?.map((point) => typeof point === 'number' ? sheetHeight(point) : point),
+    [snapPoints, sheetHeight],
   );
 
   React.useImperativeHandle(forwardedRef, () => ({
@@ -96,9 +97,11 @@ const FlowBottomSheet = React.forwardRef(({
     close: () => sheetRef.current?.close(),
   }), []);
 
+  const onSheetMoved = useContext(SheetMovedContext);
   const handleChange = useCallback((changedIndex) => {
+    onSheetMoved?.();
     onChange?.(changedIndex);
-  }, [onChange]);
+  }, [onChange, onSheetMoved]);
 
   if (!isActive) return null;
 
@@ -358,16 +361,29 @@ const MapViewport = memo(({ models, operations, mapMarkers, carsAround }) => (
   </MapView>
 ));
 
-// Booking sheets change height at every step, so a button floating above them
-// kept landing on or under the sheet. Until a driver is assigned the top
-// location pill does the recentring; from then on every ride sheet
-// (driverArriving, tripStarted, tripEnding) shares one collapsed height, so the
-// recenter button sits at a single fixed spot within thumb reach. It only
-// appears after the user moves the map, so the ride screen stays uncluttered.
-const RIDE_ACTIVE_STATUSES = ['assigned', 'in-progress', 'completed'];
+// The recenter button is hidden by default in every sheet. It appears only after
+// the user moves the map, and hides again when they recenter or when the sheet
+// changes in any way (a new step, or dragged to another snap point). So it is
+// only ever visible while the sheet is still, and can sit at that sheet's
+// resting height instead of chasing a sheet that is resizing.
+const RECENTER_GAP = scale(16);
+const SHEET_REST_HEIGHT = {
+  initial: BOOKING_SNAP.initial[0],
+  carType: BOOKING_SNAP.carType[0],
+  userCarInfo: BOOKING_SNAP.userCarInfo[0],
+  payment: BOOKING_SNAP.payment[0],
+  rideSearch: BOOKING_SNAP.rideSearch[0],
+  details: BOOKING_SNAP.details[0],
+  driverArriving: SHEET_SNAP_POINTS.driverStatusCollapsed,
+  tripStarted: SHEET_SNAP_POINTS.driverStatusCollapsed,
+  tripEnding: SHEET_SNAP_POINTS.driverStatusCollapsed,
+};
 
 const MapControls = memo(({ models, operations, navigation, openDrawer }) => {
-  const rideActive = !!models.driver || RIDE_ACTIVE_STATUSES.includes(models.tripState);
+  const rideActive = !!models.driver || ['assigned', 'in-progress', 'completed'].includes(models.tripState);
+  const sheetHeight = useSheetHeight();
+  const restHeight = SHEET_REST_HEIGHT[models.activeBottomSheet];
+  const showRecenter = models.mapMovedByUser && restHeight != null;
   return (
   <>
     {(models.isRouteVisible || models.canGoBackBottomSheet) && !models.service ? (
@@ -378,7 +394,7 @@ const MapControls = memo(({ models, operations, navigation, openDrawer }) => {
     {!models.isRouteVisible && !models.service && <View style={styles.bellWrapper}><TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('Notificacoes')} activeOpacity={0.8}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="notifications-none" size={scale(24)} color={colors.primary} /></TouchableOpacity>{models.unreadNotificationsCount > 0 && <View style={styles.bellBadge}><Text style={styles.bellBadgeText}>{models.unreadNotificationsCount > 99 ? '99+' : models.unreadNotificationsCount}</Text></View>}</View>}
     {!rideActive && !models.markerVisible && <Animated.View entering={FadeIn.duration(300)} style={styles.locationChipWrapper}><ScalePressable onPress={operations.handleRecenterMap} style={styles.locationChip}><Icon name="my-location" size={scale(14)} color={colors.primary} style={{ marginRight: spacing.xs }} /><View><Text style={styles.locationChipLabel}>Sua Localização</Text><Text style={styles.locationChipAddress} numberOfLines={1}>{models.currentLocationLabel || 'Obtendo localização...'}</Text></View></ScalePressable></Animated.View>}
     {models.markerVisible && models.activeBottomSheet === 'dragMarker' && <View style={styles.markerOverlay} pointerEvents="none"><CustomMarker title={models.markerCity || 'Carregando...'} color={models.inputLocationObject === 0 ? colors.primary : colors.destinationPin} /></View>}
-    {rideActive && models.mapMovedByUser && <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.recenterButtonWrapper}><ScalePressable onPress={operations.handleRecenterMap} style={styles.recenterButton}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="my-location" size={scale(24)} color={colors.primary} /></ScalePressable></Animated.View>}
+    {showRecenter && <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={[styles.recenterButtonWrapper, { bottom: sheetHeight(restHeight) + RECENTER_GAP }]}><ScalePressable onPress={operations.handleRecenterMap} style={styles.recenterButton}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="my-location" size={scale(24)} color={colors.primary} /></ScalePressable></Animated.View>}
   </>
   );
 });
@@ -723,6 +739,7 @@ const MapScreen = memo(() => {
   };
 
   return (
+    <SheetMovedContext.Provider value={operations.handleSheetMoved}>
     <View style={styles.container}>
       <MapViewport models={models} operations={operations} mapMarkers={memoizedMapMarkers} carsAround={memoizedCarsAround} />
 
@@ -1016,6 +1033,7 @@ const MapScreen = memo(() => {
 
       <MapModalHost models={models} operations={operations} />
     </View>
+    </SheetMovedContext.Provider>
   );
 });
 
@@ -1178,7 +1196,6 @@ const styles = StyleSheet.create({
   recenterButtonWrapper: {
     position: 'absolute',
     right: spacing.xl,
-    bottom: SHEET_SNAP_POINTS.driverStatusCollapsed + spacing.xxxl,
   },
   recenterButton: {
     width: scale(48),

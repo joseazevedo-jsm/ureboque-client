@@ -605,13 +605,13 @@ export const useMapScreen = () => {
     }
   }, [routing.directions?.coordinates]);
 
-  // The ride's recenter button only appears once the user has moved the map
-  // away from the route. It starts hidden for each ride, and hides again when
-  // the map is refitted by the button or by a route refresh.
-  const rideHasDriver = !!trip.tripData.driver;
+  // The recenter button only appears once the user has moved the map. It hides
+  // again when the map is refitted (by the button or a route refresh) and when
+  // the sheet changes step or snap point, so it never sits over a resizing sheet.
   useEffect(() => {
     setMapMovedByUser(false);
-  }, [rideHasDriver]);
+  }, [activeBottomSheet]);
+  const handleSheetMoved = useCallback(() => setMapMovedByUser(false), []);
 
 
   // Opens the booking sheet whenever nothing else owns the screen: on first
@@ -1361,6 +1361,7 @@ export const useMapScreen = () => {
       handleSavedAddressMapDragRequest,
       handleDragMarkerPositionChange,
       handleRegionChangeComplete,
+      handleSheetMoved,
       handleConfirmDragMarkerLocation,
       handleLocationTextInputFocus,
       handleBackButtonPress,
