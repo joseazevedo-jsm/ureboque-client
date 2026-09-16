@@ -14,7 +14,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ScalePressable } from "../components/common/ScalePressable";
 import { BlurView } from "expo-blur";
 import Animated, { FadeIn, FadeInDown, FadeInRight, FadeInUp, useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
-import { colors, spacing, shadows } from '../theme';
+import { colors, spacing, shadows, borderRadius } from '../theme';
+import { formatScheduledFor } from '../utils/scheduling';
 import { getPlaceIcon, ICON_ADD } from '../assets/icons';
 import { useMapScreen } from "../components/map/useMapScreen";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -70,6 +71,8 @@ const useSheetHeight = () => {
   const fontScale = Math.min(Math.max(PixelRatio.getFontScale(), 1), 1.6);
   return useCallback((point) => Math.round(point * fontScale) + inset, [fontScale, inset]);
 };
+
+const capitalize = (text) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : text);
 
 // Lets any mounted sheet report that it moved to another snap point.
 const SheetMovedContext = createContext(null);
@@ -161,9 +164,11 @@ const SHEET_SNAP_POINTS = {
 
 const BOOKING_SNAP = {
   initial:     [scale(260)],
+  initialWithScheduled: [scale(330)],
   carType:     [scale(270)],
   userCarInfo: [scale(380), scale(500)],
-  payment:     [scale(320)],
+  payment:     [scale(380)],
+  paymentScheduled: [scale(500)],
   rideSearch:  [scale(270), scale(350)],
   details:     [SHEET_SNAP_POINTS.details],
   dragMarker:  [scale(250)],
@@ -382,7 +387,10 @@ const SHEET_REST_HEIGHT = {
 const MapControls = memo(({ models, operations, navigation, openDrawer }) => {
   const rideActive = !!models.driver || ['assigned', 'in-progress', 'completed'].includes(models.tripState);
   const sheetHeight = useSheetHeight();
-  const restHeight = SHEET_REST_HEIGHT[models.activeBottomSheet];
+  const restHeight =
+    models.activeBottomSheet === 'initial' && models.scheduledTow ? BOOKING_SNAP.initialWithScheduled[0]
+      : models.activeBottomSheet === 'payment' && models.scheduledFor ? BOOKING_SNAP.paymentScheduled[0]
+        : SHEET_REST_HEIGHT[models.activeBottomSheet];
   const showRecenter = models.mapMovedByUser && restHeight != null;
   return (
   <>
@@ -750,7 +758,7 @@ const MapScreen = memo(() => {
           // alert's Modal measured a zero-height container and renders nothing.
           ref={models.bottomSheetModalRef}
           index={0}
-          snapPoints={BOOKING_SNAP.initial}
+          snapPoints={models.scheduledTow ? BOOKING_SNAP.initialWithScheduled : BOOKING_SNAP.initial}
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
@@ -759,6 +767,29 @@ const MapScreen = memo(() => {
           handleComponent={GlassHandle}
         >
           <BottomSheetView style={styles.sheetContainerGlass}>
+            {/* Tow booked for later: only present while one exists */}
+            {models.scheduledTow && (
+              <Animated.View entering={FadeInDown.springify()}>
+                <ScalePressable onPress={operations.handleScheduledTowPress} style={styles.scheduledCard}>
+                  <View style={styles.scheduledIcon}>
+                    <Icon name="event" size={scale(18)} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.scheduledTitle}>{capitalize(formatScheduledFor(models.scheduledTow.scheduledFor))}</Text>
+                    <View style={styles.scheduledStatusRow}>
+                      <View style={[styles.scheduledDot, models.scheduledTow.claimedBy && styles.scheduledDotClaimed]} />
+                      <Text style={styles.scheduledStatus} numberOfLines={1}>
+                        {models.scheduledTow.claimedBy
+                          ? `Motorista: ${models.scheduledTow.claimedBy.details?.name || 'confirmado'}`
+                          : 'À procura de motorista'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Icon name="chevron-right" size={scale(22)} color={colors.primary} />
+                </ScalePressable>
+              </Animated.View>
+            )}
+
             {/* Section header: Rebocar para + Ver tudo */}
             <Animated.View entering={FadeInDown.delay(60).springify()} style={styles.sectionHeaderRow}>
               <Text style={styles.sectionHeaderTitle}>Rebocar para</Text>
@@ -891,7 +922,7 @@ const MapScreen = memo(() => {
           isActive={models.activeBottomSheet === 'payment'}
           ref={models.paymentOptionsSheetRef}
           index={0}
-          snapPoints={BOOKING_SNAP.payment}
+          snapPoints={models.scheduledFor ? BOOKING_SNAP.paymentScheduled : BOOKING_SNAP.payment}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -900,7 +931,11 @@ const MapScreen = memo(() => {
           handleComponent={GlassHandle}
         >
           <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
-            <PaymentOptions handleConfirmPaymentPress={operations.handleConfirmPaymentPress} models={models} />
+            <PaymentOptions
+              handleConfirmPaymentPress={operations.handleConfirmPaymentPress}
+              onScheduleChange={operations.handleScheduleChange}
+              models={models}
+            />
           </Animated.View>
         </FlowBottomSheet>
         <FlowBottomSheet
@@ -1357,6 +1392,30 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.15)',
     borderRadius: scale(10),
   },
+  scheduledCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    borderRadius: borderRadius.xxl,
+    backgroundColor: colors.surface,
+    ...shadows.sm,
+  },
+  scheduledIcon: {
+    width: scale(38),
+    height: scale(38),
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryLight,
+  },
+  scheduledTitle: { fontSize: scale(15), fontWeight: '700', color: colors.textPrimary },
+  scheduledStatusRow: { flexDirection: 'row', alignItems: 'center', gap: scale(5), marginTop: scale(2) },
+  scheduledDot: { width: scale(7), height: scale(7), borderRadius: scale(4), backgroundColor: colors.warning },
+  scheduledDotClaimed: { backgroundColor: colors.success },
+  scheduledStatus: { fontSize: scale(12), color: colors.textSecondary },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -23,12 +23,19 @@ const PROMOTION_ERROR_MESSAGES = {
   'Invalid promotion code': 'Código promocional inválido',
 };
 
+// When the trip started: its scheduled time for a tow booked for later (created
+// long before it runs), otherwise when it was requested.
+const tripStartTime = (service) => {
+  const value = service?.scheduledFor || service?.createdAt;
+  return value ? new Date(value).getTime() : 0;
+};
+
 // A non-terminal service older than the recovery window is abandoned, not
 // current. Shared with trip recovery so both paths agree on what "active" means.
 export const isStaleActiveService = (service, now = Date.now()) => {
-  const createdAt = service?.createdAt ? new Date(service.createdAt).getTime() : 0;
-  if (!createdAt) return false;
-  return now - createdAt > ACTIVE_SERVICE_MAX_AGE_MS;
+  const startedAt = tripStartTime(service);
+  if (!startedAt) return false;
+  return now - startedAt > ACTIVE_SERVICE_MAX_AGE_MS;
 };
 
 export const isRecoverableActiveService = (item, now = Date.now()) => {
@@ -37,8 +44,8 @@ export const isRecoverableActiveService = (item, now = Date.now()) => {
     return false;
   }
 
-  const createdAt = service?.createdAt ? new Date(service.createdAt).getTime() : 0;
-  return createdAt > 0 && now - createdAt <= ACTIVE_SERVICE_MAX_AGE_MS;
+  const startedAt = tripStartTime(service);
+  return startedAt > 0 && now - startedAt <= ACTIVE_SERVICE_MAX_AGE_MS;
 };
 
 export const normalizeNotification = (notification) => ({

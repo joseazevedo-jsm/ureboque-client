@@ -19,6 +19,8 @@ import { setBackgroundLocationSink, startBackgroundLocation, stopBackgroundLocat
 import { MAP_LATITUDE_DELTA, MAP_LONGITUDE_DELTA, DRIVER_POLL_INTERVAL_MS } from '../../constants/config';
 import { getRecoverySheetForTripStatus, isActiveServiceStatus } from '../../utils/serviceState';
 import { isStaleActiveService } from '../../context/userDataHelpers';
+import { useScheduledTow } from '../../hooks/useScheduledTow';
+import { formatScheduledFor } from '../../utils/scheduling';
 
 // Keep coordinate checks local to this orchestration hook so route, search,
 // marker-drag, and location flows all fail safely on incomplete API/GPS data.
@@ -270,6 +272,7 @@ export const useMapScreen = () => {
   // but useMapTrip needs a way to trigger it when a booking's outcome is
   // uncertain — a ref lets both directions exist without a real cycle.
   const onBookingUncertainRef = useRef(null);
+  const onScheduledRef = useRef(null);
 
   // ── Sub-hooks ─────────────────────────────────────────────────────────────
   const geocoding = useMapGeocoding();
@@ -316,6 +319,9 @@ export const useMapScreen = () => {
     });
   }, [markers, routing.getDistanceInKm]);
 
+  const { scheduledTow, refreshScheduledTow, cancelScheduledTow } = useScheduledTow({ enabled: !!user?.id, socket });
+  onScheduledRef.current = refreshScheduledTow;
+
   const trip = useMapTrip({
     socket,
     user,
@@ -333,6 +339,7 @@ export const useMapScreen = () => {
     modalChatOpen: modalState.chat,
     onResetRef,
     onBookingUncertainRef,
+    onScheduledRef,
     setMapMarkers: setMarkers,
     setDriverLocation: drivers.setDriverLocation,
     updateCurrentRoute: routing.updateCurrentRoute,
@@ -1083,6 +1090,41 @@ export const useMapScreen = () => {
     presentBottomSheet('userCarInfo');
   }, [trip, presentBottomSheet, user?.vehicles]);
 
+  // null books now; an ISO string books for later.
+  const handleScheduleChange = useCallback((scheduledFor) => {
+    trip.updateTripData({ scheduledFor });
+  }, [trip]);
+
+  const handleScheduledTowPress = useCallback(() => {
+    if (!scheduledTow) return;
+    const driverName = scheduledTow.claimedBy?.details?.name;
+    const destination = scheduledTow.locations?.[1]?.name;
+    showAlert({
+      type: 'info',
+      title: 'Reboque agendado',
+      message: [
+        `Para ${formatScheduledFor(scheduledTow.scheduledFor)}.`,
+        destination ? `Destino: ${destination}.` : null,
+        driverName ? `Motorista: ${driverName}.` : 'Ainda à procura de motorista.',
+      ].filter(Boolean).join('\n'),
+      buttons: [
+        { text: 'Fechar', style: 'cancel' },
+        {
+          text: 'Cancelar agendamento',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await cancelScheduledTow(scheduledTow._id);
+            } catch (error) {
+              refreshScheduledTow();
+              showAlert({ type: 'error', title: 'Não foi possível cancelar', message: 'O reboque pode já ter começado. Tente novamente.' });
+            }
+          },
+        },
+      ],
+    });
+  }, [scheduledTow, showAlert, cancelScheduledTow, refreshScheduledTow]);
+
   const handleConfirmButtonPress = useCallback(async (shouldSave) => {
     Keyboard.dismiss();
     if (shouldSave) {
@@ -1284,6 +1326,8 @@ export const useMapScreen = () => {
       driver: trip.tripData.driver,
       typeCar: trip.tripData.carType,
       isSubmittingBooking: trip.isSubmittingBooking,
+      scheduledFor: trip.tripData.scheduledFor,
+      scheduledTow,
       ridePrice,
       brand: trip.tripData.brand,
       model: trip.tripData.model,
@@ -1375,6 +1419,8 @@ export const useMapScreen = () => {
       handleColorInputValueChange,
       handleConfirmButtonPress,
       handleConfirmPaymentPress: trip.handleConfirmPaymentPress,
+      handleScheduleChange,
+      handleScheduledTowPress,
       handleMessageDriver,
       handleCallDriver,
       setUnreadMessageCount,

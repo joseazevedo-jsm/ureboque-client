@@ -5,6 +5,7 @@ import ErrorService from '../services/ErrorService';
 import { SEARCH_TIMER_DURATION_S, DRIVER_ARRIVAL_THRESHOLD_KM, DRIVER_MOVE_THRESHOLD_M } from '../constants/config';
 import { getTripStatusFromDriverLeg } from '../utils/serviceState';
 import { acceptsTripSnapshot, reduceTripSnapshot } from '../utils/tripSnapshot';
+import { formatScheduledFor } from '../utils/scheduling';
 
 const DEFAULT_TIMER_DURATION = SEARCH_TIMER_DURATION_S;
 const CANCEL_ACK_TIMEOUT_MS = 8000;
@@ -37,6 +38,7 @@ export const useMapTrip = ({
   modalChatOpen,
   onResetRef,           // useRef pointing to the composition root's resetToInitialState
   onBookingUncertainRef, // useRef pointing to the composition root's reconcileTrip
+  onScheduledRef,       // useRef called after a booking for later is saved
   setMapMarkers,        // (markers) => void  — updates markers in composition root
   setDriverLocation,    // from useMapDrivers
   updateCurrentRoute,   // from useMapRouting
@@ -72,6 +74,8 @@ export const useMapTrip = ({
     driverArrived: false,
     _lastDriverLegStatus: null,
     _version: null,
+    // ISO string when the booking is for later; null books now.
+    scheduledFor: null,
   });
 
   const tripDataRef = useRef(tripData);
@@ -582,9 +586,13 @@ export const useMapTrip = ({
       return;
     }
 
-    logger.info('Confirm Payment', { carType: tripData.carType });
-    presentBottomSheet('rideSearch');
-    startTimer();
+    const scheduledFor = tripData.scheduledFor;
+    logger.info('Confirm Payment', { carType: tripData.carType, scheduled: !!scheduledFor });
+    // A booking for later does not search now, so there is no search sheet or timer.
+    if (!scheduledFor) {
+      presentBottomSheet('rideSearch');
+      startTimer();
+    }
 
     try {
       // New per-attempt idempotency key: a genuine retry (e.g. "Tentar de
@@ -614,6 +622,7 @@ export const useMapTrip = ({
         },
         type_car: tripData.carType,
         requestKey,
+        ...(scheduledFor ? { scheduledFor } : {}),
       };
 
       pendingBookingRef.current = pendingBookingRef.current || requestData;
@@ -622,6 +631,17 @@ export const useMapTrip = ({
       });
       logger.info('Service request successful', { serviceId: resp.data?._id });
       pendingBookingRef.current = null;
+
+      if (resp.data?.status === 'scheduled') {
+        onResetRef?.current?.();
+        onScheduledRef?.current?.();
+        showAlert({
+          type: 'success',
+          title: 'Reboque agendado',
+          message: `Agendado para ${formatScheduledFor(resp.data.scheduledFor)}. Avisamos quando um motorista aceitar.`,
+        });
+        return resp.data;
+      }
       updateTripData({ service: resp.data, status: resp.data.status, _version: null });
       handleServiceSnapshot({ service: resp.data });
 
@@ -650,6 +670,20 @@ export const useMapTrip = ({
             { text: 'Fechar', style: 'cancel' },
           ],
         });
+      } else if (scheduledFor && error.response?.status === 409) {
+        pendingBookingRef.current = null;
+        showAlert({
+          type: 'error',
+          title: 'Já tem um reboque agendado',
+          message: 'Cancele o agendamento atual antes de marcar outro.',
+        });
+      } else if (scheduledFor && error.response?.status === 400) {
+        pendingBookingRef.current = null;
+        showAlert({
+          type: 'error',
+          title: 'Hora indisponível',
+          message: 'Escolha uma hora com pelo menos 1 hora de antecedência e até 7 dias.',
+        });
       } else if (error.response?.status === 409) {
         // The server refuses a second booking while one is live. Handled
         // explicitly: ErrorService would otherwise fall through to its
@@ -677,7 +711,7 @@ export const useMapTrip = ({
       isSubmittingBookingRef.current = false;
       setIsSubmittingBooking(false);
     }
-  }, [socket, user, originCity, destinationCity, markers, tripData, presentBottomSheet, startTimer, updateTripData, showAlert, onBookingUncertainRef, handleServiceSnapshot, resetTimer]);
+  }, [socket, user, originCity, destinationCity, markers, tripData, presentBottomSheet, startTimer, updateTripData, showAlert, onBookingUncertainRef, onResetRef, onScheduledRef, handleServiceSnapshot, resetTimer]);
   confirmPaymentPressRef.current = handleConfirmPaymentPress;
 
   // Cancel helpers — the server ack is the only thing allowed to say
@@ -793,6 +827,7 @@ export const useMapTrip = ({
       driverArrived: false,
       _lastDriverLegStatus: null,
       _version: null,
+      scheduledFor: null,
     });
     resetTimer();
     noDriverAlertShownRef.current = false;
