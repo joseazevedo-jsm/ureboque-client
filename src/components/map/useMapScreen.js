@@ -31,7 +31,7 @@ export const useMapScreen = () => {
 
   // ── Context ─────────────────────────────────────────────────────────────
   const { socket } = useSocket();
-  const { user, setUser, serviceStatus, setServiceStatus, prices, fetchPrices, fetchCurrentTrip, unreadNotificationsCount, saveUserVehicle, removeDiscount } = useUserData();
+  const { user, setUser, serviceStatus, setServiceStatus, prices, pricesError, fetchPrices, fetchCurrentTrip, unreadNotificationsCount, saveUserVehicle, removeDiscount } = useUserData();
   const { userLocation, setUserLocation } = useUserLocationStateContext();
   const hasUserLocation = !!userLocation;
   const { setTripActive, setTripStatus } = useTripState();
@@ -70,8 +70,6 @@ export const useMapScreen = () => {
   // internal status at DISMISSING, so only the known active modal is touched.
   const activeBottomSheetRef = useRef(null);
   const bottomSheetHistoryRef = useRef([]);
-  const pendingBottomSheetRef = useRef(null);
-  const bottomSheetTransitioningRef = useRef(false);
   // Full-screen location modals temporarily hide a sheet. Remember where the
   // user came from so closing the modal returns to that sheet instead of
   // always resetting the flow to the menu/initial sheet.
@@ -210,59 +208,33 @@ export const useMapScreen = () => {
     return sheetMap[sheetName];
   }, []);
 
+  // `activeBottomSheet` is the only thing that decides which sheet is on
+  // screen. The sheet for that name is rendered, mounts already open, and
+  // unmounts when the name changes — visibility is a consequence of this
+  // state and of nothing else.
+  //
+  // activeBottomSheetRef is a synchronous mirror for callbacks that need the
+  // current value without waiting for a re-render. It is written here and in
+  // dismissAllBottomSheets and nowhere else; in particular a sheet closing
+  // never writes back to it. That write-back was the bug: every sheet has
+  // enablePanDownToClose={false}, so a close can only ever be the result of a
+  // swap this function already made, and feeding it back cleared the state
+  // that was meant to show the incoming sheet.
   const showBottomSheet = useCallback((sheetName) => {
-    const targetSheetRef = getBottomSheetRef(sheetName);
-    if (!targetSheetRef) return;
-    bottomSheetTransitioningRef.current = false;
+    if (!getBottomSheetRef(sheetName)) return;
     activeBottomSheetRef.current = sheetName;
     setActiveBottomSheet(sheetName);
-    requestAnimationFrame(() => targetSheetRef.current?.present());
   }, [getBottomSheetRef]);
 
   const transitionToBottomSheet = useCallback((sheetName) => {
-    if (!getBottomSheetRef(sheetName)) return;
-
-    const activeSheetName = activeBottomSheetRef.current;
-    if (activeSheetName === sheetName) {
-      getBottomSheetRef(sheetName)?.current?.present();
-      return;
-    }
-
-    // FlowBottomSheet is a regular BottomSheet and each sheet is rendered only
-    // while it is the active one. Swap the logical owner atomically so React
-    // unmounts the old sheet before mounting the target. Waiting for close's
-    // onDismiss (the old BottomSheetModal strategy) deadlocks because index={0}
-    // keeps the controlled old sheet open and the target is not rendered yet.
-    pendingBottomSheetRef.current = null;
+    if (activeBottomSheetRef.current === sheetName) return;
     showBottomSheet(sheetName);
-  }, [getBottomSheetRef, showBottomSheet]);
-
-  const handleBottomSheetDismiss = useCallback((sheetName) => {
-    if (activeBottomSheetRef.current !== sheetName) return;
-
-    activeBottomSheetRef.current = null;
-    bottomSheetTransitioningRef.current = false;
-    setActiveBottomSheet(null);
-    const pendingSheetName = pendingBottomSheetRef.current;
-    pendingBottomSheetRef.current = null;
-    if (pendingSheetName) showBottomSheet(pendingSheetName);
   }, [showBottomSheet]);
 
   const dismissAllBottomSheets = useCallback(() => {
-    pendingBottomSheetRef.current = null;
-    const activeSheetName = activeBottomSheetRef.current;
-    if (activeSheetName) {
-      // Clear the logical owner before dismissing. A modal opened in the same
-      // tick must not call present() on a sheet that is already dismissing.
-      activeBottomSheetRef.current = null;
-      bottomSheetTransitioningRef.current = false;
-      setActiveBottomSheet(null);
-      getBottomSheetRef(activeSheetName)?.current?.dismiss();
-      return;
-    }
-    bottomSheetTransitioningRef.current = false;
+    activeBottomSheetRef.current = null;
     setActiveBottomSheet(null);
-  }, [getBottomSheetRef]);
+  }, []);
 
   const presentBottomSheet = useCallback((sheetName) => {
     if (!getBottomSheetRef(sheetName)) return;
@@ -631,43 +603,16 @@ export const useMapScreen = () => {
     }
   }, [routing.directions?.coordinates]);
 
-  // Present the initial sheet after the screen and its modal refs are mounted.
-  // A single mount-time present can race the Gorhom portal during reloads; if
-  // that happens the map remains usable but has no way to start the flow.
+  // Opens the booking sheet whenever nothing else owns the screen: on first
+  // render, and again after a flow ends and leaves no sheet active.
   useEffect(() => {
     if (!isFocused || trip.tripData.service || modalState.destination ||
         modalState.savedPlaces || markerVisible || markers.length === 2 ||
-        activeBottomSheetRef.current) return undefined;
+        activeBottomSheetRef.current) return;
+    presentBottomSheet('initial');
+  }, [isFocused, trip.tripData.service, modalState.destination, modalState.savedPlaces,
+      markerVisible, markers.length, activeBottomSheet, presentBottomSheet]);
 
-    const retryTimer = setTimeout(() => {
-      if (!activeBottomSheetRef.current && isFocused && !trip.tripData.service &&
-          !modalState.destination && !modalState.savedPlaces && !markerVisible &&
-          markers.length !== 2) {
-        presentBottomSheet('initial');
-      }
-    }, 250);
-
-    return () => clearTimeout(retryTimer);
-  }, [isFocused, trip.tripData.service, modalState.destination, modalState.savedPlaces, markerVisible, markers.length, activeBottomSheet, presentBottomSheet]);
-
-  // Fast Refresh can preserve our React/ref state while Gorhom remounts its
-  // portal with the modal physically closed. Reconcile the imperative modal
-  // with the sheet that React still considers active, otherwise the content
-  // remains mounted below the viewport and no bottom sheet is visible.
-  useEffect(() => {
-    if (!isFocused || modalState.destination || modalState.savedPlaces) return undefined;
-
-    const sheetName = activeBottomSheetRef.current;
-    if (!sheetName) return undefined;
-
-    const reconcileTimer = setTimeout(() => {
-      if (activeBottomSheetRef.current === sheetName) {
-        getBottomSheetRef(sheetName)?.current?.present();
-      }
-    }, 300);
-
-    return () => clearTimeout(reconcileTimer);
-  }, [isFocused, activeBottomSheet, modalState.destination, modalState.savedPlaces, getBottomSheetRef]);
 
   // Keep handler references current without re-registering socket listeners.
   useEffect(() => {
@@ -1312,6 +1257,7 @@ export const useMapScreen = () => {
       userLocationUpdateInterval,
       userLocationFastestInterval,
       prices,
+      pricesError,
       tripData: trip.tripData,
       service: trip.tripData.service,
       driver: trip.tripData.driver,
@@ -1375,6 +1321,7 @@ export const useMapScreen = () => {
       canGoBackBottomSheet: bottomSheetHistoryRef.current.length > 1 || activeBottomSheet === 'dragMarker',
     },
     operations: {
+      fetchPrices,
       handleUserLocationChange,
       handleMapSearchBarPress,
       handlePreCancelButtonPress,
@@ -1422,7 +1369,6 @@ export const useMapScreen = () => {
       resetToInitialState,
       dismissAllBottomSheets,
       presentBottomSheet,
-      handleBottomSheetDismiss,
       getAddressFromCoordinates: geocoding.getAddressFromCoordinates,
     },
   };

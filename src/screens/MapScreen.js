@@ -1,7 +1,8 @@
-import React, { useEffect, memo, useMemo, useCallback, useRef } from "react";
+import React, { useEffect, memo, useMemo, useCallback, useRef, useState } from "react";
 import {
   Image,
   Modal,
+  PixelRatio,
   Share,
   StyleSheet,
   Text,
@@ -55,11 +56,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // exclusive, so a regular controlled BottomSheet is simpler and deterministic.
 // Keep the former imperative API so the flow manager does not need to care
 // which Gorhom shell renders the sheet.
+// Rendered only while it is the active sheet, and opened imperatively once its
+// ref attaches. See the note on showBottomSheet: a BottomSheet measures its
+// container once on mount, which is the source of the recovery effects below.
 const FlowBottomSheet = React.forwardRef(({
-  onDismiss,
   stackBehavior: _stackBehavior,
   onChange,
   snapPoints,
+  isActive = true,
+  index = 0,
+  children,
   ...props
 }, forwardedRef) => {
   const sheetRef = useRef(null);
@@ -69,9 +75,18 @@ const FlowBottomSheet = React.forwardRef(({
   const effectiveBottomInset = Platform.OS === 'android'
     ? Math.max(bottomInset, scale(32))
     : bottomInset;
+  // Snap points are authored at the default text size. When the user enlarges
+  // system text the content grows but a fixed snap point does not, so the last
+  // rows are pushed under the navigation bar — at 1.3x this made the Multicaixa
+  // payment option unreachable, leaving cash as the only selectable method.
+  // Grow the sheet with the font scale, capped so a very large setting cannot
+  // make the sheet taller than the screen.
+  const fontScale = Math.min(Math.max(PixelRatio.getFontScale(), 1), 1.6);
   const safeSnapPoints = useMemo(
-    () => snapPoints?.map((point) => typeof point === 'number' ? point + effectiveBottomInset : point),
-    [snapPoints, effectiveBottomInset],
+    () => snapPoints?.map((point) => typeof point === 'number'
+      ? Math.round(point * fontScale) + effectiveBottomInset
+      : point),
+    [snapPoints, effectiveBottomInset, fontScale],
   );
 
   React.useImperativeHandle(forwardedRef, () => ({
@@ -81,18 +96,30 @@ const FlowBottomSheet = React.forwardRef(({
     close: () => sheetRef.current?.close(),
   }), []);
 
-  const handleChange = useCallback((index) => {
-    onChange?.(index);
-    if (index === -1) onDismiss?.();
-  }, [onChange, onDismiss]);
+  const handleChange = useCallback((changedIndex) => {
+    onChange?.(changedIndex);
+  }, [onChange]);
+
+  if (!isActive) return null;
 
   return (
     <BottomSheet
       ref={sheetRef}
       onChange={handleChange}
       snapPoints={safeSnapPoints}
+      index={index}
+      // A sheet mounts at index -1 and animates up to its snap point. That
+      // animation is driven by Reanimated, which does not run while the app is
+      // backgrounded — so a sheet that swapped in while the user was in another
+      // app stayed parked below the screen, mounted and laid out but never
+      // raised, and nothing re-issued the animation on resume. Measured: the
+      // handle sat at y=1.02 instead of 0.54. Starting at the snap point
+      // outright removes the animation, so there is nothing left to drop.
+      animateOnMount={false}
       {...props}
-    />
+    >
+      {children}
+    </BottomSheet>
   );
 });
 FlowBottomSheet.displayName = 'FlowBottomSheet';
@@ -117,12 +144,36 @@ const DRIVER_MARKER_FRAME_MS = 120;
 // render the same DriverStatus layout — the two that can show the "Cancelar
 // viagem" row (en-route and arrived) need the same expanded height; tripEnding
 // (in-progress, no cancel row) is shorter.
+// Snap point arrays must keep a stable identity. BottomSheet re-initialises its
+// layout whenever the snapPoints prop changes, and an inline array literal is a
+// new value on every render — during a trip, where driver-location updates
+// re-render this screen continuously, the sheet was re-initialising faster than
+// it could settle and so never opened at all. Declared once, here.
 const SHEET_SNAP_POINTS = {
   driverStatusExpanded: scale(500),
   driverStatusExpandedNoCancel: scale(435),
   driverStatusCollapsed: scale(310),
   details: scale(520),
 };
+
+const BOOKING_SNAP = {
+  initial:     [scale(260)],
+  carType:     [scale(270)],
+  userCarInfo: [scale(380), scale(500)],
+  payment:     [scale(320)],
+  rideSearch:  [scale(270), scale(350)],
+  details:     [SHEET_SNAP_POINTS.details],
+  dragMarker:  [scale(250)],
+};
+
+const DRIVER_STATUS_SNAP = [
+  SHEET_SNAP_POINTS.driverStatusCollapsed,
+  SHEET_SNAP_POINTS.driverStatusExpanded,
+];
+const DRIVER_STATUS_SNAP_NO_CANCEL = [
+  SHEET_SNAP_POINTS.driverStatusCollapsed,
+  SHEET_SNAP_POINTS.driverStatusExpandedNoCancel,
+];
 
 const getCarIconByColor = (color) => {
   try {
@@ -239,8 +290,20 @@ const SmoothDriverMarker = memo(({ driver, location, isStale }) => {
     heading.value = withTiming(nextHeading, { duration: 700 });
   }, [location?.heading]);
 
+  // Staleness has to travel through the animated style, not a conditional
+  // entry in the style array. Reanimated owns this node's props once an
+  // animated style is attached, and a sibling static style that flips after
+  // mount is not re-applied — `isStale` was toggling correctly for minutes
+  // while the marker stayed fully opaque, so a driver who had stopped
+  // reporting still looked live.
+  const staleness = useSharedValue(1);
+  useEffect(() => {
+    staleness.value = withTiming(isStale ? 0.4 : 1, { duration: 300 });
+  }, [isStale]);
+
   const carAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${heading.value}deg` }],
+    opacity: staleness.value,
   }));
 
   if (!driver || !displayLocation) return null;
@@ -252,7 +315,7 @@ const SmoothDriverMarker = memo(({ driver, location, isStale }) => {
     >
       <Animated.Image
         source={getCarIconByColor(driver?.car?.color)}
-        style={[styles.driverCarIcon, carAnimatedStyle, isStale && styles.driverCarIconStale]}
+        style={[styles.driverCarIcon, carAnimatedStyle]}
         resizeMode="contain"
       />
     </Marker>
@@ -313,19 +376,21 @@ const DriverStatusSheet = memo(({
   sheetRef,
   sheetName,
   activeBottomSheet,
-  expandedSnapPoint,
+  snapPoints,
   status,
   models,
   operations,
   onShareLocation,
   onCancelTrip,
   driverStatusSheetRef,
-}) => activeBottomSheet === sheetName ? (
+}) => {
+  const isActive = activeBottomSheet === sheetName;
+  return (
   <FlowBottomSheet
+    isActive={isActive}
     ref={sheetRef}
-    onDismiss={() => operations.handleBottomSheetDismiss(sheetName)}
     index={0}
-    snapPoints={[SHEET_SNAP_POINTS.driverStatusCollapsed, expandedSnapPoint]}
+    snapPoints={snapPoints}
     enablePanDownToClose={false}
     enableDynamicSizing={false}
     stackBehavior="replace"
@@ -356,7 +421,8 @@ const DriverStatusSheet = memo(({
       />
     </Animated.View>
   </FlowBottomSheet>
-) : null);
+  );
+});
 
 const TripStatusSheets = memo(({ models, operations, onShareLocation }) => (
   <>
@@ -364,7 +430,7 @@ const TripStatusSheets = memo(({ models, operations, onShareLocation }) => (
       sheetRef={models.tripStartedSheetRef}
       sheetName="tripStarted"
       activeBottomSheet={models.activeBottomSheet}
-      expandedSnapPoint={SHEET_SNAP_POINTS.driverStatusExpanded}
+      snapPoints={DRIVER_STATUS_SNAP}
       status={TRIP_STATUS.DRIVER_EN_ROUTE}
       models={models}
       operations={operations}
@@ -376,7 +442,7 @@ const TripStatusSheets = memo(({ models, operations, onShareLocation }) => (
       sheetRef={models.driverArrivingSheetRef}
       sheetName="driverArriving"
       activeBottomSheet={models.activeBottomSheet}
-      expandedSnapPoint={SHEET_SNAP_POINTS.driverStatusExpanded}
+      snapPoints={DRIVER_STATUS_SNAP}
       status={TRIP_STATUS.DRIVER_ARRIVED}
       models={models}
       operations={operations}
@@ -388,13 +454,13 @@ const TripStatusSheets = memo(({ models, operations, onShareLocation }) => (
       sheetRef={models.tripEndingSheetRef}
       sheetName="tripEnding"
       activeBottomSheet={models.activeBottomSheet}
-      expandedSnapPoint={SHEET_SNAP_POINTS.driverStatusExpandedNoCancel}
+      snapPoints={DRIVER_STATUS_SNAP_NO_CANCEL}
       status={TRIP_STATUS.IN_PROGRESS}
       models={models}
       operations={operations}
       onShareLocation={onShareLocation}
       onCancelTrip={operations.handleCancelTrip}
-      driverStatusSheetRef={models.driverArrivingSheetRef}
+      driverStatusSheetRef={models.tripEndingSheetRef}
     />
   </>
 ));
@@ -483,7 +549,12 @@ const MapScreen = memo(() => {
     activeBottomSheet: models.activeBottomSheet,
     hasDestination: !!models.destination,
     hasSelectedCar: !!models.selectedCar,
-    driverCount: models.nearbyDrivers?.length || 0
+    driverCount: models.nearbyDrivers?.length || 0,
+    // The trip sheets render null without a driver, so an active sheet with no
+    // driver looks identical to no sheet at all. Both are needed to tell those
+    // apart from a log.
+    tripStatus: models.tripData?.status,
+    hasDriver: !!models.driver,
   });
 
   const snapPoints = useMemo(
@@ -569,19 +640,31 @@ const MapScreen = memo(() => {
   // outright failure message here would cry wolf on every request. Only call it
   // unroutable once the two points are effectively the same, which is the case
   // the route can never resolve; otherwise say we are still calculating.
+  // NB: the hook exposes this array as `mapMarkers`, not `markers`. Reading the
+  // wrong name made this check silently impossible, so an unroutable pair fell
+  // through to "A calcular percurso..." and hung there.
+  const routePoints = models.mapMarkers;
   const sameOriginAndDestination =
-    models.markers?.length === 2 &&
-    isValidCoordinate(models.markers[0]) &&
-    isValidCoordinate(models.markers[1]) &&
+    routePoints?.length === 2 &&
+    isValidCoordinate(routePoints[0]) &&
+    isValidCoordinate(routePoints[1]) &&
     Math.hypot(
-      (models.markers[1].latitude - models.markers[0].latitude) * 111320,
-      (models.markers[1].longitude - models.markers[0].longitude) * 111320 *
-        Math.cos((models.markers[0].latitude * Math.PI) / 180),
+      (routePoints[1].latitude - routePoints[0].latitude) * 111320,
+      (routePoints[1].longitude - routePoints[0].longitude) * 111320 *
+        Math.cos((routePoints[0].latitude * Math.PI) / 180),
     ) < 25;
 
+  // A failed price fetch is indistinguishable from a slow one if the only
+  // message is "A calcular percurso...". On a slow or flaky link the request
+  // times out after 10s and the sheet then sat on that text forever — no
+  // price, no car types, no way to retry. Say what happened and offer the
+  // retry instead.
+  const priceFetchFailed = models.pricesError && !models.prices;
   const carTypesEmptyMessage = sameOriginAndDestination
     ? 'O destino é praticamente o mesmo que o local de recolha. Escolha um destino diferente.'
-    : 'A calcular percurso...';
+    : priceFetchFailed
+      ? 'Não foi possível calcular o preço. Verifique a sua ligação à internet.'
+      : 'A calcular percurso...';
 
   // Memoized car types item renderer
   const renderCarTypesItem = useCallback(({ item }) => {
@@ -636,19 +719,15 @@ const MapScreen = memo(() => {
   const drawerReturnSheetRef = useRef('initial');
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('drawerClose', () => {
-      if (!models.modalVisible && !models.modalSavedPlacesVisible && !models.service) {
-        operations.presentBottomSheet(drawerReturnSheetRef.current || 'initial');
-      }
-    });
-    return unsubscribe;
-  }, [navigation, models.modalVisible, models.modalSavedPlacesVisible, models.service, operations.presentBottomSheet]);
+    return undefined;
+  }, []);
 
+  // The drawer no longer dismisses the sheet. Dismissing it meant the only
+  // record of which sheet to restore lived in a ref, restored from a
+  // drawerClose event — and when that event did not fire, or bailed on its
+  // guard, the sheet was simply gone and the app had to be restarted. Sheet
+  // visibility is state; the drawer has no business editing it.
   const openDrawer = () => {
-    // Do not leave a sheet portal above the drawer. This also prevents a
-    // dismissed sheet from intercepting touches when the drawer closes.
-    drawerReturnSheetRef.current = models.activeBottomSheet || 'initial';
-    operations.dismissAllBottomSheets();
     navigation.openDrawer();
   };
 
@@ -659,11 +738,13 @@ const MapScreen = memo(() => {
 
       <MapControls models={models} operations={operations} navigation={navigation} recenterAnimatedStyle={recenterAnimatedStyle} openDrawer={openDrawer} />
 
-        {models.activeBottomSheet === 'initial' && <FlowBottomSheet
+        <FlowBottomSheet
+          isActive={models.activeBottomSheet === 'initial'}
+          // Remount after an alert closes: a sheet that mounted under the
+          // alert's Modal measured a zero-height container and renders nothing.
           ref={models.bottomSheetModalRef}
-          onDismiss={() => operations.handleBottomSheetDismiss('initial')}
           index={0}
-          snapPoints={[scale(260)]}
+          snapPoints={BOOKING_SNAP.initial}
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
@@ -712,13 +793,13 @@ const MapScreen = memo(() => {
               </ScalePressable>
             </Animated.View>
           </BottomSheetView>
-        </FlowBottomSheet>}
+        </FlowBottomSheet>
 
-        {models.activeBottomSheet === 'carType' && <FlowBottomSheet
+        <FlowBottomSheet
+          isActive={models.activeBottomSheet === 'carType'}
           ref={models.carTypeSelectionSheetRef}
-          onDismiss={() => operations.handleBottomSheetDismiss('carType')}
           index={0}
-          snapPoints={[scale(270)]}
+          snapPoints={BOOKING_SNAP.carType}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -732,7 +813,12 @@ const MapScreen = memo(() => {
             <Text
               style={{
                 fontSize: scale(18),
-                alignSelf: "center",
+                // alignSelf centres the element but does not constrain it, so
+                // at larger text sizes the heading grew wider than the sheet
+                // and its first letter was clipped off the left edge. Fill the
+                // width and centre the text inside padding instead.
+                textAlign: "center",
+                paddingHorizontal: scale(16),
                 color: colors.primary,
                 fontWeight: "900",
                 marginBottom: scale(10),
@@ -745,19 +831,30 @@ const MapScreen = memo(() => {
               renderItem={renderCarTypesItem}
               keyExtractor={(item, index) => String(item?._id ?? `price-${index}`)}
               ListEmptyComponent={
-                <Text style={styles.carTypesEmptyText}>
-                  {carTypesEmptyMessage}
-                </Text>
+                <View>
+                  <Text style={styles.carTypesEmptyText}>
+                    {carTypesEmptyMessage}
+                  </Text>
+                  {priceFetchFailed && (
+                    <TouchableOpacity
+                      style={styles.carTypesRetryButton}
+                      onPress={operations.fetchPrices}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.carTypesRetryText}>Tentar novamente</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               }
             />
           </Animated.View>
-        </FlowBottomSheet>}
+        </FlowBottomSheet>
 
-        {models.activeBottomSheet === 'userCarInfo' && <FlowBottomSheet
+        <FlowBottomSheet
+          isActive={models.activeBottomSheet === 'userCarInfo'}
           ref={models.userCarInfoSheetRef}
-          onDismiss={() => operations.handleBottomSheetDismiss('userCarInfo')}
           index={0}
-          snapPoints={[scale(380), scale(500)]}
+          snapPoints={BOOKING_SNAP.userCarInfo}
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
@@ -783,13 +880,13 @@ const MapScreen = memo(() => {
               }}
             />
           </Animated.View>
-        </FlowBottomSheet>}
+        </FlowBottomSheet>
 
-        {models.activeBottomSheet === 'payment' && <FlowBottomSheet
+        <FlowBottomSheet
+          isActive={models.activeBottomSheet === 'payment'}
           ref={models.paymentOptionsSheetRef}
-          onDismiss={() => operations.handleBottomSheetDismiss('payment')}
           index={0}
-          snapPoints={[scale(320)]}
+          snapPoints={BOOKING_SNAP.payment}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -802,12 +899,12 @@ const MapScreen = memo(() => {
           <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
             <PaymentOptions handleConfirmPaymentPress={operations.handleConfirmPaymentPress} models={models} />
           </Animated.View>
-        </FlowBottomSheet>}
-        {models.activeBottomSheet === 'rideSearch' && <FlowBottomSheet
+        </FlowBottomSheet>
+        <FlowBottomSheet
+          isActive={models.activeBottomSheet === 'rideSearch'}
           ref={models.rideSearchSheetRef}
-          onDismiss={() => operations.handleBottomSheetDismiss('rideSearch')}
           index={0}
-          snapPoints={[scale(270), scale(350)]}
+          snapPoints={BOOKING_SNAP.rideSearch}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -832,7 +929,7 @@ const MapScreen = memo(() => {
               calculateProgress={operations.calculateProgress}
             />
           </Animated.View>
-        </FlowBottomSheet>}
+        </FlowBottomSheet>
 
         <TripStatusSheets
           models={models}
@@ -840,11 +937,11 @@ const MapScreen = memo(() => {
           onShareLocation={handleShareLocation}
         />
 
-        {models.activeBottomSheet === 'details' && <FlowBottomSheet
+        <FlowBottomSheet
+          isActive={models.activeBottomSheet === 'details'}
           ref={models.bottomSheetModalRefDetails}
-          onDismiss={() => operations.handleBottomSheetDismiss('details')}
           index={0}
-          snapPoints={[SHEET_SNAP_POINTS.details]}
+          snapPoints={BOOKING_SNAP.details}
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
@@ -869,11 +966,11 @@ const MapScreen = memo(() => {
               />
             )}
           </Animated.View>
-        </FlowBottomSheet>}
+        </FlowBottomSheet>
 
-        {models.activeBottomSheet === 'dragMarker' && <FlowBottomSheet
+        <FlowBottomSheet
+          isActive={models.activeBottomSheet === 'dragMarker'}
           ref={models.bottomSheetModalDragMarker}
-          onDismiss={() => operations.handleBottomSheetDismiss('dragMarker')}
           index={0}
           snapPoints={snapPoints}
           enablePanDownToClose={false}
@@ -924,7 +1021,7 @@ const MapScreen = memo(() => {
               </TouchableOpacity>
             </View>
           </View>
-        </FlowBottomSheet>}
+        </FlowBottomSheet>
 
       <MapModalHost models={models} operations={operations} />
     </View>
@@ -948,6 +1045,19 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
+  carTypesRetryButton: {
+    alignSelf: 'center',
+    marginTop: spacing.md,
+    paddingVertical: scale(10),
+    paddingHorizontal: spacing.xl,
+    borderRadius: scale(10),
+    backgroundColor: colors.primary,
+  },
+  carTypesRetryText: {
+    color: colors.surface,
+    fontSize: scale(14),
+    fontWeight: '700',
+  },
   carTypesEmptyText: {
     textAlign: 'center',
     color: colors.textSecondary,
@@ -961,8 +1071,7 @@ const styles = StyleSheet.create({
     height: scale(50),
   },
   // Faded: this is the last position reported, not a confirmed live one.
-  driverCarIconStale: {
-    opacity: 0.4,
+  driverCarIconStaleRemoved: {
   },
   bellWrapper: {
     position: 'absolute',

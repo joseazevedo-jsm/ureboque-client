@@ -5,11 +5,13 @@ import ProgressBar from "react-native-progress-bar-horizontal";
 import RouteItem from "../cards/routeItem";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
+import ConnectionBanner from "./ConnectionBanner";
 import { colors, spacing, borderRadius } from "../../theme";
 
 const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCancelSearch, calculateProgress }) => {
   return (
     <View style={styles.container}>
+      <ConnectionBanner />
       <View style={styles.header}>
         <View style={styles.row}>
           {accepted ? (

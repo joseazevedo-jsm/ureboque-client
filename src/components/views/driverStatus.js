@@ -5,8 +5,27 @@ import RouteItem from "../cards/routeItem";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import DriverItem from "../cards/driverItem";
+import ConnectionBanner from "./ConnectionBanner";
+import { useDriverLocationStale } from "../../hooks/useMapDrivers";
 import { colors, spacing, borderRadius, shadows } from "../../theme";
 import { TRIP_STATUS } from "../../constants/tripStatus";
+
+// A driver marker that stops moving is ambiguous: parked, or no longer
+// reporting at all. Dimming the map pin was the previous signal, but it never
+// reached the screen and is easy to miss even when it does. Say it in words on
+// the card the rider is already looking at.
+const DriverLocationStaleNotice = () => {
+  const isStale = useDriverLocationStale();
+  if (!isStale) return null;
+  return (
+    <View style={styles.staleNotice}>
+      <Icon name="location-off" size={scale(15)} color={colors.warning} />
+      <Text style={styles.staleNoticeText}>
+        A localização do motorista não está a atualizar.
+      </Text>
+    </View>
+  );
+};
 
 const DriverStatus = memo(({
   status,
@@ -26,6 +45,8 @@ const DriverStatus = memo(({
 
   return (
     <View style={styles.container}>
+      <ConnectionBanner />
+      <DriverLocationStaleNotice />
       <DriverItem
         status={status}
         origin={origin}
@@ -87,6 +108,22 @@ const DriverStatus = memo(({
 });
 
 const styles = StyleSheet.create({
+  staleNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.warningLight,
+    borderRadius: borderRadius.md,
+    paddingVertical: scale(9),
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  staleNoticeText: {
+    flex: 1,
+    marginLeft: spacing.sm,
+    fontSize: scale(12.5),
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
   container: {
     paddingBottom: spacing.lg,
   },

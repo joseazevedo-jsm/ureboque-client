@@ -39,6 +39,9 @@ const DestinationModal = ({
     userLocation
   );
 
+  const hasOriginValue = !!(origin || models.originInputValue);
+
+
   return (
     <Modal animationType="slide" transparent={false} visible={visible} onRequestClose={closeModal}>
       <KeyboardAvoidingView
@@ -81,6 +84,13 @@ const DestinationModal = ({
                     }}
                     selectTextOnFocus={true}
                     clearButtonMode="while-editing"
+                    // Focus follows whichever field still needs an answer.
+                    // Basing this on coordinates alone was not enough: a cached
+                    // fix can exist while reverse geocoding never produces a
+                    // label, leaving the origin visibly blank. Asking for the
+                    // destination while "De onde?" is empty puts the questions
+                    // in the wrong order, so an empty origin always wins focus.
+                    autoFocus={models.activeInput === 'origin' || !hasOriginValue}
                   />
                 </View>
               </TouchableOpacity>
@@ -108,7 +118,7 @@ const DestinationModal = ({
                       operations.handleDestinationFocus();
                       onLocationTextInputFocus(1);
                     }}
-                    autoFocus={true}
+                    autoFocus={models.activeInput === 'destination' && hasOriginValue}
                   />
                 </View>
               </TouchableOpacity>

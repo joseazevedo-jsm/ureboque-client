@@ -57,7 +57,13 @@ export const AlertProvider = ({ children }) => {
     return () => ErrorService.setAlertHandler(null);
   }, [showAlert]);
 
-  const value = useMemo(() => ({ showAlert, hideAlert }), [showAlert, hideAlert]);
+  // Exposed so screens can react to an alert closing. A bottom sheet mounted
+  // while the alert's Modal is up can fail to lay out and stay off-screen, and
+  // nothing else tells the screen when it is safe to re-present.
+  const value = useMemo(
+    () => ({ showAlert, hideAlert, isAlertVisible: alertState.visible }),
+    [showAlert, hideAlert, alertState.visible],
+  );
 
   return (
     <AlertContext.Provider value={value}>

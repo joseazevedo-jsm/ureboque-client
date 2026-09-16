@@ -34,7 +34,11 @@ const CarTypes = memo(({ typeCar, descr, descr2, price, route, onPress }) => {
           />
 
           <View style={styles.infoContainer}>
-            <Text style={styles.title}>{typeCar}</Text>
+            {/* Without these the label breaks mid-word at larger text sizes
+                ("TURISMO" rendered as "TURISM / O"). Shrink to fit instead. */}
+            <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+              {typeCar}
+            </Text>
             <Text style={styles.subtext}>{descr}</Text>
             <Text style={styles.subtext}>{descr2}</Text>
           </View>

@@ -26,6 +26,7 @@ export const UserDataProvider = ({ children }) => {
   const { userToken, isAuthenticated } = useAuth();
   const [user, setUser] = useState(null);
   const [prices, setPrices] = useState(null);
+  const [pricesError, setPricesError] = useState(false);
   const [services, setServices] = useState([]);
   const [serviceStatus, setServiceStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,6 +81,7 @@ export const UserDataProvider = ({ children }) => {
     const requestGeneration = sessionGenerationRef.current;
     if (!mountedRef.current || !isAuthenticated) return;
     if (pricesRequestRef.current) return pricesRequestRef.current;
+    setPricesError(false);
 
     const request = (async () => {
     try {
@@ -89,8 +91,18 @@ export const UserDataProvider = ({ children }) => {
       if (mountedRef.current && requestGeneration === sessionGenerationRef.current && isAuthenticated) {
         setPrices(data);
       }
+      if (mountedRef.current && requestGeneration === sessionGenerationRef.current) {
+        setPricesError(false);
+      }
     } catch (error) {
       logger.error('Error fetching prices', error.response?.data?.error);
+      // Swallowing this left `prices` empty forever, and the car-type sheet has
+      // no way to tell "still loading" from "the request failed" — it sat on
+      // "A calcular percurso..." indefinitely with no price, no options and no
+      // retry. Record the failure so the sheet can say so and offer a retry.
+      if (mountedRef.current && requestGeneration === sessionGenerationRef.current) {
+        setPricesError(true);
+      }
     } finally {
       if (pricesRequestRef.current === request) pricesRequestRef.current = null;
     }
@@ -103,6 +115,21 @@ export const UserDataProvider = ({ children }) => {
     const requestGeneration = sessionGenerationRef.current;
     const userId = user?.id || user?._id;
     if (!userId || !isAuthenticated || !place || typeof place !== 'object') return;
+
+    // The saved-places list treats 'Casa' and 'Trabalho' as single slots: it
+    // picks the first match by name and filters those names out of the "other
+    // places" section. A second place with the same name was therefore accepted
+    // by the server and then shown nowhere — the user could neither see it nor
+    // delete it. Reject the collision instead, so the list always reflects what
+    // is actually stored.
+    const newName = place?.place?.name?.trim().toLowerCase();
+    const alreadyUsed = newName && (user?.saved_places || []).some(
+      (saved) => saved?.place?.name?.trim().toLowerCase() === newName
+    );
+    if (alreadyUsed) {
+      throw new Error(`Já tem um local guardado com o nome "${place.place.name.trim()}".`);
+    }
+
     const timer = logger.startTimer('save_favourite_address');
     logger.info('Saving favourite address', { placeName: place.name, userId });
     logger.logApiRequest('PUT', `/users/${userId}/places`, place);
@@ -729,6 +756,7 @@ export const UserDataProvider = ({ children }) => {
     user,
     setUser,
     prices,
+    pricesError,
     services,
     setServices,
     serviceStatus,
@@ -741,7 +769,7 @@ export const UserDataProvider = ({ children }) => {
     ...stableActions,
     notifications,
     unreadNotificationsCount,
-  }), [user, prices, services, serviceStatus, isLoading, servicesLoading, servicesPage, servicesHasMore, servicesLoadedUserId, notifications, unreadNotificationsCount, stableActions]);
+  }), [user, prices, pricesError, services, serviceStatus, isLoading, servicesLoading, servicesPage, servicesHasMore, servicesLoadedUserId, notifications, unreadNotificationsCount, stableActions]);
 
   return <UserDataContext.Provider value={value}>{children}</UserDataContext.Provider>;
 };

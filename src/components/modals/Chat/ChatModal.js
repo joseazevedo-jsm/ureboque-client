@@ -43,6 +43,8 @@ const ChatModal = ({ visible, closeModal, idService, driver, setUnreadMessageCou
         text={item.message.message ?? ""}
         isSender={item.message.sender === models.user?.id}
         timestamp={timestamp}
+        deliveryStatus={item.deliveryStatus}
+        onRetry={item.localId ? () => operations.retryMessage(item.localId) : undefined}
       />
     );
   };

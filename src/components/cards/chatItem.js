@@ -1,9 +1,9 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { scale } from "react-native-size-matters";
 import { colors, shadows, borderRadius } from "../../theme";
 
-const ChatItem = ({ text, isSender, timestamp }) => {
+const ChatItem = ({ text, isSender, timestamp, deliveryStatus, onRetry }) => {
   // Format timestamp to display time
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
@@ -46,7 +46,7 @@ const ChatItem = ({ text, isSender, timestamp }) => {
     }
   };
 
-  return (
+  const bubble = (
     <View
       style={[
         styles.container,
@@ -68,14 +68,46 @@ const ChatItem = ({ text, isSender, timestamp }) => {
             isSender ? styles.senderTimestampText : styles.receiverTimestampText,
           ]}
         >
+          {/* A message the server has not acknowledged must not look delivered.
+              Showing only a timestamp made an unsent message indistinguishable
+              from a received one. */}
           {formatTime(timestamp)}
+          {isSender && deliveryStatus === 'pending' ? '  · a enviar…' : ''}
         </Text>
       )}
+    </View>
+  );
+
+  if (!isSender || deliveryStatus !== 'failed') return bubble;
+
+  // The retry notice sits outside the bubble: inside it, the bubble's own
+  // padding and max-width clipped the text over the message.
+  return (
+    <View style={styles.failedGroup}>
+      {bubble}
+      <TouchableOpacity onPress={onRetry} style={styles.failedRow} activeOpacity={0.7}>
+        <Text style={styles.failedText}>Não enviado. Tocar para tentar novamente.</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  failedGroup: {
+    alignSelf: 'flex-end',
+    alignItems: 'flex-end',
+    maxWidth: '85%',
+  },
+  failedRow: {
+    marginTop: scale(2),
+    marginBottom: scale(6),
+    paddingHorizontal: scale(4),
+  },
+  failedText: {
+    fontSize: scale(11),
+    fontWeight: '600',
+    color: colors.error,
+  },
   container: {
     borderRadius: borderRadius.xl,
     paddingVertical: scale(10),

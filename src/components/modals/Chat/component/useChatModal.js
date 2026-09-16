@@ -68,26 +68,58 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
 
   // Function to send a new message
   const sendMessage = useCallback(() => {
+    const text = newMessage?.trim();
+    if (!text) return;
     if (!socket) {
       logger.warn('Socket not connected, cannot send message');
       return;
     }
 
-    logger.info('Sending chat message', { hasMessage: !!newMessage, userId: user.id, serviceId: idService });
-    // Emit the new message via WebSocket to the backend for real-time updates
-    socket.emit("message", {
-      chatRoomId: idService,
-      text: newMessage,
-      sender: user.id,
-    });
+    logger.info('Sending chat message', { hasMessage: !!text, userId: user.id, serviceId: idService });
 
-    // After sending the message, add it to the 'messages' state to update the chat screen instantly.
-    setMessages((prevData) => [...prevData,
-      { message: { sender: user.id, message: newMessage, createdAt: new Date().toISOString() } },
-    ]);
-
+    // The optimistic bubble starts as 'pending' and is only promoted to 'sent'
+    // when the server acknowledges the write. socket.io silently buffers an
+    // emit on a dead socket, so without this a message composed with no
+    // connection was drawn exactly like a delivered one and quietly lost —
+    // the user had every reason to think the driver had read it.
+    const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setMessages((prevData) => [...prevData, {
+      localId,
+      deliveryStatus: 'pending',
+      message: { sender: user.id, message: text, createdAt: new Date().toISOString() },
+    }]);
     setNewMessage("");
+
+    const settle = (deliveryStatus) => setMessages((prevData) => prevData.map(
+      (entry) => (entry.localId === localId ? { ...entry, deliveryStatus } : entry)
+    ));
+
+    socket.timeout(10000).emit("message", {
+      chatRoomId: idService,
+      text,
+      sender: user.id,
+    }, (error, response) => {
+      settle(!error && response?.success !== false ? 'sent' : 'failed');
+    });
   }, [idService, logger, newMessage, socket, user?.id]);
+
+  // Lets the user retry a message that never reached the server.
+  const retryMessage = useCallback((localId) => {
+    const entry = messages.find((item) => item.localId === localId);
+    if (!entry || !socket) return;
+    setMessages((prevData) => prevData.map(
+      (item) => (item.localId === localId ? { ...item, deliveryStatus: 'pending' } : item)
+    ));
+    socket.timeout(10000).emit("message", {
+      chatRoomId: idService,
+      text: entry.message.message,
+      sender: user.id,
+    }, (error, response) => {
+      setMessages((prevData) => prevData.map((item) => (item.localId === localId
+        ? { ...item, deliveryStatus: !error && response?.success !== false ? 'sent' : 'failed' }
+        : item)));
+    });
+  }, [idService, messages, socket, user?.id]);
 
   return {
     models: {
@@ -98,6 +130,7 @@ export const useChatModal = (idService, setUnreadMessageCount) => {
     operations: {
       fetchMessages,
       sendMessage,
+      retryMessage,
       setNewMessage,
     },
   };

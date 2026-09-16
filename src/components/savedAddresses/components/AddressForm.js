@@ -33,7 +33,14 @@ const AddressForm = ({
       // Success handled in hook - returns to list
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => { });
-      showAlert({ type: 'error', title: 'Erro', message: 'Não foi possível salvar o endereço. Tente novamente.' });
+      // Some failures are the user's to fix — a duplicate name, a missing
+      // location — and telling them only to "try again" sends them round the
+      // same loop with no idea what to change. Show the reason when we have one.
+      showAlert({
+        type: 'error',
+        title: 'Erro',
+        message: error?.message || 'Não foi possível salvar o endereço. Tente novamente.',
+      });
     }
   };
 

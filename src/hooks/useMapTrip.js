@@ -489,8 +489,26 @@ export const useMapTrip = ({
     }
     noDriverAlertShownRef.current = false;
     if (['requested', 'flagged', 'connecting'].includes(service.status)) {
-      const deadline = service.offerDeadline || service.searchDeadline;
-      const remaining = deadline ? Math.max(1, Math.ceil((new Date(deadline).getTime() - Date.now()) / 1000)) : DEFAULT_TIMER_DURATION;
+      // searchDeadline is the window this countdown represents — how long we
+      // keep looking for *a* driver. offerDeadline is how long one particular
+      // driver has to answer their offer (tens of seconds), and preferring it
+      // made "Procurando um reboque" count down from ~00:33 instead of 03:00,
+      // then hit zero while matching was still healthily working through other
+      // drivers.
+      const deadline = service.searchDeadline || service.offerDeadline;
+      // The deadline is stamped by the server but compared against the device
+      // clock, so any skew between the two lands straight in the countdown: a
+      // phone running an hour fast shows a search that has already expired, one
+      // running an hour slow shows a search lasting an hour. Trust the figure
+      // only when it falls inside the window it is supposed to describe, and
+      // otherwise fall back to the nominal duration — the 15s reconcile and the
+      // expiry path both re-check with the server, which stays authoritative.
+      const rawRemaining = deadline
+        ? Math.ceil((new Date(deadline).getTime() - Date.now()) / 1000)
+        : null;
+      const remaining = rawRemaining != null && rawRemaining > 0 && rawRemaining <= DEFAULT_TIMER_DURATION
+        ? rawRemaining
+        : DEFAULT_TIMER_DURATION;
       timerRef.current = remaining;
       setTimer(remaining);
       startTimer();
@@ -629,6 +647,22 @@ export const useMapTrip = ({
           message: 'A ligação falhou. O pedido pode ter sido recebido pelo servidor. Verifique o estado antes de pedir outro reboque.',
           buttons: [
             { text: 'Verificar pedido', onPress: () => onBookingUncertainRef?.current?.() },
+            { text: 'Fechar', style: 'cancel' },
+          ],
+        });
+      } else if (error.response?.status === 409) {
+        // The server refuses a second booking while one is live. Handled
+        // explicitly: ErrorService would otherwise fall through to its
+        // `default` branch and show the API's raw English message in a
+        // Portuguese UI, with no way to reach the trip already in progress.
+        pendingBookingRef.current = null;
+        resetTimer();
+        showAlert({
+          type: 'error',
+          title: 'Já tem um reboque ativo',
+          message: 'Só pode ter um pedido de reboque de cada vez. Verifique o pedido em curso antes de criar outro.',
+          buttons: [
+            { text: 'Ver pedido atual', onPress: () => onBookingUncertainRef?.current?.() },
             { text: 'Fechar', style: 'cancel' },
           ],
         });

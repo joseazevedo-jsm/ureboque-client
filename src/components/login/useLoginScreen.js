@@ -268,13 +268,21 @@ export const useLoginScreen = () => {
         });
       } else {
         logger.warn('Network or server error during user check', error);
+        // A reachable-but-broken server is not a connection problem. Titling a
+        // 500 "Erro de ligação" sent the user off to check their internet while
+        // the phone was online and the fault was ours; it also disagreed with
+        // the 500 wording used everywhere else in the app.
+        const status = error.response?.status;
         const isNetworkError = !error.response;
+        const isServerError = status >= 500;
         showAlert({
           type: 'error',
-          title: 'Erro de ligação',
+          title: isNetworkError ? 'Erro de ligação' : isServerError ? 'Erro no servidor' : 'Erro',
           message: isNetworkError
             ? 'Não foi possível ligar ao servidor. Verifique a sua internet e tente novamente.'
-            : 'Ocorreu um erro inesperado. Tente novamente.',
+            : isServerError
+              ? 'Erro no servidor. Tente novamente mais tarde.'
+              : 'Ocorreu um erro inesperado. Tente novamente.',
           buttons: [{ text: 'OK' }],
         });
       }
