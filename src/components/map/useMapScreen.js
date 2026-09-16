@@ -103,6 +103,7 @@ export const useMapScreen = () => {
 
   // ── Map UI State ─────────────────────────────────────────────────────────
   const [markers, setMarkers] = useState([]);
+  const [mapMovedByUser, setMapMovedByUser] = useState(false);
   // Route requests must not follow every live driver coordinate.
   const [routeMarkers, setRouteMarkers] = useState([]);
   const lastRouteRequestAtRef = useRef(0);
@@ -600,8 +601,18 @@ export const useMapScreen = () => {
       mapRef.current?.fitToCoordinates(routing.directions.coordinates, {
         edgePadding: { bottom: scale(250), top: scale(50), left: scale(20), right: scale(20) },
       });
+      setMapMovedByUser(false);
     }
   }, [routing.directions?.coordinates]);
+
+  // The ride's recenter button only appears once the user has moved the map
+  // away from the route. It starts hidden for each ride, and hides again when
+  // the map is refitted by the button or by a route refresh.
+  const rideHasDriver = !!trip.tripData.driver;
+  useEffect(() => {
+    setMapMovedByUser(false);
+  }, [rideHasDriver]);
+
 
   // Opens the booking sheet whenever nothing else owns the screen: on first
   // render, and again after a flow ends and leaves no sheet active.
@@ -956,6 +967,13 @@ export const useMapScreen = () => {
     }
   }, [markerVisible, geocoding, trip.tripData.inputLocationObject]);
 
+  // isGesture is true only for pans/pinches, never for the app's own
+  // fitToCoordinates/animateToRegion, so programmatic moves don't show it.
+  const handleRegionChangeComplete = useCallback((region, details) => {
+    if (details?.isGesture) setMapMovedByUser(true);
+    handleDragMarkerPositionChange(region);
+  }, [handleDragMarkerPositionChange]);
+
   useEffect(() => () => {
     if (dragGeocodeTimerRef.current) clearTimeout(dragGeocodeTimerRef.current);
     dragGeocodeSequenceRef.current += 1;
@@ -1171,6 +1189,7 @@ export const useMapScreen = () => {
   ]);
 
   const handleRecenterMap = useCallback(() => {
+    setMapMovedByUser(false);
     if (routing.directions?.coordinates?.length > 0) {
       mapRef.current?.fitToCoordinates(routing.directions.coordinates, {
         edgePadding: { bottom: scale(250), top: scale(50), left: scale(50), right: scale(50) },
@@ -1287,6 +1306,7 @@ export const useMapScreen = () => {
       mapMarkers: markers,
       routeMarkers,
       markerVisible,
+      mapMovedByUser,
       // During pin dragging, render the address belonging to the current drag
       // request. The shared geocoder label can still contain the previous
       // location while reverse geocoding is in flight, which made the marker
@@ -1340,6 +1360,7 @@ export const useMapScreen = () => {
       handleReturnToSearchFromDragMarker,
       handleSavedAddressMapDragRequest,
       handleDragMarkerPositionChange,
+      handleRegionChangeComplete,
       handleConfirmDragMarkerLocation,
       handleLocationTextInputFocus,
       handleBackButtonPress,
