@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
+// Gesture-handler ScrollView: inside a bottom sheet a core ScrollView never
+// receives vertical drags, the sheet's pan gesture takes them first.
+import { ScrollView } from "react-native-gesture-handler";
 import { LinearGradient } from "expo-linear-gradient";
 import { scale } from "react-native-size-matters";
 import { colors, borderRadius } from "../../theme";

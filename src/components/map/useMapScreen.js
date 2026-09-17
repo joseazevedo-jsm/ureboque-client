@@ -1110,7 +1110,7 @@ export const useMapScreen = () => {
       buttons: [
         { text: 'Fechar', style: 'cancel' },
         {
-          text: 'Cancelar agendamento',
+          text: 'Cancelar',
           style: 'destructive',
           onPress: async () => {
             try {

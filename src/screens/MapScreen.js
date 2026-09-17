@@ -923,6 +923,9 @@ const MapScreen = memo(() => {
           ref={models.paymentOptionsSheetRef}
           index={0}
           snapPoints={models.scheduledFor ? BOOKING_SNAP.paymentScheduled : BOOKING_SNAP.payment}
+          // The time wheel scrolls vertically; the sheet has a single height, so
+          // letting its content drag the sheet would only steal the wheel's gestures.
+          enableContentPanningGesture={!models.scheduledFor}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
