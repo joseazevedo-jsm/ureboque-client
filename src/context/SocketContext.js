@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { useLogger } from '../hooks/useLogger';
 import sentryService from '../services/SentryService';
 
-const SocketContext = createContext();
+export const SocketContext = createContext();
 
 export const useSocket = () => {
   const context = useContext(SocketContext);

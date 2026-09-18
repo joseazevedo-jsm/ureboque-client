@@ -1,13 +1,10 @@
+import { shadows, colors, borderRadius, spacing, layout, typography, sizes } from "../theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  Animated,
-  Image,
-} from 'react-native';
+import { View, StyleSheet, ScrollView, Animated, Image } from 'react-native';
+import { AppText as Text } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { scale } from 'react-native-size-matters';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -15,6 +12,7 @@ const Icon = MaterialIcons;
 import { useLogger } from '../hooks/useLogger';
 
 const RegistrationSuccessScreen = () => {
+  const insets = useSafeAreaInsets();
   const logger = useLogger('RegistrationSuccessScreen', {
     enableLifecycleLogging: true,
     logProps: true
@@ -83,7 +81,8 @@ const RegistrationSuccessScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <ScrollView contentContainerStyle={styles.pageScroll} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
         <View style={styles.animationContainer}>
           {/* Success Icon */}
@@ -96,7 +95,7 @@ const RegistrationSuccessScreen = () => {
             ]}
           >
             <View style={styles.successIcon}>
-              <Icon name="check" size={scale(40)} color="#FFFFFF" />
+              <Icon name="check" size={sizes.iconXL} color={colors.surface} />
             </View>
           </Animated.View>
 
@@ -128,19 +127,19 @@ const RegistrationSuccessScreen = () => {
               <Text style={styles.benefitsTitle}>Agora pode:</Text>
               <View style={styles.benefitsList}>
                 <View style={styles.benefitItem}>
-                  <Icon name="local-taxi" size={18} color="#4CAF50" />
+                  <Icon name="local-taxi" size={18} color={colors.success} />
                   <Text style={styles.benefitText}>Solicitar serviços de reboque</Text>
                 </View>
                 <View style={styles.benefitItem}>
-                  <Icon name="history" size={18} color="#4CAF50" />
+                  <Icon name="history" size={18} color={colors.success} />
                   <Text style={styles.benefitText}>Ver o histórico dos seus serviços</Text>
                 </View>
                 <View style={styles.benefitItem}>
-                  <Icon name="star" size={18} color="#4CAF50" />
+                  <Icon name="star" size={18} color={colors.success} />
                   <Text style={styles.benefitText}>Avaliar motoristas</Text>
                 </View>
                 <View style={styles.benefitItem}>
-                  <Icon name="place" size={18} color="#4CAF50" />
+                  <Icon name="place" size={18} color={colors.success} />
                   <Text style={styles.benefitText}>Salvar os seus locais favoritos</Text>
                 </View>
               </View>
@@ -158,7 +157,7 @@ const RegistrationSuccessScreen = () => {
             }
           ]}
         >
-          <Icon name="verified-user" size={20} color="#4CAF50" />
+          <Icon name="verified-user" size={20} color={colors.success} />
           <Text style={styles.phoneConfirmationText}>
             Número {phone} verificado
           </Text>
@@ -181,90 +180,90 @@ const RegistrationSuccessScreen = () => {
           accessibilityRole="button"
         >
           <Text style={styles.startButtonText}>Começar a usar</Text>
-          <Icon name="arrow-forward" size={20} color="#FFFFFF" style={styles.startButtonIcon} />
+          <Icon name="arrow-forward" size={20} color={colors.surface} style={styles.startButtonIcon} />
         </TouchableOpacity>
 
         <Text style={styles.loginHintText}>
           Será redirecionado para fazer login com a sua nova conta
         </Text>
       </Animated.View>
-    </SafeAreaView>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  pageScroll: { flexGrow: 1 },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    paddingVertical: scale(20),
+    backgroundColor: colors.background,
+    paddingVertical: spacing.xl,
   },
   content: {
+    flexShrink: 0,
+    width: "100%",
+    maxWidth: layout.formMaxWidth,
+    alignSelf: "center",
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: scale(20),
+    paddingHorizontal: spacing.xl,
   },
   animationContainer: {
     alignItems: 'center',
-    marginBottom: scale(40),
+    marginBottom: spacing.jumbo,
   },
   successIconContainer: {
-    marginBottom: scale(10),
+    marginBottom: spacing.sm,
   },
   successIcon: {
     width: scale(80),
     height: scale(80),
-    borderRadius: scale(40),
-    backgroundColor: '#4CAF50',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.success,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#4CAF50',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-  },
+    ...shadows.sm,
+
+},
   textContainer: {
     alignItems: 'center',
   },
   successTitle: {
-    fontSize: scale(32),
+    fontSize: typography.hero.fontSize, lineHeight: typography.hero.lineHeight,
     fontWeight: 'bold',
-    color: '#4CAF50',
-    marginBottom: scale(15),
+    color: colors.success,
+    marginBottom: spacing.lg,
   },
   accountCreatedText: {
-    fontSize: scale(20),
-    color: '#1E293B',
-    marginBottom: scale(15),
+    fontSize: typography.h3.fontSize, lineHeight: typography.h3.lineHeight,
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
     textAlign: 'center',
   },
   welcomeSection: {
     alignItems: 'center',
-    marginBottom: scale(10),
+    marginBottom: spacing.sm,
   },
   welcomeText: {
-    fontSize: scale(18),
-    color: '#64748B',
-    marginBottom: scale(5),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
   },
   nameText: {
-    fontSize: scale(24),
+    fontSize: typography.h2.fontSize, lineHeight: typography.h2.lineHeight,
     fontWeight: 'bold',
-    color: '#0089FF',
+    color: colors.primary,
   },
   benefitsSection: {
     alignItems: 'center',
-    marginTop: scale(15),
+    marginTop: spacing.lg,
   },
   benefitsTitle: {
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: scale(15),
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
   },
   benefitsList: {
     alignItems: 'flex-start',
@@ -272,62 +271,60 @@ const styles = StyleSheet.create({
   benefitItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: scale(10),
-    paddingHorizontal: scale(10),
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.sm,
   },
   benefitText: {
-    fontSize: scale(14),
-    color: '#1E293B',
-    marginLeft: scale(10),
+    flexShrink: 1,
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    color: colors.textPrimary,
+    marginLeft: spacing.sm,
   },
   phoneConfirmation: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E8',
-    paddingVertical: scale(12),
-    paddingHorizontal: scale(20),
-    borderRadius: scale(20),
+    backgroundColor: colors.successLight,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.lg,
   },
   phoneConfirmationText: {
-    fontSize: scale(14),
-    color: '#4CAF50',
-    marginLeft: scale(8),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    color: colors.success,
+    marginLeft: spacing.sm,
     fontWeight: '500',
   },
   footer: {
-    paddingHorizontal: scale(20),
+    width: "100%",
+    maxWidth: layout.formMaxWidth,
+    alignSelf: "center",
+    paddingHorizontal: spacing.xl,
    },
   startButton: {
-    backgroundColor: '#0089FF',
-    borderRadius: scale(16),
-    paddingVertical: scale(16),
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0089FF',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-    marginBottom: scale(15),
+    ...shadows.sm,
+
+marginBottom: spacing.lg,
   },
   startButtonText: {
-    color: '#FFFFFF',
-    fontSize: scale(16),
+    color: colors.surface,
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
   startButtonIcon: {
-    marginLeft: scale(8),
+    marginLeft: spacing.sm,
   },
   loginHintText: {
-    fontSize: scale(12),
-    color: '#64748B',
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: scale(18),
+    lineHeight: 20,
   },
 });
 

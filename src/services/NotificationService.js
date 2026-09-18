@@ -1,3 +1,4 @@
+import { colors } from '../theme';
 import * as Notifications from 'expo-notifications';
 import { Platform, AppState } from 'react-native';
 import Logger from '../utils/Logger';
@@ -5,7 +6,8 @@ import Logger from '../utils/Logger';
 // Configure notification handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -42,7 +44,7 @@ class NotificationService {
           name: 'Driver Messages',
           importance: Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#0089FF',
+          lightColor: colors.primary,
         });
       }
       

@@ -4,6 +4,9 @@ import { useLogger } from '../hooks/useLogger';
 import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { navigate } from '../services/NavigationService';
+import api from '../services/APIService';
+import { useAuth } from './AuthContext';
+import { registerPushToken } from '../services/pushRegistration';
 
 const NotificationContext = createContext();
 
@@ -19,7 +22,13 @@ export const NotificationProvider = ({ children }) => {
   const logger = useLogger('NotificationContext');
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [notificationPermissions, setNotificationPermissions] = useState(false);
+  const { isAuthenticated } = useAuth();
   const mountedRef = useRef(true);
+
+  // Let the API reach this phone while the app is closed.
+  useEffect(() => {
+    if (isAuthenticated && notificationPermissions) registerPushToken(api);
+  }, [isAuthenticated, notificationPermissions]);
 
   // Initialize notification permissions and response handling on mount
   useEffect(() => {
@@ -43,7 +52,10 @@ export const NotificationProvider = ({ children }) => {
       // Handle notification responses (when user taps notification)
       subscription = Notifications.addNotificationResponseReceivedListener(response => {
         const data = response.notification.request.content.data;
-        if (data?.type === 'driver_message') {
+        if (data?.type === 'scheduled') {
+          // The map screen picks up the booking's state when the app opens.
+          logger.info('User tapped scheduled tow notification', { data });
+        } else if (data?.type === 'driver_message') {
           logger.info('User tapped driver message notification', { data });
         } else {
           logger.info('User tapped notification, navigating to Notifications screen', { data });

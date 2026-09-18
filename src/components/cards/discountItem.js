@@ -1,5 +1,7 @@
 import React, { memo } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+
 import { scale } from "react-native-size-matters";
 import { colors, shadows, spacing } from "../../theme";
 
@@ -15,7 +17,7 @@ const DiscountItem = memo(({ code, description }) => {
 const styles = StyleSheet.create({
   container: {
     paddingVertical: spacing.xs,
-    paddingHorizontal: scale(10),
+    paddingHorizontal: spacing.sm,
     marginVertical: spacing.lg,
     marginHorizontal: scale(0),
     backgroundColor: colors.surface,
@@ -23,7 +25,7 @@ const styles = StyleSheet.create({
   },
   code:{
     fontWeight:"bold",
-    paddingVertical: scale(10)
+    paddingVertical: spacing.sm
   },
   description:{
     paddingVertical: spacing.xl

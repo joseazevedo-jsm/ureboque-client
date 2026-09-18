@@ -1,0 +1,47 @@
+[
+  {
+    "token": "primary",
+    "hex": "#006DDB",
+    "onWhite": "4.99"
+  },
+  {
+    "token": "primaryDark",
+    "hex": "#0056AD",
+    "onWhite": "7.16"
+  },
+  {
+    "token": "textPrimary",
+    "hex": "#123B66",
+    "onWhite": "11.39"
+  },
+  {
+    "token": "textSecondary",
+    "hex": "#526579",
+    "onWhite": "6.01"
+  },
+  {
+    "token": "textMuted",
+    "hex": "#607185",
+    "onWhite": "5.00"
+  },
+  {
+    "token": "error",
+    "hex": "#C62828",
+    "onWhite": "5.62"
+  },
+  {
+    "token": "warning",
+    "hex": "#8A5700",
+    "onWhite": "6.10"
+  },
+  {
+    "token": "success",
+    "hex": "#237A47",
+    "onWhite": "5.32"
+  },
+  {
+    "token": "borderStrong",
+    "hex": "#7A8DA3",
+    "onWhite": "3.41"
+  }
+]

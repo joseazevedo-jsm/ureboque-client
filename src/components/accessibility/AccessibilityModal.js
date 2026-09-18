@@ -1,8 +1,9 @@
 import React from 'react';
-import {
-  Modal, View, Text, TextInput,
-  Switch, ScrollView, StyleSheet, TouchableOpacity,
-} from 'react-native';
+import { Modal, View, Switch, ScrollView, StyleSheet } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+import { AppHeader } from '../common/AppHeader';
+
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -11,7 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { ScalePressable } from '../common/ScalePressable';
 import { useAccessibility } from './hooks/useAccessibility';
 import { useAlert } from '../../context/AlertContext';
-import { colors, shadows, spacing, borderRadius } from '../../theme';
+import { colors, shadows, spacing, borderRadius, sizes, typography } from '../../theme';
 
 const ACCESSIBILITY_OPTIONS = [
   { key: 'wheelchair', label: 'Cadeira de rodas', description: 'Necessita de acesso para cadeira de rodas', icon: 'accessible' },
@@ -23,7 +24,7 @@ const ACCESSIBILITY_OPTIONS = [
 const ToggleRow = ({ icon, label, description, value, onToggle, disabled }) => (
   <View style={styles.toggleRow}>
     <View style={styles.toggleIcon}>
-      <Icon name={icon} size={scale(22)} color={value ? colors.primary : colors.textMuted} />
+      <Icon name={icon} size={sizes.icon} color={value ? colors.primary : colors.textMuted} />
     </View>
     <View style={styles.toggleContent}>
       <Text style={[styles.toggleLabel, value && styles.toggleLabelActive]}>{label}</Text>
@@ -69,16 +70,13 @@ const AccessibilityModal = ({ visible, onClose }) => {
       onRequestClose={onClose}
     >
       <View style={styles.safe}>
-        <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.header}>
-          <TouchableOpacity style={styles.circleButton} onPress={onClose} activeOpacity={0.75}>
-            <Icon name="close" size={scale(20)} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.title}>Acessibilidade</Text>
-            <Text style={styles.subtitle}>Informe o condutor das suas necessidades.</Text>
-          </View>
-          <View style={styles.headerSpacer} />
-        </Animated.View>
+        <AppHeader
+          title="Acessibilidade"
+          subtitle="Informe o condutor das suas necessidades."
+          leftIcon="close"
+          leftLabel="Fechar acessibilidade"
+          onLeftPress={onClose}
+        />
 
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
           <Animated.View entering={FadeInDown.delay(100).springify()}>
@@ -150,33 +148,9 @@ const AccessibilityModal = ({ visible, onClose }) => {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.modalSafeTop,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  circleButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  headerSpacer: {
-    width: scale(40),
-    height: scale(40),
-  },
-  headerCenter: { flex: 1, alignItems: 'center', paddingHorizontal: spacing.sm },
-  title: { fontSize: scale(18), fontWeight: '800', color: colors.textPrimary },
-  subtitle: { fontSize: scale(13), color: colors.textSecondary, marginTop: scale(2), textAlign: 'center' },
   scroll: { flex: 1, paddingHorizontal: spacing.lg },
   sectionTitle: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: '700',
     color: colors.textMuted,
     letterSpacing: 1,
@@ -203,9 +177,9 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   toggleContent: { flex: 1 },
-  toggleLabel: { fontSize: scale(15), fontWeight: '600', color: colors.textPrimary },
+  toggleLabel: { fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight, fontWeight: '600', color: colors.textPrimary },
   toggleLabelActive: { color: colors.primary },
-  toggleDescription: { fontSize: scale(12), color: colors.textMuted, marginTop: scale(2) },
+  toggleDescription: { fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight, color: colors.textMuted, marginTop: spacing.xs },
   divider: { height: 1, backgroundColor: colors.borderLight, marginVertical: spacing.lg },
   customTextContainer: { marginTop: spacing.sm },
   customTextInput: {
@@ -214,7 +188,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderLight,
     padding: spacing.lg,
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textPrimary,
     minHeight: scale(100),
     ...shadows.sm,
@@ -228,7 +202,7 @@ const styles = StyleSheet.create({
     ...shadows.primaryGlow,
   },
   saveCustomButtonDisabled: { backgroundColor: colors.textDisabled, shadowOpacity: 0, elevation: 0 },
-  saveCustomButtonText: { color: colors.surface, fontWeight: '700', fontSize: scale(14), letterSpacing: 0.5 },
+  saveCustomButtonText: { color: colors.surface, fontWeight: '700', fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight, letterSpacing: 0.5 },
   bottomPad: { height: spacing.xxxl },
 });
 

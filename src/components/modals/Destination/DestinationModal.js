@@ -1,22 +1,14 @@
 import React from "react";
-import {
-  FlatList,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
-} from "react-native";
+import { FlatList, Modal, StyleSheet, View, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../common/AppText';
+import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
+import { AppHeader } from '../../common/AppHeader';
+
 import { scale } from "react-native-size-matters";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import { useDestinationModal } from "./components/useDestinationModal";
-import { colors, spacing, shadows, borderRadius, animations } from "../../../theme";
+import { colors, spacing, shadows, borderRadius, borderWidths, animations, typography } from "../../../theme";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 const DestinationModal = ({
@@ -50,14 +42,7 @@ const DestinationModal = ({
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={{ flex: 1 }}>
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
-                <Icon name="close" size={scale(20)} color={colors.textPrimary} />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>PARA ONDE VAMOS?</Text>
-              <View style={{ width: scale(40) }} />
-            </View>
+            <AppHeader title="PARA ONDE VAMOS?" leftIcon="close" leftLabel="Fechar destino" onLeftPress={closeModal} />
 
             {/* Inputs Group */}
             <View style={styles.inputsGroup}>
@@ -213,8 +198,8 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   headerTitle: {
-    fontSize: scale(14),
-    fontWeight: '800',
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    fontWeight: '700',
     color: colors.textPrimary,
     letterSpacing: 0.5,
   },
@@ -229,7 +214,7 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: scale(6),
+    padding: spacing.xs,
     borderRadius: borderRadius.lg,
     backgroundColor: colors.background,
   },
@@ -243,17 +228,17 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   label: {
-    fontSize: scale(10),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
     fontWeight: '600',
-    marginBottom: scale(1),
+    marginBottom: spacing.xs,
     textTransform: 'uppercase',
   },
   textInput: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textPrimary,
     fontWeight: '600',
-    paddingVertical: scale(2),
+    paddingVertical: spacing.xs,
   },
   activeInput: {
     color: colors.textPrimary,
@@ -266,14 +251,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   connectorLine: {
-    width: 2,
+    width: borderWidths.focus,
     height: scale(12),
     backgroundColor: colors.borderLight,
-    marginLeft: scale(23),
-    marginVertical: scale(2),
+    marginLeft: spacing.xxl,
+    marginVertical: spacing.xs,
   },
   divider: {
-    height: 1,
+    height: borderWidths.thin,
     backgroundColor: colors.borderLight,
     marginVertical: spacing.md,
     marginHorizontal: spacing.xl,
@@ -283,17 +268,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   searchErrorText: {
-    fontSize: scale(13),
-    color: '#F44336',
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
+    color: colors.error,
     marginBottom: spacing.md,
-    marginLeft: scale(4),
+    marginLeft: spacing.xs,
   },
   sectionTitle: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '700',
     color: colors.textSecondary,
     marginBottom: spacing.md,
-    marginLeft: scale(4),
+    marginLeft: spacing.xs,
   },
   suggestionItem: {
     flexDirection: 'row',
@@ -308,17 +293,17 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   suggestionTitle: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '600',
     color: colors.textPrimary,
   },
   suggestionAddress: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
-    marginTop: scale(2),
+    marginTop: spacing.xs,
   },
   suggestionDistance: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textMuted,
     marginRight: spacing.xs,
   },

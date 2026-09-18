@@ -1,15 +1,17 @@
 import React, { memo } from "react";
-import { View, TouchableOpacity, StyleSheet, Text, Image } from "react-native";
+import { View, StyleSheet, Image } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
-import { scale } from "react-native-size-matters";
-import { colors, spacing } from "../../theme";
+import { typography, sizes, colors, spacing } from "../../theme";
 
 const RouteItem = memo(({ origin, destination }) => {
   return (
     <View>
       <View style={styles.placeContainer}>
-        <Icon name="circle" size={scale(15)} color={colors.primary} style={styles.originIcon} />
+        <Icon name="circle" size={sizes.iconSmall} color={colors.primary} style={styles.originIcon} />
         <Text style={styles.place}>{origin}</Text>
       </View>
       <View>
@@ -19,7 +21,7 @@ const RouteItem = memo(({ origin, destination }) => {
         />
       </View>
       <View style={styles.placeContainer}>
-        <Icon name="location-on" size={scale(22)} color={colors.primary} />
+        <Icon name="location-on" size={sizes.iconLarge} color={colors.primary} />
         <Text style={styles.placeDestination}>{destination}</Text>
       </View>
     </View>
@@ -30,22 +32,26 @@ const styles = StyleSheet.create({
   placeContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: scale(3)
+    paddingVertical: spacing.xs
   },
   place: {
-    fontSize: scale(14),
-    paddingHorizontal: scale(10),
+    ...typography.bodySmall,
+    color: colors.textPrimary,
+    flex: 1,
+    paddingHorizontal: spacing.sm,
   },
   placeDestination: {
-    fontSize: scale(14),
+    ...typography.bodySmall,
+    color: colors.textPrimary,
+    flex: 1,
     paddingHorizontal: spacing.xs,
   },
   originIcon: {
     marginLeft: spacing.xs
   },
   lineImage: {
-    marginLeft: scale(11),
-    height: scale(22)
+    marginLeft: spacing.md,
+    height: spacing.xxl
   }
 });
 

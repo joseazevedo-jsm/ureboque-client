@@ -1,15 +1,9 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState } from "react";
-import {
-  View,
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  Keyboard,
-  ActivityIndicator,
-} from "react-native";
+import { View, Image, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import CountryPickerWithFlag from "../components/login/CountryPickerWithFlag";
@@ -20,10 +14,11 @@ import OTPModal from "../components/modals/OTP/OTPModal";
 import RegisterPassModal from "../components/modals/Register/RegisterPassModal";
 import { useLogger } from "../hooks/useLogger";
 import KeyboardAvoidingWrapper from "../components/common/KeyboardAvoidingWrapper";
-import { colors, spacing, shadows, borderRadius } from "../theme";
+import { colors, spacing, shadows, borderRadius, sizes, layout, typography } from "../theme";
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 const LoginScreen = () => {
+  const insets = useSafeAreaInsets();
   const logger = useLogger('LoginScreen', { 
     enableLifecycleLogging: true,
     logProps: true 
@@ -41,8 +36,8 @@ const LoginScreen = () => {
 
   return (
     <>
-      <KeyboardAvoidingWrapper style={styles.container}>
-        <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+      <KeyboardAvoidingWrapper style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.loginScroll}>
           <View style={styles.content}>
               <Animated.View style={styles.logo} entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}>
                 <Image
@@ -82,7 +77,7 @@ const LoginScreen = () => {
                         <Text style={styles.separator}>|</Text>
                         <TextInput
                           style={styles.input}
-                          placeholderTextColor="#999"
+                          placeholderTextColor={colors.textMuted}
                           keyboardType="numeric"
                           maxLength={15}
                           placeholder="Telefone"
@@ -97,7 +92,7 @@ const LoginScreen = () => {
                         <TextInput
                           secureTextEntry={!showPassword}
                           style={styles.passwordInput}
-                          placeholderTextColor="#999"
+                          placeholderTextColor={colors.textMuted}
                           placeholder="Senha"
                           value={models.password}
                           onChangeText={operations.handlePasswordChange}
@@ -112,8 +107,8 @@ const LoginScreen = () => {
                         >
                           <Icon
                             name={showPassword ? "visibility-off" : "visibility"}
-                            size={scale(22)}
-                            color="#707070"
+                            size={sizes.iconLarge}
+                            color={colors.textSecondary}
                           />
                         </TouchableOpacity>
                       </View>
@@ -169,7 +164,7 @@ const LoginScreen = () => {
                   >
                     <View style={[styles.button, models.isLoading && styles.buttonLoading]}>
                       {models.isLoading ? (
-                        <ActivityIndicator size="small" color="#fff" />
+                        <ActivityIndicator size="small" color={colors.surface} />
                       ) : (
                         <Text style={styles.buttonText}>AVANÇAR</Text>
                       )}
@@ -178,7 +173,7 @@ const LoginScreen = () => {
                 )}
               </Animated.View>
             </View>
-        </TouchableWithoutFeedback>
+        </ScrollView>
       </KeyboardAvoidingWrapper>
       <OTPModal
         visible={models.modalOtpVisible}
@@ -201,6 +196,7 @@ const LoginScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  loginScroll: { flexGrow: 1 },
   container: {
     backgroundColor: colors.background,
     flex: 1,
@@ -208,9 +204,12 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   content: {
+    width: "100%",
+    maxWidth: layout.formMaxWidth,
+    alignSelf: "center",
     flex: 1,
-    marginHorizontal: spacing.xl,
-    paddingVertical: scale(40),
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.jumbo,
     justifyContent: "space-between",
    },
   logo: {
@@ -219,18 +218,19 @@ const styles = StyleSheet.create({
   },
   initsess: {
     flexDirection: "row",
-    alignSelf: "center",
+    width: "100%",
+    alignItems: "center",
     paddingVertical: spacing.xxl,
   },
   text: {
-    fontSize: 16,
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     color: colors.textSecondary,
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
   },
   divider: {
     borderBottomWidth: scale(0.5),
     borderColor: colors.textDisabled,
-    width: scale(100),
+    flex: 1,
     alignSelf: "center",
   },
   formContainer: {
@@ -242,10 +242,11 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     color: colors.textSecondary,
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     marginBottom: spacing.lg,
   },
   phone: {
+    minHeight: sizes.control,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -263,14 +264,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   separator: {
-    fontSize: 20,
+    fontSize: typography.h3.fontSize, lineHeight: typography.h3.lineHeight,
     alignSelf: "center",
     color: colors.textDisabled,
   },
   input: {
     flex: 1,
     color: colors.textPrimary,
-    fontSize: 18,
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     paddingHorizontal: spacing.sm,
   },
   passwordContainer: {
@@ -282,13 +283,15 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
     color: colors.textPrimary,
-    fontSize: 18,
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     paddingRight: spacing.sm,
   },
   eyeButton: {
+    width: sizes.control,
+    height: sizes.control,
+    justifyContent: "center",
+    alignItems: "center",
     padding: spacing.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginLeft: spacing.xs,
   },
   errorContainer: {
@@ -299,10 +302,10 @@ const styles = StyleSheet.create({
   },
   warningText: {
     color: colors.error,
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     paddingHorizontal: spacing.sm,
     textAlign: "center",
-    lineHeight: scale(20),
+    lineHeight: 20,
   },
   errorText: {
     fontWeight: "600",
@@ -322,7 +325,7 @@ const styles = StyleSheet.create({
   },
   changeNumberText: {
     color: colors.primary,
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "600",
   },
   bottom: {
@@ -331,17 +334,18 @@ const styles = StyleSheet.create({
   disclaimerText: {
     paddingBottom: spacing.xl,
     paddingHorizontal: spacing.sm,
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
-    lineHeight: scale(16),
+    lineHeight: 16,
     textAlign: "center",
   },
   button: {
+    minHeight: sizes.control,
     backgroundColor: colors.primary,
     borderRadius: borderRadius.xl,
     alignItems: "center",
     marginHorizontal: spacing.sm,
-    minHeight: scale(50),
+    minHeight: sizes.controlLarge,
     justifyContent: "center",
     ...shadows.primaryGlow,
   },
@@ -355,7 +359,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: colors.surface,
-    fontSize: 18,
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "bold",
     paddingVertical: spacing.lg,
   },

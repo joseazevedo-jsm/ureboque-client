@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { useLogger } from './useLogger';
 import api from '../services/APIService';
+import { colors } from '../theme';
 
 export const useRegistrationFlow = (initialPhone = '', initialPassword = '', showAlert = null) => {
   const logger = useLogger('useRegistrationFlow');
@@ -166,9 +167,9 @@ export const useRegistrationFlow = (initialPhone = '', initialPassword = '', sho
 
   const getPasswordStrengthColor = () => {
     const strength = calculatePasswordStrength();
-    if (strength < 40) return '#F44336';
-    if (strength < 80) return '#FF9800';
-    return '#4CAF50';
+    if (strength < 40) return colors.error;
+    if (strength < 80) return colors.warning;
+    return colors.success;
   };
 
   // Email suggestion helper

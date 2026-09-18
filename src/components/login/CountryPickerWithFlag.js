@@ -1,5 +1,9 @@
+import { spacing, componentStyles, colors, typography } from '../../theme';
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+
 import { CountryPicker } from "react-native-country-codes-picker";
 import { scale } from "react-native-size-matters";
 
@@ -18,6 +22,8 @@ const CountryPickerWithFlag = ({ onCallingCodeSelect }) => {
   return (
     <View>
       <TouchableOpacity
+        accessibilityLabel={`Escolher país, código atual ${countryCode}`}
+        accessibilityState={{ expanded: show }}
         style={styles.pickerButton}
         onPress={() => setShow(true)}
       >
@@ -43,22 +49,19 @@ const CountryPickerWithFlag = ({ onCallingCodeSelect }) => {
 
 const styles = {
   pickerButton: {
+    ...componentStyles.input,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: scale(10),
-    paddingVertical: scale(8),
-    backgroundColor: '#f5f5f5',
-    borderRadius: scale(5),
-    borderWidth: 1,
-    borderColor: '#ddd',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
   },
   flag: {
-    fontSize: scale(18),
-    marginRight: scale(8),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
+    marginRight: spacing.sm,
   },
   dialCode: {
-    fontSize: scale(14),
-    color: '#333',
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    color: colors.textPrimary,
     fontWeight: '500',
   },
 };

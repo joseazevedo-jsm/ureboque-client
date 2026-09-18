@@ -1,13 +1,8 @@
 import React, { useEffect } from "react";
-import {
-  FlatList,
-  Modal,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, Modal, StyleSheet, View } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../common/AppText';
+import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
+
 import { scale } from "react-native-size-matters";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
@@ -19,7 +14,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { useDestinationModal } from "../Destination/components/useDestinationModal";
 import PlaceItem from "../../cards/placeItem";
-import { colors, borderRadius, shadows } from "../../../theme";
+import { spacing, typography, colors, borderRadius, borderWidths, shadows, sizes } from "../../../theme";
 import { useAlert } from "../../../context/AlertContext";
 
 const AddressModal = ({
@@ -79,15 +74,15 @@ const AddressModal = ({
   return (
     <Modal onRequestClose={closeModal} visible={visible} animationType="none">
       <View style={styles.container}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", padding: scale(50) }}>
+        <View style={styles.header}>
           <TouchableOpacity
             style={styles.goback}
             onPress={handeBackButtonPress}
           >
-            <Icon name="close" size={scale(25)} color={colors.textPrimary} />
+            <Icon name="close" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={{ top: scale(15), marginRight: scale(10) }}
+            style={{ top: scale(15), marginRight: spacing.sm }}
             onPress={() => {
               onDeleteAddress(placeId)
               onGoHomePress()
@@ -99,52 +94,27 @@ const AddressModal = ({
         </View>
 
         <Text
-          style={{
-            fontSize: scale(20),
-            marginLeft: scale(10),
-            marginTop: scale(25),
-            marginBottom: scale(20),
-            alignSelf: "center",
-            color: colors.primary,
-            fontWeight: "700",
-          }}
+          style={styles.title}
         >
           {type} ENDEREÇO
         </Text>
         <TextInput
-          style={{
-            borderRadius: borderRadius.sm,
-            borderWidth: 2,
-            borderColor: colors.primary,
-            fontSize: scale(18),
-            padding: scale(8),
-            marginBottom: scale(30),
-          }}
-          placeholderTextColor="#808080"
+          style={styles.input}
+          placeholderTextColor={colors.textMuted}
           placeholder="Nome do endereço"
           defaultValue={name !== "" ? name : ""}
           onChangeText={onAddressChange}
         />
         <View
-          style={{
-            borderRadius: borderRadius.sm,
-            borderWidth: 2,
-            borderColor: colors.primary,
-            marginBottom: scale(30),
-          }}
+          style={styles.inputWrap}
         >
           <TouchableOpacity
-            style={{
-              fontSize: scale(18),
-              color: "#808080",
-              padding: scale(8),
-              marginBottom: scale(15),
-            }}
+              style={styles.locationInput}
             onPress={operations.handleLocationPress}
           >
             <Text
               style={{
-                fontSize: scale(18),
+                ...styles.inputText,
               }}
             >
               {address && address !== "" ? address : "Localização"}
@@ -153,16 +123,8 @@ const AddressModal = ({
         </View>
 
         <TextInput
-          style={{
-            borderRadius: borderRadius.sm,
-            borderWidth: 2,
-            borderColor: colors.primary,
-            fontSize: scale(18),
-            paddingBottom: scale(100),
-            padding: scale(8),
-            marginBottom: scale(180),
-          }}
-          placeholderTextColor="#808080"
+          style={styles.instructions}
+          placeholderTextColor={colors.textMuted}
           placeholder="Instruções para o motorista"
           defaultValue={
             instructions !== "" ? instructions : ""
@@ -203,19 +165,19 @@ const AddressModal = ({
                     borderRadius: borderRadius.sm,
                     borderWidth: 2,
                     borderColor: colors.primary,
-                    fontSize: scale(18),
-                    padding: scale(8),
-                    marginBottom: scale(20),
+                    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
+                    padding: spacing.sm,
+                    marginBottom: spacing.xl,
                     flexDirection: "row",
                   }}
                 >
-                  <Icon name="search" size={scale(25)} color="#ccc" />
+                  <Icon name="search" size={sizes.iconLarge} color={colors.border} />
                   <BottomSheetTextInput
                     style={{
-                      fontSize: scale(15),
-                      paddingHorizontal: scale(10),
+                      fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+                      paddingHorizontal: spacing.sm,
                     }}
-                    placeholderTextColor="#808080"
+                    placeholderTextColor={colors.textMuted}
                     placeholder={"Escolha o seu destino"}
                     onChangeText={
                       destination.operations.handleDestinationInputValueChange
@@ -231,7 +193,7 @@ const AddressModal = ({
                     <View style={styles.iconContainer}>
                       <Icon
                         name="navigation"
-                        size={scale(30)}
+                        size={sizes.iconLarge}
                         color={colors.primary}
                       />
                     </View>
@@ -246,7 +208,7 @@ const AddressModal = ({
                 }>
                   <View style={styles.locationButton}>
                     <View style={styles.iconContainer}>
-                      <Icon name="map" size={scale(30)} color={colors.primary} />
+                      <Icon name="map" size={sizes.iconLarge} color={colors.primary} />
                     </View>
                     <Text style={styles.locationText}>
                       Definir localização no mapa
@@ -276,17 +238,27 @@ const AddressModal = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginLeft: scale(10),
-    marginRight: scale(10),
+    marginLeft: spacing.sm,
+    marginRight: spacing.sm,
   },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: spacing.modalSafeTop, paddingHorizontal: spacing.xxl, paddingBottom: spacing.sm },
   goback: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(7),
-    backgroundColor: "#fff",
-    top: scale(15),
-    marginLeft: scale(10),
+    width: sizes.control,
+    height: sizes.control,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
   },
+  title: { ...typography.h3, marginHorizontal: spacing.lg, marginTop: spacing.lg, marginBottom: spacing.lg, alignSelf: 'center' },
+  input: { minHeight: sizes.control, borderRadius: borderRadius.md, borderWidth: borderWidths.thin, borderColor: colors.border, fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.surface, color: colors.textPrimary },
+  inputWrap: { minHeight: sizes.control, borderRadius: borderRadius.md, borderWidth: borderWidths.thin, borderColor: colors.border, marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.surface },
+  locationInput: { minHeight: sizes.control, paddingHorizontal: spacing.lg, justifyContent: 'center' },
+  inputText: { fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight, color: colors.textPrimary },
+  instructions: { minHeight: 112, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border, fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight, padding: spacing.lg, marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.surface, color: colors.textPrimary, textAlignVertical: 'top' },
   iconContainer: {
     height: scale(45),
     width: scale(45),
@@ -295,46 +267,48 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: scale(7),
+    marginRight: spacing.sm,
   },
   saveButton: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
-    width: scale(300),
+    width: 'auto',
+    marginHorizontal: spacing.lg,
+    minHeight: sizes.controlLarge,
     alignItems: "center",
     alignSelf: "center",
-    padding: scale(16),
+    paddingVertical: spacing.lg,
     ...shadows.primaryGlow,
   },
   saveButtonText: {
     color: colors.surface,
     fontWeight: "700",
-    fontSize: scale(14),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
   },
   modalContainer: {
-    backgroundColor: "#ccc",
+    backgroundColor: colors.border,
     flex: 1,
   },
   searchContainer: {
-    backgroundColor: "#fff",
-    borderRadius: scale(5),
-    marginBottom: scale(3),
-    padding: scale(10),
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.xs,
+    padding: spacing.sm,
   },
   locationButton: {
     flexDirection: "row",
-    marginBottom: scale(15),
+    marginBottom: spacing.lg,
     alignItems: "center",
   },
   locationText: {
-    color: "#000",
-    fontSize: scale(15),
-    paddingHorizontal: scale(10),
+    color: colors.textPrimary,
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    paddingHorizontal: spacing.sm,
     textAlignVertical: "center",
   },
   resultsContainer: {
-    backgroundColor: "#fff",
-    borderRadius: scale(5),
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
     flex: 1,
   }
 });

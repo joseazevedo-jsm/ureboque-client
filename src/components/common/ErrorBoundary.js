@@ -1,5 +1,8 @@
+import { spacing, colors, typography } from '../../theme';
 import React from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
+import { View, Button, StyleSheet } from 'react-native';
+import { AppText as Text } from './AppText';
+
 import * as Sentry from '@sentry/react-native';
 import ErrorService from '../../services/ErrorService';
 import Logger from '../../utils/Logger';
@@ -178,23 +181,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
   },
   title: {
-    fontSize: 18,
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: spacing.sm,
   },
   message: {
-    fontSize: 14,
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   errorId: {
-    fontSize: 10,
-    color: '#666',
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
+    color: colors.textSecondary,
     fontFamily: 'monospace',
-    marginBottom: 15,
+    marginBottom: spacing.lg,
   },
 });
 

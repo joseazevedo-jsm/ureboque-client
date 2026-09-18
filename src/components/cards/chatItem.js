@@ -1,7 +1,10 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+
 import { scale } from "react-native-size-matters";
-import { colors, shadows, borderRadius } from "../../theme";
+import { spacing, colors, shadows, borderRadius, typography } from "../../theme";
 
 const ChatItem = ({ text, isSender, timestamp, deliveryStatus, onRetry }) => {
   // Format timestamp to display time
@@ -99,41 +102,41 @@ const styles = StyleSheet.create({
     maxWidth: '85%',
   },
   failedRow: {
-    marginTop: scale(2),
-    marginBottom: scale(6),
-    paddingHorizontal: scale(4),
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.xs,
   },
   failedText: {
-    fontSize: scale(11),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: '600',
     color: colors.error,
   },
   container: {
     borderRadius: borderRadius.xl,
-    paddingVertical: scale(10),
-    paddingHorizontal: scale(14),
-    marginTop: scale(6),
-    marginHorizontal: scale(14),
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
+    marginHorizontal: spacing.md,
     maxWidth: "78%",
   },
   senderContainer: {
     alignSelf: "flex-end",
     backgroundColor: colors.primary,
-    borderBottomRightRadius: scale(4),
+    borderBottomRightRadius: borderRadius.sm,
     ...shadows.primaryGlow,
   },
   receiverContainer: {
     alignSelf: "flex-start",
     backgroundColor: colors.surface,
-    borderBottomLeftRadius: scale(4),
+    borderBottomLeftRadius: borderRadius.sm,
     borderWidth: 1,
     borderColor: colors.borderLight,
     ...shadows.sm,
   },
   messageText: {
-    fontSize: scale(15),
-    lineHeight: scale(21),
-    marginBottom: scale(4),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    lineHeight: 20,
+    marginBottom: spacing.xs,
   },
   senderMessageText: {
     color: colors.surface,
@@ -142,12 +145,12 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   timestampText: {
-    fontSize: scale(11),
-    marginTop: scale(2),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
+    marginTop: spacing.xs,
     fontWeight: "500",
   },
   senderTimestampText: {
-    color: "rgba(255, 255, 255, 0.75)",
+    color: colors.surfaceTint75,
     alignSelf: "flex-end",
   },
   receiverTimestampText: {

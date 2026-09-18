@@ -1,10 +1,11 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Modal } from 'react-native';
+
 import { useSavedAddresses } from './hooks/useSavedAddresses';
 import AddressesList from './components/AddressesList';
 import AddressForm from './components/AddressForm';
 import LocationSearch from './components/LocationSearch';
-import { colors } from '../../theme';
 
 const SavedAddressesModal = ({ visible, onClose, onMapDragRequest }) => {
   const savedAddresses = useSavedAddresses();
@@ -61,34 +62,11 @@ const SavedAddressesModal = ({ visible, onClose, onMapDragRequest }) => {
     <Modal
       visible={visible && savedAddresses.state.mode !== 'closed'}
       animationType="slide"
-      onRequestClose={handleClose}
+      onRequestClose={savedAddresses.state.mode === 'search' ? savedAddresses.cancelSearch : handleClose}
     >
-      {renderContent()}
+      <SafeAreaProvider>{renderContent()}</SafeAreaProvider>
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  placeholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    padding: 20
-  },
-  placeholderText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 20,
-    textAlign: 'center'
-  },
-  debugText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginBottom: 10,
-    textAlign: 'center'
-  }
-});
 
 export default SavedAddressesModal;

@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Image, Pressable } from "react-native";
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
+import { View, StyleSheet, Image, Pressable } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+
+import Animated, { FadeInDown, FadeOutUp, useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
 import Icon from "@expo/vector-icons/MaterialIcons";
 import ScheduleWheel from "./ScheduleWheel";
-import { earliestSlot } from "../../utils/scheduling";
+import { SCHEDULE_DISPATCH_LEAD_MIN, earliestSlot } from "../../utils/scheduling";
 import { scale } from "react-native-size-matters";
 import { LinearGradient } from "expo-linear-gradient";
 import CarTypes from "../cards/carTypes";
 import { ScalePressable } from "../common/ScalePressable";
-import { colors, spacing, borderRadius, shadows, typography } from "../../theme";
+import { colors, spacing, borderRadius, shadows, typography, sizes } from "../../theme";
 
 // Agora | Agendar. The thumb slides between the two halves.
 const WhenToggle = ({ later, onChange }) => {
@@ -26,7 +28,7 @@ const WhenToggle = ({ later, onChange }) => {
         <Text style={[styles.toggleText, !later && styles.toggleTextOn]}>Agora</Text>
       </Pressable>
       <Pressable style={styles.toggleOption} onPress={() => onChange(true)} accessibilityRole="button" accessibilityState={{ selected: later }}>
-        <Icon name="schedule" size={scale(15)} color={later ? "#FFFFFF" : colors.textSecondary} />
+        <Icon name="schedule" size={sizes.iconSmall} color={later ? colors.surface : colors.textSecondary} />
         <Text style={[styles.toggleText, later && styles.toggleTextOn]}>Agendar</Text>
       </Pressable>
     </View>
@@ -45,7 +47,7 @@ const PaymentOptions = ({ handleConfirmPaymentPress, onScheduleChange, models })
         style={isSubmitting ? styles.paymentOptionDisabled : null}
       >
         <LinearGradient
-          colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
+          colors={[colors.surfaceTint90, colors.surfaceTint60]}
           style={styles.paymentOption}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -85,7 +87,13 @@ const PaymentOptions = ({ handleConfirmPaymentPress, onScheduleChange, models })
           onChange={(later) => onScheduleChange(later ? earliestSlot().toISOString() : null)}
         />
         {scheduledFor && (
-          <ScheduleWheel value={scheduledFor} onChange={(date) => onScheduleChange(date.toISOString())} />
+          <Animated.View entering={FadeInDown.duration(240)} exiting={FadeOutUp.duration(160)}>
+            <View style={styles.scheduleHint}>
+              <Icon name="auto-awesome" size={scale(16)} color={colors.primary} />
+              <Text style={styles.scheduleHintText}>Um motorista reserva o seu reboque e sai {SCHEDULE_DISPATCH_LEAD_MIN} min antes para chegar a horas.</Text>
+            </View>
+            <ScheduleWheel value={scheduledFor} onChange={(date) => onScheduleChange(date.toISOString())} />
+          </Animated.View>
         )}
       </View>
 
@@ -110,7 +118,7 @@ const styles = StyleSheet.create({
   },
   toggle: {
     flexDirection: "row",
-    margin: scale(10),
+    margin: spacing.sm,
     padding: TOGGLE_PADDING,
     borderRadius: borderRadius.lg,
     backgroundColor: colors.background,
@@ -128,17 +136,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: scale(5),
-    paddingVertical: scale(9),
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
   },
-  toggleText: { fontSize: scale(14), fontWeight: "700", color: colors.textSecondary },
-  toggleTextOn: { color: "#FFFFFF" },
+  toggleText: { fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight, fontWeight: "700", color: colors.textSecondary },
+  toggleTextOn: { color: colors.surface },
   paymentTitle: {
     ...typography.sectionTitle,
     marginBottom: spacing.lg,
     marginLeft: spacing.xl,
     marginTop: spacing.lg,
   },
+  scheduleHint: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginHorizontal: spacing.lg, marginBottom: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, borderRadius: borderRadius.md, backgroundColor: colors.primaryLight },
+  scheduleHintText: { flex: 1, fontSize: typography.caption.fontSize, lineHeight: 16, color: colors.primaryDark, fontWeight: "600" },
   paymentOptionContainer: {
     marginHorizontal: spacing.xl,
     marginBottom: spacing.sm,
@@ -153,7 +163,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     borderRadius: borderRadius.xxl,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.6)',
+    borderColor: colors.surfaceTint60,
     ...shadows.sm
   },
   paymentImageConfig: {
@@ -162,7 +172,7 @@ const styles = StyleSheet.create({
   },
   paymentOptionText: {
     color: colors.textPrimary,
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "600",
     marginLeft: spacing.lg,
   },

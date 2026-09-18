@@ -1,18 +1,31 @@
-// Booking a tow for later. Mirrors the API window in ScheduledServiceService.
-export const SCHEDULE_MIN_LEAD_MS = 60 * 60 * 1000;
+// Booking a tow for later. Mirrors the API timings in config/schedulingConfig.
+// For local testing the EXPO_PUBLIC_SCHEDULE_* vars shorten them; set the
+// matching SCHEDULE_* vars on the API too (see docs/ScheduledTows.md).
+const envMinutes = (value, fallback) => {
+  const minutes = Number(value);
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : fallback;
+};
+
+export const SCHEDULE_MIN_LEAD_MS = envMinutes(process.env.EXPO_PUBLIC_SCHEDULE_MIN_LEAD_MIN, 60) * 60 * 1000;
 export const SCHEDULE_MAX_DAYS = 7;
-export const MINUTE_STEP = 15;
+export const MINUTE_STEP = envMinutes(process.env.EXPO_PUBLIC_SCHEDULE_MINUTE_STEP, 15);
+// The API dispatches a booking this long before its time.
+export const SCHEDULE_DISPATCH_LEAD_MIN = envMinutes(process.env.EXPO_PUBLIC_SCHEDULE_DISPATCH_LEAD_MIN, 45);
+// Longest a dispatched booking can wait for a driver: the lead plus the API's
+// 10-minute grace after the booked time.
+export const SCHEDULED_SEARCH_MAX_S = (SCHEDULE_DISPATCH_LEAD_MIN + 10) * 60;
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-// Earliest bookable moment, rounded up to the next 15-minute slot.
+// Earliest bookable moment, rounded up to the next slot. Rounds from the exact
+// time, seconds included: 15:45:30 + 1h must give 17:00, not 16:45.
 export const earliestSlot = (now = new Date()) => {
+  const stepMs = MINUTE_STEP * 60 * 1000;
   const t = new Date(now.getTime() + SCHEDULE_MIN_LEAD_MS);
-  const minutes = Math.ceil(t.getMinutes() / MINUTE_STEP) * MINUTE_STEP;
-  t.setMinutes(minutes, 0, 0);
-  return t;
+  const sinceHour = t.getTime() - new Date(t).setMinutes(0, 0, 0);
+  return new Date(t.getTime() - sinceHour + Math.ceil(sinceHour / stepMs) * stepMs);
 };
 
 // Days offered in the picker, starting from the day of the earliest slot.
@@ -28,7 +41,7 @@ export const scheduleDays = (now = new Date()) => {
 };
 
 export const isBookable = (date, now = new Date()) =>
-  date.getTime() >= now.getTime() + SCHEDULE_MIN_LEAD_MS - 60 * 1000 &&
+  date.getTime() >= now.getTime() + SCHEDULE_MIN_LEAD_MS &&
   date.getTime() <= now.getTime() + SCHEDULE_MAX_DAYS * 86400000;
 
 // "amanhã às 09:00", "sex 19 às 14:30"

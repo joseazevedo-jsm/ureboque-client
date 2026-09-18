@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { AppHeader } from '../../common/AppHeader';
+import { View, FlatList, StyleSheet } from 'react-native';
+import { AppText as Text } from '../../common/AppText';
+
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
-import { scale } from 'react-native-size-matters';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-const Icon = MaterialIcons;
 import PlaceSavedItem from '../../cards/placeSavedItem';
-import { ScalePressable } from '../../common/ScalePressable';
-import { colors, shadows, spacing, borderRadius } from '../../../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, spacing, borderRadius, typography, layout } from '../../../theme';
 import { getPlaceIcon, ICON_ADD } from '../../../assets/icons';
 
 const AddressesList = ({
@@ -17,6 +17,7 @@ const AddressesList = ({
   state,
   onClose
 }) => {
+  const insets = useSafeAreaInsets();
   const [editMode, setEditMode] = React.useState(false);
 
   const displayAddresses = React.useMemo(() => {
@@ -63,7 +64,7 @@ const AddressesList = ({
 
   const renderItem = ({ item, index }) => (
     <Animated.View entering={FadeInRight.delay(100 + index * 40).springify()}>
-      <ScalePressable onPress={() => handleItemPress(item)}>
+
         <PlaceSavedItem
           key={item._id}
           place={item.place}
@@ -73,31 +74,22 @@ const AddressesList = ({
           iconSource={getPlaceIcon(item.place.name)}
           description={item.place.description || item.place.address || undefined}
         />
-      </ScalePressable>
+
     </Animated.View>
   );
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.header}>
-        <TouchableOpacity style={styles.circleButton} onPress={onClose} activeOpacity={0.75}>
-          <Icon name="close" size={scale(20)} color={colors.textPrimary} />
-        </TouchableOpacity>
-
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>Lugares Salvos</Text>
-          <Text style={styles.subtitle}>Acelere o pedido de reboques.</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.circleButton}
-          onPress={() => setEditMode(!editMode)}
-          activeOpacity={0.75}
-        >
-          <Icon name="edit" size={scale(20)} color={colors.primary} />
-        </TouchableOpacity>
-      </Animated.View>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <AppHeader
+        title="Lugares Salvos"
+        subtitle="Acelere o pedido de reboques."
+        onLeftPress={onClose}
+        leftLabel="Fechar lugares salvos"
+        rightIcon={editMode ? 'done' : 'edit'}
+        rightLabel={editMode ? 'Concluir edição' : 'Editar lugares'}
+        rightSelected={editMode}
+        onRightPress={() => setEditMode(!editMode)}
+      />
 
       {/* List */}
       <View style={styles.listContainer}>
@@ -108,7 +100,7 @@ const AddressesList = ({
           showsVerticalScrollIndicator={false}
           ListFooterComponent={
             <Animated.View entering={FadeInDown.delay(300).springify()}>
-              <ScalePressable onPress={startAdd}>
+
                 <PlaceSavedItem
                   place={{ name: 'Adicionar' }}
                   add={true}
@@ -116,7 +108,7 @@ const AddressesList = ({
                   description="Novo endereço personalizado"
                   onPressEditItem={() => startAdd()}
                 />
-              </ScalePressable>
+        
             </Animated.View>
           }
         />
@@ -124,7 +116,7 @@ const AddressesList = ({
 
       {state.isLoading && (
         <View style={styles.loadingOverlay}>
-          <Text>Carregando...</Text>
+          <Text accessibilityRole="alert" style={{ ...typography.body, color: colors.textPrimary, backgroundColor: colors.surface, padding: spacing.lg, borderRadius: borderRadius.md }}>Carregando...</Text>
         </View>
       )}
     </View>
@@ -135,40 +127,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.modalSafeTop,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  circleButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingTop: spacing.xs,
-  },
-  title: {
-    fontSize: scale(18),
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: scale(13),
-    color: colors.textSecondary,
-    marginTop: scale(2),
-    textAlign: 'center',
+    width: "100%",
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
   },
   listContainer: {
     flex: 1,
@@ -181,7 +142,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: colors.overlayLoadingStrong,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -1,12 +1,11 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React from "react";
 import { version as appVersion } from "../../package.json";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { AppText as Text } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+import { AppHeader } from '../components/common/AppHeader';
+
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -14,7 +13,7 @@ const Icon = MaterialIcons;
 import Animated, { FadeInDown } from "react-native-reanimated";
 import useSettingsScreen from "../components/settings/useSettingsScreen";
 import { useAlert } from "../context/AlertContext";
-import { colors, spacing, borderRadius, shadows, typography } from "../theme";
+import { colors, spacing, borderRadius, shadows, typography, sizes, layout } from "../theme";
 
 const SettingItem = ({ icon, title, subtitle, onPress, danger = false, last = false }) => (
   <TouchableOpacity
@@ -29,7 +28,7 @@ const SettingItem = ({ icon, title, subtitle, onPress, danger = false, last = fa
       <Text style={[styles.itemTitle, danger && styles.dangerText]}>{title}</Text>
       {subtitle ? <Text style={styles.itemSubtitle}>{subtitle}</Text> : null}
     </View>
-    <Icon name="chevron-right" size={scale(18)} color={colors.textMuted} />
+    <Icon name="chevron-right" size={sizes.icon} color={colors.textMuted} />
   </TouchableOpacity>
 );
 
@@ -44,26 +43,20 @@ const Section = ({ title, children, delay }) => (
 );
 
 const SettingsScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { operations } = useSettingsScreen();
   const { showAlert } = useAlert();
 
   return (
-    <View style={styles.container}>
-      <Animated.View
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <AppHeader
+        title="DEFINIÇÕES"
+        leftIcon="menu"
+        leftLabel="Abrir menu"
+        onLeftPress={() => navigation.openDrawer()}
         style={styles.header}
-        entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}
-      >
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => navigation.openDrawer()}
-          activeOpacity={0.7}
-        >
-          <Icon name="menu" size={scale(22)} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>DEFINIÇÕES</Text>
-        <View style={styles.headerSpacer} />
-      </Animated.View>
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -150,34 +143,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: spacing.headerHeight,
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.xxl,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  menuButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: borderRadius.xxl,
-    backgroundColor: colors.surface,
-    justifyContent: "center",
-    alignItems: "center",
-    ...shadows.sm,
-  },
-  headerSpacer: {
-    width: scale(40),
-    height: scale(40),
-  },
-  headerTitle: {
-    fontSize: scale(17),
-    fontWeight: "800",
-    color: colors.textPrimary,
-    letterSpacing: 0.5,
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
   },
   scrollContent: {
-    paddingHorizontal: spacing.xxl,
+    width: "100%",
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
+    paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
   },
   section: {
@@ -199,7 +172,7 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: scale(14),
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
@@ -223,19 +196,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemTitle: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "600",
     color: colors.textPrimary,
   },
   itemSubtitle: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textMuted,
-    marginTop: scale(2),
+    marginTop: spacing.xs,
   },
   dangerText: {
     color: colors.error,
   },
   logoutButton: {
+    minHeight: sizes.control,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -247,7 +221,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   logoutText: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "700",
     color: colors.error,
   },

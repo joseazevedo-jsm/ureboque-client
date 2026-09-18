@@ -1,11 +1,16 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { AppText as Text } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+import { AppHeader } from '../components/common/AppHeader';
+
 import { scale } from "react-native-size-matters";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { colors, spacing, borderRadius, shadows, typography } from "../theme";
+import { colors, spacing, borderRadius, shadows, typography, sizes, layout } from "../theme";
 
 const PRIVACY_SECTIONS = [
   {
@@ -79,27 +84,16 @@ const DOCUMENTS = {
 };
 
 const LegalDocumentScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const type = route.params?.type || "privacy";
   const document = DOCUMENTS[type] || DOCUMENTS.privacy;
 
   return (
-    <View style={styles.container}>
-      <Animated.View
-        style={styles.header}
-        entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}
-      >
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Icon name="arrow-back" size={scale(22)} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{document.title}</Text>
-        <View style={styles.headerSpacer} />
-      </Animated.View>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <AppHeader title={document.title} leftIcon="arrow-back" leftLabel="Voltar"
+        onLeftPress={() => navigation.goBack()} style={styles.header} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -131,36 +125,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: spacing.headerHeight,
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.xxl,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  menuButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: borderRadius.xxl,
-    backgroundColor: colors.surface,
-    justifyContent: "center",
-    alignItems: "center",
-    ...shadows.sm,
-  },
-  headerSpacer: {
-    width: scale(40),
-    height: scale(40),
-  },
-  headerTitle: {
-    flex: 1,
-    marginHorizontal: spacing.md,
-    fontSize: scale(16),
-    fontWeight: "800",
-    color: colors.textPrimary,
-    textAlign: "center",
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
   },
   scrollContent: {
-    paddingHorizontal: spacing.xxl,
+    width: "100%",
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
+    paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xxxl,
   },
   updatedAt: {
@@ -184,20 +156,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   sectionTitle: {
-    fontSize: scale(15),
-    fontWeight: "800",
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    fontWeight: "700",
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   sectionBody: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
-    lineHeight: scale(20),
+    lineHeight: 20,
   },
   footerNote: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textMuted,
-    lineHeight: scale(18),
+    lineHeight: 20,
     marginTop: spacing.lg,
   },
 });

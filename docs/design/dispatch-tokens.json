@@ -1,0 +1,34 @@
+{
+  "name": "Dispatch",
+  "status": "superseded by user reference; do not implement",
+  "colors": {
+    "background": "#141A20",
+    "surface": "#222B34",
+    "textPrimary": "#F4F7FA",
+    "textSecondary": "#B6C3CF",
+    "action": "#83DCF2",
+    "onAction": "#141A20",
+    "success": "#91D5AF",
+    "error": "#FFB4AB",
+    "warning": "#F3CE83",
+    "controlBorder": "#718190",
+    "divider": "#394550",
+    "focus": "#83DCF2",
+    "route": "#83DCF2"
+  },
+  "fontFamilies": { "interface": "IBM Plex Sans", "numeric": "IBM Plex Mono" },
+  "type": {
+    "caption": { "size": 12, "lineHeight": 16 },
+    "label": { "size": 14, "lineHeight": 20 },
+    "body": { "size": 16, "lineHeight": 24 },
+    "section": { "size": 20, "lineHeight": 28 },
+    "title": { "size": 28, "lineHeight": 36 },
+    "eta": { "size": 40, "lineHeight": 48 }
+  },
+  "spacing": [4, 8, 12, 16, 24, 32, 48],
+  "radius": { "control": 2, "card": 8, "sheet": 12 },
+  "borderWidth": { "standard": 1, "focus": 2 },
+  "elevation": { "base": 0, "mapControl": 2, "sheet": 8, "dialog": 16 },
+  "layout": { "gutter": 24, "minimumTouchTarget": 44, "primaryControlHeight": 56 },
+  "motion": { "feedbackMs": 120, "transitionMs": 220, "reducedMotionMs": 0 }
+}

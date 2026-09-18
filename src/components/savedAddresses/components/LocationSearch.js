@@ -1,12 +1,9 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { AppHeader } from '../../common/AppHeader';
+import { View, FlatList, StyleSheet } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../common/AppText';
+import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
+
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -17,13 +14,14 @@ import { useTextSearchQuery } from '../../../models/places/useTextSearchQuery';
 import { useDebounce } from 'use-debounce';
 import { useUserLocation } from '../../../context/UserLocationStateContext';
 import Geocoder from 'react-native-geocoding';
-import { colors, shadows, borderRadius, spacing } from '../../../theme';
+import { typography, colors, shadows, borderRadius, spacing, sizes, layout } from '../../../theme';
 import { useAlert } from '../../../context/AlertContext';
 
 const LocationSearch = ({
   state,
   searchLocations,
   selectSearchResult,
+  cancelSearch,
   updateCurrentAddress,
   onClose,
   onMapDragRequest
@@ -147,17 +145,18 @@ const LocationSearch = ({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={() => selectSearchResult({ address: '', coordinates: null, name: '' })} activeOpacity={0.75}>
-          <Icon name="arrow-back" size={scale(25)} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
+      <AppHeader
+        title="Escolher localização"
+        subtitle="Pesquise ou escolha no mapa."
+        leftIcon="arrow-back"
+        onLeftPress={cancelSearch}
+        leftLabel="Voltar ao endereço"
+      />
 
       {/* Search Input */}
       <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Icon name="search" size={scale(22)} color={colors.textMuted} />
+          <Icon name="search" size={sizes.icon} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
             placeholderTextColor={colors.textMuted}
@@ -172,7 +171,7 @@ const LocationSearch = ({
           <TouchableOpacity onPress={handleCurrentLocation} activeOpacity={0.75}>
             <View style={styles.locationButton}>
               <View style={styles.iconContainer}>
-                <Icon name="navigation" size={scale(26)} color={colors.primary} />
+                <Icon name="navigation" size={sizes.iconLarge} color={colors.primary} />
               </View>
               <Text style={styles.locationText}>Localização atual</Text>
             </View>
@@ -184,7 +183,7 @@ const LocationSearch = ({
           <TouchableOpacity onPress={handleMapDrag} activeOpacity={0.75}>
             <View style={styles.locationButton}>
               <View style={styles.iconContainer}>
-                <Icon name="map" size={scale(26)} color={colors.primary} />
+                <Icon name="map" size={sizes.iconLarge} color={colors.primary} />
               </View>
               <Text style={styles.locationText}>Definir localização no mapa</Text>
             </View>
@@ -193,16 +192,18 @@ const LocationSearch = ({
       </Animated.View>
 
       {/* Search Results */}
-      <View style={styles.resultsContainer}>
-        <FlatList
-          data={searchResults}
-          renderItem={renderSearchResult}
-          keyExtractor={(item, index) => String(item.place_id ?? `place-${index}`)}
-          keyboardShouldPersistTaps="always"
-          keyboardDismissMode="on-drag"
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-        />
-      </View>
+      {searchResults.length > 0 && (
+        <View style={styles.resultsContainer}>
+          <FlatList
+            data={searchResults}
+            renderItem={renderSearchResult}
+            keyExtractor={(item, index) => String(item.place_id ?? `place-${index}`)}
+            keyboardShouldPersistTaps="always"
+            keyboardDismissMode="on-drag"
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+          />
+        </View>
+      )}
     </View>
   );
 };
@@ -210,47 +211,40 @@ const LocationSearch = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    padding: spacing.lg,
-  },
-  closeButton: {
-    width: scale(44),
-    height: scale(44),
-    borderRadius: borderRadius.md,
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.md,
   },
   searchContainer: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.sm,
-    padding: spacing.lg,
-    marginHorizontal: spacing.lg,
-    ...shadows.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    maxWidth: layout.formMaxWidth,
+    width: '100%',
+    alignSelf: 'center',
   },
   searchInputContainer: {
     borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: spacing.md,
-    marginBottom: spacing.xl,
+    minHeight: sizes.control,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.lg,
     flexDirection: "row",
     alignItems: 'center',
     backgroundColor: colors.background,
   },
   searchInput: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     paddingHorizontal: spacing.md,
     flex: 1,
     color: colors.textPrimary,
   },
   locationButton: {
     flexDirection: "row",
-    marginBottom: spacing.md,
+    minHeight: sizes.controlLarge,
+    marginBottom: spacing.sm,
     alignItems: "center",
     paddingVertical: spacing.xs,
   },
@@ -267,7 +261,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     color: colors.textPrimary,
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     paddingHorizontal: spacing.sm,
     fontWeight: "500",
   },

@@ -1,3 +1,4 @@
+import { spacing, borderRadius, colors } from '../../theme';
 import React from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -22,8 +23,8 @@ export const GlassBackground = ({ style, borderRadius = scale(32) }) => (
         borderRadius,
         overflow: 'hidden',
         backgroundColor: Platform.select({
-          ios: 'rgba(255,255,255,0.7)',
-          android: 'rgba(255,255,255,0.94)'
+          ios: colors.surfaceTint70,
+          android: colors.glassAndroid
         })
       }
     ]}
@@ -56,14 +57,14 @@ export const GlassOverlay = ({ style, children }) => (
 const styles = StyleSheet.create({
   handleContainer: {
     alignItems: 'center',
-    paddingTop: scale(12),
-    paddingBottom: scale(8),
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
   },
   handleIndicator: {
     width: scale(40),
     height: scale(4),
-    backgroundColor: 'rgba(0,0,0,0.15)',
-    borderRadius: scale(2),
+    backgroundColor: colors.overlaySoft,
+    borderRadius: borderRadius.sm,
   },
 });
 

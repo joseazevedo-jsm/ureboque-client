@@ -1,20 +1,19 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  Image,
-} from 'react-native';
+import { View, StyleSheet, ScrollView, Image } from 'react-native';
+import { AppText as Text } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+import { AppHeader } from '../components/common/AppHeader';
+
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { scale } from 'react-native-size-matters';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 const Icon = MaterialIcons;
 import { useLogger } from '../hooks/useLogger';
-import { colors } from '../theme';
+import { shadows, borderRadius, colors, spacing, sizes, layout, typography } from "../theme";
 
 const RegistrationWelcomeScreen = () => {
+  const insets = useSafeAreaInsets();
   const logger = useLogger('RegistrationWelcomeScreen', {
     enableLifecycleLogging: true,
     logProps: true
@@ -37,24 +36,16 @@ const RegistrationWelcomeScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={handleBack}
-          style={styles.backButton}
-          accessibilityLabel="Voltar"
-          accessibilityRole="button"
-        >
-          <Icon name="arrow-back" size={24} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <ScrollView contentContainerStyle={styles.pageScroll} showsVerticalScrollIndicator={false}>
+      <AppHeader title="CRIAR CONTA" leftIcon="arrow-back" leftLabel="Voltar" onLeftPress={handleBack} style={styles.header} />
 
       <View style={styles.content}>
         <View style={styles.logoSection}>
           <Image
             source={require('../../resources/icons/UREB_CARD.png')}
             resizeMode="contain"
-            style={[styles.logo, { tintColor: '#0089FF' }]}
+            style={[styles.logo, { tintColor: colors.primary }]}
           />
            <Text style={styles.welcomeTitle}>Bem-vindo!</Text>
           <Text style={styles.subtitle}>Vamos criar a sua conta</Text>
@@ -63,7 +54,7 @@ const RegistrationWelcomeScreen = () => {
         <View style={styles.infoSection}>
           {phone && (
             <View style={styles.phoneInfo}>
-              <Icon name="phone" size={20} color="#0089FF" />
+              <Icon name="phone" size={20} color={colors.primary} />
               <Text style={styles.phoneText}>{phone}</Text>
             </View>
           )}
@@ -72,18 +63,18 @@ const RegistrationWelcomeScreen = () => {
             <Text style={styles.requirementsTitle}>Vamos precisar de:</Text>
             <View style={styles.requirementsList}>
               <View style={styles.requirementItem}>
-                <Icon name="lock" size={18} color="#4CAF50" />
+                <Icon name="lock" size={18} color={colors.success} />
                 <Text style={styles.requirementText}>Uma senha segura</Text>
               </View>
               <View style={styles.requirementItem}>
-                <Icon name="person" size={18} color="#4CAF50" />
+                <Icon name="person" size={18} color={colors.success} />
                 <Text style={styles.requirementText}>O seu nome e email</Text>
               </View>
             </View>
           </View>
 
           <View style={styles.timeEstimate}>
-            <Icon name="schedule" size={18} color="#707070" />
+            <Icon name="schedule" size={18} color={colors.textSecondary} />
             <Text style={styles.timeText}>Isto levará cerca de 2 minutos</Text>
           </View>
         </View>
@@ -102,107 +93,99 @@ const RegistrationWelcomeScreen = () => {
           <Text style={styles.getStartedButtonText}>Começar</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  pageScroll: { flexGrow: 1 },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    paddingVertical: scale(20),
+    backgroundColor: colors.background,
   },
   header: {
-    paddingHorizontal: scale(20),
-    paddingVertical: scale(20),
+    width: "100%",
+    maxWidth: layout.formMaxWidth,
+    alignSelf: "center",
    },
-  backButton: {
-    width: scale(40),
-    height: scale(40),
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: scale(20),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
   content: {
-    flex: 1,
-    paddingHorizontal: scale(20),
+    flexShrink: 0,
+    width: "100%",
+    maxWidth: layout.formMaxWidth,
+    alignSelf: "center",
+    flexGrow: 1,
+    paddingHorizontal: spacing.xl,
     justifyContent: 'center',
   },
   logoSection: {
     alignItems: 'center',
-    marginBottom: scale(40),
+    marginBottom: spacing.jumbo,
   },
   logo: {
     width: scale(80),
     height: scale(80),
-    marginBottom: scale(20),
+    marginBottom: spacing.xl,
   },
 
   welcomeTitle: {
-    fontSize: scale(28),
+    fontSize: typography.h1.fontSize, lineHeight: typography.h1.lineHeight,
     fontWeight: 'bold',
-    color: '#1E293B',
-    marginBottom: scale(8),
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: scale(18),
-    color: '#64748B',
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   infoSection: {
-    marginBottom: scale(40),
+    marginBottom: spacing.jumbo,
   },
   phoneInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: scale(12),
-    paddingHorizontal: scale(16),
-    borderRadius: scale(14),
-    marginBottom: scale(30),
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.xxxl,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
-  },
+    borderColor: colors.borderLight,
+    ...shadows.sm,
+
+},
   phoneText: {
-    fontSize: scale(16),
-    color: '#1E293B',
-    marginLeft: scale(8),
+    flexShrink: 1,
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
+    color: colors.textPrimary,
+    marginLeft: spacing.sm,
     fontWeight: '500',
   },
   requirementsSection: {
-    marginBottom: scale(30),
+    marginBottom: spacing.xxxl,
   },
   requirementsTitle: {
-    fontSize: scale(18),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: scale(15),
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
     textAlign: 'center',
   },
   requirementsList: {
-    paddingHorizontal: scale(20),
+    paddingHorizontal: spacing.xl,
   },
   requirementItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: scale(12),
+    marginBottom: spacing.md,
   },
   requirementText: {
-    fontSize: scale(16),
-    color: '#1E293B',
-    marginLeft: scale(12),
+    flexShrink: 1,
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
+    color: colors.textPrimary,
+    marginLeft: spacing.md,
   },
   timeEstimate: {
     flexDirection: 'row',
@@ -210,36 +193,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   timeText: {
-    fontSize: scale(14),
-    color: '#64748B',
-    marginLeft: scale(8),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    color: colors.textSecondary,
+    marginLeft: spacing.sm,
   },
   footer: {
-    paddingHorizontal: scale(20),
-    paddingBottom: scale(30),
+    width: "100%",
+    maxWidth: layout.formMaxWidth,
+    alignSelf: "center",
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxxl,
   },
   disclaimerText: {
-    fontSize: scale(12),
-    color: '#64748B',
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: scale(18),
-    marginBottom: scale(25),
-    paddingHorizontal: scale(10),
+    lineHeight: 20,
+    marginBottom: spacing.xxl,
+    paddingHorizontal: spacing.sm,
   },
   getStartedButton: {
-    backgroundColor: '#0089FF',
-    borderRadius: scale(16),
-    paddingVertical: scale(16),
+    minHeight: sizes.control,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.lg,
     alignItems: 'center',
-    shadowColor: '#0089FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
+    ...shadows.sm,
+
+},
   getStartedButtonText: {
-    color: '#FFFFFF',
-    fontSize: scale(16),
+    color: colors.surface,
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: '700',
     letterSpacing: 0.5,
   },

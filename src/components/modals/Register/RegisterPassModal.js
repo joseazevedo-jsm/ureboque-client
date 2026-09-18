@@ -1,11 +1,8 @@
 import React from "react";
-import {
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Modal, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '../../common/AppText';
+import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
+
 import { TextInput } from "react-native-gesture-handler";
 import { scale } from "react-native-size-matters";
 import RegisterInfoModal from "./RegisterInfoModal";
@@ -20,7 +17,7 @@ const RegisterPassModal = ({ visible, changeLoginState, phone }) => {
         <View>
           <Text style={styles.title}>NOVA SENHA</Text>
           <View style={styles.inputInfo}>
-            <Text style={{ fontSize: scale(16), alignSelf: "center", color: colors.textSecondary, textAlign: "center", lineHeight: scale(24) }}>
+            <Text style={{ fontSize: typography.body.fontSize, alignSelf: "center", color: colors.textSecondary, textAlign: "center", lineHeight: 24 }}>
               Introduza uma nova senha para a sua conta!
             </Text>
             <View style={styles.input}>
@@ -92,15 +89,15 @@ const styles = StyleSheet.create({
   },
   inputInfo: {
     marginHorizontal: spacing.xl,
-    paddingVertical: scale(50),
+    paddingVertical: spacing.huge,
   },
   input: {},
   inputBox: {
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: borderRadius.lg,
-    fontSize: scale(15),
-    paddingVertical: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     marginTop: spacing.lg,
     backgroundColor: colors.surface,
@@ -112,11 +109,11 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.xl,
     alignItems: "center",
     borderRadius: borderRadius.xl,
-    marginBottom: scale(30),
+    marginBottom: spacing.xxxl,
     ...shadows.primaryGlow,
   },
   save: {
-    fontSize: scale(18),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "700",
     color: colors.surface,
     paddingVertical: spacing.lg,
@@ -129,15 +126,15 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   error: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textPrimary,
     fontWeight: "600",
   },
   errorItem: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     paddingHorizontal: spacing.sm,
     color: colors.error,
-    marginTop: scale(4),
+    marginTop: spacing.xs,
   }
 });
 export default RegisterPassModal;

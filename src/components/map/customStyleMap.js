@@ -1,3 +1,5 @@
+import { colors } from '../../theme';
+
 export const customStyleMap = [
   {
       "featureType": "all",
@@ -6,7 +8,7 @@ export const customStyleMap = [
               "saturation": 0
           },
           {
-              "hue": "#e7ecf0"
+              "hue": colors.mapNeutralHue
           }
       ]
   },

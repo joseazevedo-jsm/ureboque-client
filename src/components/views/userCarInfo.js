@@ -1,10 +1,13 @@
 import React from "react";
-import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { View, StyleSheet } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { scale } from "react-native-size-matters";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
-import { colors, shadows, spacing, borderRadius } from "../../theme";
+import { colors, shadows, spacing, borderRadius, borderWidths, typography, sizes } from "../../theme";
 
 const FIELDS = [
   { key: "brand",   label: "Marca",      placeholder: "Ex: Toyota",  autoCapitalize: "words",      returnKeyType: "next" },
@@ -78,7 +81,7 @@ const UserCarInfo = ({
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerIcon}>
-          <Icon name="directions-car" size={scale(22)} color={colors.primary} />
+          <Icon name="directions-car" size={sizes.iconLarge} color={colors.primary} />
         </View>
         <View>
           <Text style={styles.title}>Qual carro vai rebocar?</Text>
@@ -121,7 +124,7 @@ const UserCarInfo = ({
         >
           <Icon
             name={saveVehicle ? "bookmark" : "bookmark-border"}
-            size={scale(18)}
+            size={sizes.icon}
             color={saveVehicle ? colors.primary : colors.textMuted}
           />
           <Text style={[styles.saveToggleLabel, saveVehicle && styles.saveToggleLabelActive]}>
@@ -157,23 +160,23 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   headerIcon: {
-    width: scale(44),
-    height: scale(44),
-    borderRadius: scale(14),
+    width: sizes.control,
+    height: sizes.control,
+    borderRadius: borderRadius.lg,
     backgroundColor: colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
     marginRight: spacing.md,
   },
   title: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textPrimary,
     fontWeight: "700",
   },
   subtitle: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textMuted,
-    marginTop: scale(2),
+    marginTop: spacing.xs,
     fontWeight: "500",
   },
 
@@ -190,30 +193,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   label: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textMuted,
     fontWeight: "600",
-    marginBottom: scale(6),
+    marginBottom: spacing.xs,
   },
   input: {
-    height: scale(50),
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
+    minHeight: sizes.control,
+    borderRadius: borderRadius.md,
+    borderWidth: borderWidths.thin,
     borderColor: colors.borderLight,
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textPrimary,
-    ...shadows.sm,
   },
   inputError: {
     borderColor: colors.error,
-    borderWidth: 1.5,
+    borderWidth: borderWidths.focus,
   },
   errorText: {
     color: colors.error,
-    fontSize: scale(11),
-    marginTop: scale(4),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
+    marginTop: spacing.xs,
     fontWeight: "500",
   },
 
@@ -222,10 +224,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    minHeight: sizes.control,
     marginBottom: spacing.sm,
   },
   saveToggleLabel: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: '600',
     color: colors.textMuted,
   },
@@ -235,16 +238,18 @@ const styles = StyleSheet.create({
 
   // Button
   confirmButton: {
-    borderRadius: borderRadius.xl,
+    minHeight: sizes.controlLarge,
+    borderRadius: borderRadius.md,
     backgroundColor: colors.primary,
     alignItems: "center",
-    paddingVertical: scale(14),
+    justifyContent: "center",
+    paddingVertical: spacing.lg,
     marginBottom: spacing.lg,
-    ...shadows.primaryGlow,
+    ...shadows.sm,
   },
   confirmButtonText: {
     color: colors.surface,
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "700",
     letterSpacing: 0.5,
   },

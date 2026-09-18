@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+
 import { scale } from 'react-native-size-matters';
-import { colors, borderRadius } from '../../theme';
+import { spacing, colors, borderRadius, typography } from '../../theme';
 
 const CustomMarker = ({ title, time, color }) => {
   return (
@@ -43,37 +45,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: borderRadius.xxl,
-    marginBottom: scale(5),
+    marginBottom: spacing.xs,
     overflow: 'hidden',
   },
   uniformContainer: {
-    paddingVertical: scale(5),
-    paddingHorizontal: scale(10),
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
     borderRadius: borderRadius.xxl,
-    marginBottom: scale(5),
+    marginBottom: spacing.xs,
     overflow: "hidden",
   },
   leftContainer: {
     backgroundColor: colors.surface,
-    paddingVertical: scale(5),
-    paddingHorizontal: scale(10),
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
     borderTopLeftRadius: borderRadius.xxl,
     borderBottomLeftRadius: borderRadius.xxl,
   },
   rightContainer: {
-    paddingVertical: scale(5),
-    paddingHorizontal: scale(10),
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
     borderTopRightRadius: borderRadius.xxl,
     borderBottomRightRadius: borderRadius.xxl,
   },
   title: {
     color: colors.textPrimary,
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: 'bold',
   },
   time: {
     color: colors.surface,
-    fontSize: scale(10),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
   },
   pin: {
     alignItems: 'center',
@@ -85,7 +87,7 @@ const styles = StyleSheet.create({
   pinOuterCircle: {
     width: scale(20),
     height: scale(20),
-    borderRadius: scale(10),
+    borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',

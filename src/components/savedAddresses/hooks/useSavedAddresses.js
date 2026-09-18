@@ -50,6 +50,8 @@ export const useSavedAddresses = () => {
     mode: 'search' 
   });
 
+  const cancelSearch = () => updateState({ mode: state.previousMode || 'add' });
+
   // Form Handlers
   const updateCurrentAddress = (field, value) => setState((prev) => ({
     ...prev,
@@ -155,6 +157,7 @@ export const useSavedAddresses = () => {
     
     // Search
     openSearch,
+    cancelSearch,
     searchLocations,
     selectSearchResult
   };

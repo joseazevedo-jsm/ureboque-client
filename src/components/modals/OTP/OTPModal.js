@@ -1,16 +1,11 @@
 import React, { useEffect } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Modal, StyleSheet, View } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../common/AppText';
+import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
+
 import { scale } from "react-native-size-matters";
 import { useOTPModal } from "./components/useOTPModal";
-import { colors, spacing, shadows, borderRadius } from "../../../theme";
+import { colors, spacing, shadows, borderRadius, typography } from "../../../theme";
 import Animated, {
   FadeInDown,
   useSharedValue,
@@ -103,7 +98,7 @@ const OTPModal = ({
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={colors.surface} />
             ) : (
               <Text style={styles.resendButtonText}>Reenviar código</Text>
             )}
@@ -146,14 +141,14 @@ const styles = StyleSheet.create({
     ...shadows.lg,
   },
   title: {
-    fontSize: scale(20),
+    fontSize: typography.h3.fontSize, lineHeight: typography.h3.lineHeight,
     fontWeight: "700",
     marginBottom: spacing.sm,
     textAlign: "center",
     color: colors.textPrimary,
   },
   description: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     marginBottom: spacing.xl,
     textAlign: "center",
     color: colors.textSecondary,
@@ -169,7 +164,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   verifyingText: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textSecondary,
     marginLeft: spacing.sm,
     fontWeight: "500",
@@ -185,7 +180,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: borderRadius.md,
     padding: spacing.md,
-    fontSize: scale(20),
+    fontSize: typography.h3.fontSize, lineHeight: typography.h3.lineHeight,
     textAlign: "center",
     width: scale(50),
     height: scale(55),
@@ -201,7 +196,7 @@ const styles = StyleSheet.create({
   },
   resendButton: {
     backgroundColor: colors.primary,
-    padding: scale(14),
+    padding: spacing.md,
     borderRadius: borderRadius.lg,
     alignItems: "center",
     marginBottom: spacing.md,
@@ -209,11 +204,11 @@ const styles = StyleSheet.create({
   },
   resendButtonText: {
     color: colors.surface,
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "600",
   },
   closeButton: {
-    padding: scale(14),
+    padding: spacing.md,
     borderRadius: borderRadius.lg,
     alignItems: "center",
     backgroundColor: colors.surface,
@@ -229,7 +224,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   closeButtonText: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.primary,
     fontWeight: "600",
   },

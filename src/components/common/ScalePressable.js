@@ -1,9 +1,11 @@
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
+import { AppPressable as TouchableOpacity } from './AppPressable';
+
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
-    withSpring
+    withSpring,
+    ReduceMotion
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { animations } from '../../theme';
@@ -14,19 +16,23 @@ export const ScalePressable = ({
     onPress,
     disabled,
     scaleTo = 0.95,
-    hapticFeedback = Haptics.ImpactFeedbackStyle.Light
+    hapticFeedback = Haptics.ImpactFeedbackStyle.Light,
+    onPressIn,
+    onPressOut,
+    ...props
 }) => {
     const scale = useSharedValue(1);
 
-    const handlePressIn = () => {
+    const handlePressIn = (event) => {
         if (disabled) return;
-        scale.value = withSpring(scaleTo, animations.spring.press);
+        scale.value = withSpring(scaleTo, { ...animations.spring.press, reduceMotion: ReduceMotion.System });
+        onPressIn?.(event);
         Haptics.impactAsync(hapticFeedback).catch(() => { });
     };
 
-    const handlePressOut = () => {
-        if (disabled) return;
-        scale.value = withSpring(1, animations.spring.release);
+    const handlePressOut = (event) => {
+        scale.value = withSpring(1, { ...animations.spring.release, reduceMotion: ReduceMotion.System });
+        onPressOut?.(event);
     };
 
     const animatedStyle = useAnimatedStyle(() => ({
@@ -35,6 +41,7 @@ export const ScalePressable = ({
 
     return (
         <TouchableOpacity
+            {...props}
             activeOpacity={1}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}

@@ -1,15 +1,11 @@
 import React from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Modal, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '../../common/AppText';
+import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
+
 import { TextInput } from "react-native-gesture-handler";
 import { scale } from "react-native-size-matters";
-import { colors, spacing, shadows, borderRadius } from "../../../theme";
+import { colors, spacing, shadows, borderRadius, typography } from "../../../theme";
 const RegisterInfoModal = ({
   visible,
   changeLoginState,
@@ -27,7 +23,7 @@ const RegisterInfoModal = ({
         <View>
           <Text style={styles.title}>CADASTRO</Text>
           <View style={styles.inputInfo}>
-            <Text style={{ fontSize: scale(16), alignSelf: "center", color: colors.textSecondary, textAlign: "center", lineHeight: scale(24) }}>
+            <Text style={{ fontSize: typography.body.fontSize, alignSelf: "center", color: colors.textSecondary, textAlign: "center", lineHeight: 24 }}>
               Introduza as suas informações pessoais para concluir o cadastro
             </Text>
             <View style={styles.input}>
@@ -97,7 +93,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: scale(40),
-    fontWeight: "800",
+    fontWeight: "700",
     color: colors.textPrimary,
     textAlign: "center",
     paddingHorizontal: spacing.sm,
@@ -105,15 +101,15 @@ const styles = StyleSheet.create({
   },
   inputInfo: {
     marginHorizontal: spacing.xl,
-    paddingVertical: scale(50),
+    paddingVertical: spacing.huge,
   },
   input: {},
   inputBox: {
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: borderRadius.lg,
-    fontSize: scale(15),
-    paddingVertical: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     marginTop: spacing.lg,
     backgroundColor: colors.surface,
@@ -125,7 +121,7 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.xl,
     alignItems: "center",
     borderRadius: borderRadius.xl,
-    marginBottom: scale(30),
+    marginBottom: spacing.xxxl,
     ...shadows.primaryGlow,
   },
   bottomDisabled: {
@@ -134,13 +130,13 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   loader: {
-    paddingVertical: scale(16),
+    paddingVertical: spacing.lg,
   },
   save: {
-    fontSize: scale(18),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "700",
     color: colors.surface,
-    paddingVertical: scale(16),
+    paddingVertical: spacing.lg,
     letterSpacing: 0.5,
   },
   errorContainer: {
@@ -150,12 +146,12 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   error: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textPrimary,
     fontWeight: "600",
   },
   errorItem: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     paddingHorizontal: spacing.xs,
     color: colors.error,
     marginTop: spacing.xs,

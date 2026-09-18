@@ -1,13 +1,15 @@
 import React, { memo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { scale } from "react-native-size-matters";
+import { StyleSheet, View } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppButton } from '../common/AppButton';
+
 import RouteItem from "../cards/routeItem";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import DriverItem from "../cards/driverItem";
 import ConnectionBanner from "./ConnectionBanner";
 import { useDriverLocationStale } from "../../hooks/useMapDrivers";
-import { colors, spacing, borderRadius, shadows } from "../../theme";
+import { colors, spacing, borderRadius, borderWidths, typography, sizes, layout } from "../../theme";
 import { TRIP_STATUS } from "../../constants/tripStatus";
 
 // A driver marker that stops moving is ambiguous: parked, or no longer
@@ -19,7 +21,7 @@ const DriverLocationStaleNotice = () => {
   if (!isStale) return null;
   return (
     <View style={styles.staleNotice}>
-      <Icon name="location-off" size={scale(15)} color={colors.warning} />
+      <Icon name="location-off" size={sizes.icon} color={colors.warning} />
       <Text style={styles.staleNoticeText}>
         A localização do motorista não está a atualizar.
       </Text>
@@ -65,42 +67,19 @@ const DriverStatus = memo(({
       <View style={styles.divider} />
 
       <View style={styles.actions}>
-        {/* Share location */}
-        <TouchableOpacity
-          style={[styles.actionBtn, styles.shareBtn]}
-          onPress={onShareLocation}
-          activeOpacity={0.8}
-          accessibilityLabel="Partilhar localização"
-          accessibilityRole="button"
-        >
-          <Icon name="near-me" size={scale(18)} color={colors.primary} style={styles.btnIcon} />
-          <Text style={[styles.btnText, styles.shareBtnText]}>Partilhar localização</Text>
-        </TouchableOpacity>
-
-        {/* Trip details */}
-        <TouchableOpacity
-          style={[styles.actionBtn, styles.detailsBtn]}
-          onPress={() => onDetailsTrip(bttmSheetRef)}
-          activeOpacity={0.8}
-          accessibilityLabel="Ver detalhes da viagem"
-          accessibilityRole="button"
-        >
-          <Icon name="format-list-bulleted" size={scale(18)} color={colors.textPrimary} style={styles.btnIcon} />
-          <Text style={[styles.btnText, styles.detailsBtnText]}>Detalhes da viagem</Text>
-        </TouchableOpacity>
-
-        {/* Cancel — available any time before the trip is actually in progress */}
+        <AppButton variant="secondary" onPress={onShareLocation}
+          icon={<Icon name="near-me" size={sizes.icon} color={colors.primary} />}>
+          Partilhar localização
+        </AppButton>
+        <AppButton variant="neutral" onPress={() => onDetailsTrip(bttmSheetRef)}
+          icon={<Icon name="format-list-bulleted" size={sizes.icon} color={colors.textPrimary} />}>
+          Detalhes da viagem
+        </AppButton>
         {status !== TRIP_STATUS.IN_PROGRESS && (
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.cancelBtn]}
-            onPress={onCancelTrip}
-            activeOpacity={0.8}
-            accessibilityLabel="Cancelar viagem"
-            accessibilityRole="button"
-          >
-            <Icon name="cancel" size={scale(18)} color={colors.error} style={styles.btnIcon} />
-            <Text style={[styles.btnText, styles.cancelBtnText]}>Cancelar viagem</Text>
-          </TouchableOpacity>
+          <AppButton variant="dangerOutline" onPress={onCancelTrip}
+            icon={<Icon name="cancel" size={sizes.icon} color={colors.error} />}>
+            Cancelar viagem
+          </AppButton>
         )}
       </View>
     </View>
@@ -113,76 +92,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.warningLight,
     borderRadius: borderRadius.md,
-    paddingVertical: scale(9),
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
   },
   staleNoticeText: {
     flex: 1,
     marginLeft: spacing.sm,
-    fontSize: scale(12.5),
-    fontWeight: '600',
+    ...typography.caption,
     color: colors.textPrimary,
   },
   container: {
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.xxl,
+    width: "100%",
+    maxWidth: layout.sheetMaxWidth,
+    alignSelf: "center",
   },
   routeContainer: {
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
   },
   divider: {
-    height: 1,
+    height: borderWidths.thin,
     backgroundColor: colors.borderLight,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
-  actions: {
-    paddingHorizontal: spacing.lg,
-  },
-  actionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: borderRadius.xl,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  btnIcon: {
-    marginRight: spacing.md,
-  },
-  btnText: {
-    fontSize: scale(15),
-    fontWeight: "600",
-    flex: 1,
-  },
-  shareBtn: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
-  },
-  shareBtnText: {
-    color: colors.primary,
-  },
-  detailsBtn: {
-    backgroundColor: colors.surface,
-    borderColor: colors.borderLight,
-  },
-  detailsBtnText: {
-    color: colors.textPrimary,
-  },
-  cancelBtn: {
-    backgroundColor: colors.errorSurface,
-    borderColor: colors.errorBorder,
-  },
-  cancelBtnText: {
-    color: colors.error,
-  },
+  actions: { paddingHorizontal: spacing.lg, gap: spacing.md },
 });
 
 export default DriverStatus;

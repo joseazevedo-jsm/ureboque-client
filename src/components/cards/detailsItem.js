@@ -1,9 +1,13 @@
 import React, { memo, useMemo } from "react";
-import { View, StyleSheet, Text, TouchableOpacity, Image } from "react-native";
+import { View, StyleSheet, Image } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+import { AppHeader } from '../common/AppHeader';
+
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
-import { colors, spacing, borderRadius, shadows } from "../../theme";
+import { colors, spacing, borderRadius, borderWidths, shadows, sizes, layout, typography } from "../../theme";
 
 const PAYMENT_ICONS = {
   DINHEIRO: require("../../../resources/icons/payment/CASH.png"),
@@ -48,14 +52,8 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBackPress} style={styles.closeButton}>
-          <Icon name="close" size={scale(20)} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalhes da Viagem</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <AppHeader title="Detalhes da Viagem" leftIcon="close" leftLabel="Fechar detalhes da viagem"
+        onLeftPress={onBackPress} safeArea={false} />
 
       <View style={styles.content}>
 
@@ -72,7 +70,7 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
               Eu não consigo falar em portug...
             </Text>
           </View>
-          <TouchableOpacity style={styles.actionButton} onPress={onMessageDriver}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Enviar mensagem ao motorista" style={styles.actionButton} onPress={onMessageDriver}>
             <Icon name="message" size={scale(20)} color={colors.surface} />
           </TouchableOpacity>
         </View>
@@ -105,10 +103,10 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
           </View>
           <View style={styles.timelineRight}>
             <View style={styles.locationItem}>
-              <Text style={styles.locationText} numberOfLines={1}>{origin || "Origem"}</Text>
+              <Text style={styles.locationText}>{origin || "Origem"}</Text>
             </View>
             <View style={[styles.locationItem, styles.destinationItem]}>
-              <Text style={styles.locationText} numberOfLines={2}>{destination || "Destino"}</Text>
+              <Text style={styles.locationText}>{destination || "Destino"}</Text>
             </View>
           </View>
         </View>
@@ -132,7 +130,10 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: spacing.lg,
+    width: "100%",
+    maxWidth: layout.sheetMaxWidth,
+    alignSelf: "center",
+    paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xxl,
     flex: 1,
   },
@@ -144,34 +145,37 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   headerTitle: {
-    fontSize: scale(18),
+    flex: 1,
+    textAlign: "center",
+    marginHorizontal: spacing.sm,
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     color: colors.primary,
     fontWeight: '700',
   },
   closeButton: {
-    width: scale(36),
-    height: scale(36),
-    borderRadius: scale(18),
+    width: sizes.control,
+    height: sizes.control,
+    borderRadius: borderRadius.lg,
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerSpacer: {
-    width: scale(36),
-    height: scale(36),
+    width: sizes.control,
+    height: sizes.control,
   },
   content: {
     paddingTop: spacing.xs,
   },
   sectionLabel: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textMuted,
     fontWeight: '600',
     marginBottom: spacing.sm,
   },
   divider: {
-    height: 1.5,
-    backgroundColor: colors.primary,
+    height: borderWidths.thin,
+    backgroundColor: colors.border,
     marginVertical: spacing.lg,
   },
   // Driver
@@ -182,29 +186,31 @@ const styles = StyleSheet.create({
   driverAvatar: {
     width: scale(54),
     height: scale(54),
-    borderRadius: scale(10),
+    borderRadius: borderRadius.md,
     marginRight: spacing.md,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
   driverInfo: {
+    minWidth: 0,
+    marginRight: spacing.md,
     flex: 1,
   },
   primaryText: {
     fontWeight: '700',
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textPrimary,
-    marginBottom: scale(2),
+    marginBottom: spacing.xs,
   },
   secondaryText: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textMuted,
   },
   actionButton: {
-    width: scale(44),
-    height: scale(44),
-    borderRadius: scale(22),
+    width: sizes.control,
+    height: sizes.control,
+    borderRadius: borderRadius.xxl,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -224,21 +230,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   carText: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '600',
     color: colors.textPrimary,
-    marginBottom: scale(6),
+    marginBottom: spacing.xs,
   },
   licenseBadge: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
-    paddingVertical: scale(4),
+    paddingVertical: spacing.xs,
     borderRadius: borderRadius.sm,
     alignSelf: 'flex-start',
   },
   licenseText: {
     color: colors.surface,
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: '700',
   },
   // Timeline
@@ -255,15 +261,15 @@ const styles = StyleSheet.create({
   dot: {
     width: scale(12),
     height: scale(12),
-    borderRadius: scale(6),
+    borderRadius: borderRadius.sm,
     backgroundColor: colors.primary,
-    marginTop: scale(6),
+    marginTop: spacing.xs,
   },
   line: {
-    width: 1.5,
+    width: borderWidths.thin,
     flex: 1,
     backgroundColor: colors.border,
-    marginVertical: scale(4),
+    marginVertical: spacing.xs,
   },
   timelineRight: {
     flex: 1,
@@ -274,15 +280,17 @@ const styles = StyleSheet.create({
     minHeight: scale(26),
   },
   destinationItem: {
-    marginTop: scale(20),
+    marginTop: spacing.xl,
   },
   locationText: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textPrimary,
     fontWeight: '500',
   },
   // Payment
   paymentRow: {
+    flexWrap: "wrap",
+    gap: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -297,13 +305,13 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   paymentText: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '700',
     color: colors.textPrimary,
   },
   priceText: {
-    fontSize: scale(17),
-    fontWeight: '800',
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
+    fontWeight: '700',
     color: colors.textPrimary,
   },
 });

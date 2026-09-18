@@ -5,7 +5,7 @@ import ErrorService from '../services/ErrorService';
 import { SEARCH_TIMER_DURATION_S, DRIVER_ARRIVAL_THRESHOLD_KM, DRIVER_MOVE_THRESHOLD_M } from '../constants/config';
 import { getTripStatusFromDriverLeg } from '../utils/serviceState';
 import { acceptsTripSnapshot, reduceTripSnapshot } from '../utils/tripSnapshot';
-import { formatScheduledFor } from '../utils/scheduling';
+import { SCHEDULED_SEARCH_MAX_S, formatScheduledFor } from '../utils/scheduling';
 
 const DEFAULT_TIMER_DURATION = SEARCH_TIMER_DURATION_S;
 const CANCEL_ACK_TIMEOUT_MS = 8000;
@@ -20,6 +20,15 @@ function isSnapshotAccepted(currentServiceId, currentVersion, snapshot) {
   if (currentVersion != null && snapshot.version <= currentVersion) return false;
   return true;
 }
+
+// The trip details a booking was saved with. After an app restart the local
+// trip data holds placeholder defaults, so a follow-up request built from it
+// would send the wrong vehicle and a text price the API rejects.
+const tripFromBooking = (service) => {
+  const [vehicle = '', color = '', license = ''] = String(service.user_car_details || '').split(', ');
+  const [brand = '', ...model] = vehicle.split(' ');
+  return { carType: service.type_car, price: Number(service.payment?.value), brand, model: model.join(' '), color, license };
+};
 
 export const useMapTrip = ({
   socket,
@@ -130,10 +139,14 @@ export const useMapTrip = ({
     return hours > 0 ? `${hours} h ${remaining} mins` : `${remaining} mins`;
   }, []);
 
-  const calculateProgress = useCallback(() => timer / DEFAULT_TIMER_DURATION, [timer]);
+  const calculateProgress = useCallback(() => Math.max(0, Math.min(1,
+    timer / (tripData.service?.scheduledFor ? SCHEDULED_SEARCH_MAX_S : DEFAULT_TIMER_DURATION),
+  )), [timer, tripData.service?.scheduledFor]);
 
   // No-driver alert (shared by socket noDriver event and timer timeout)
-  const showNoDriverAlert = useCallback((reason = 'no_drivers') => {
+  // `endedBooking` is the scheduled booking whose search ended, if any.
+  const showNoDriverAlert = useCallback((reason = 'no_drivers', endedBooking = null) => {
+    const scheduled = !!endedBooking?.scheduledFor;
     if (noDriverAlertShownRef.current) {
       logger.info('noDriver alert already shown, skipping');
       return;
@@ -142,8 +155,9 @@ export const useMapTrip = ({
     setIsActive(false);
     showAlert({
         type: 'warning',
-        title: reason === 'no_drivers' ? 'Não há um motorista disponível' : 'Não foi possível concluir a busca',
-        message: reason === 'no_drivers' ? 'Tente novamente mais tarde' : 'A busca terminou sem confirmação. Pode tentar novamente.',
+        title: scheduled ? 'Não encontrámos motorista' : reason === 'no_drivers' ? 'Não há um motorista disponível' : 'Não foi possível concluir a busca',
+        message: scheduled ? 'Nenhum motorista confirmou o seu reboque agendado. Pode pedir um reboque agora.'
+          : reason === 'no_drivers' ? 'Tente novamente mais tarde' : 'A busca terminou sem confirmação. Pode tentar novamente.',
         buttons: [
           {
             text: 'Cancelar',
@@ -154,11 +168,27 @@ export const useMapTrip = ({
             },
           },
           {
-            text: 'Tentar de novo',
+            text: scheduled ? 'Pedir agora' : 'Tentar de novo',
             onPress: () => {
               noDriverAlertShownRef.current = false;
-              setTripData((prev) => ({ ...prev, service: null, status: null }));
               resetTimer();
+              if (scheduled) {
+                // Repeat the same tow as an immediate request: rebuild it from the
+                // booking and let the client confirm payment again.
+                const [pickup, dropoff] = endedBooking.locations || [];
+                const details = tripFromBooking(endedBooking);
+                if (!isValidCoordinate(pickup?.coordinates) || !isValidCoordinate(dropoff?.coordinates) || !Number.isFinite(details.price)) {
+                  onResetRef.current?.();
+                  return;
+                }
+                setOriginCity(pickup.name);
+                setDestinationCity(dropoff.name);
+                setMapMarkers([pickup.coordinates, dropoff.coordinates]);
+                setTripData((prev) => ({ ...prev, ...details, service: null, status: null, scheduledFor: null }));
+                presentBottomSheet('payment');
+                return;
+              }
+              setTripData((prev) => ({ ...prev, service: null, status: null }));
               if (lastPaymentTypeRef.current && confirmPaymentPressRef.current) {
                 confirmPaymentPressRef.current(lastPaymentTypeRef.current)();
               } else {
@@ -175,7 +205,7 @@ export const useMapTrip = ({
       driverConnected: false,
       status: null,
     }));
-  }, [showAlert, presentBottomSheet, resetTimer, onResetRef, tripData.service?._id, tripData.driverConnected, tripData.status]);
+  }, [showAlert, presentBottomSheet, resetTimer, onResetRef, setOriginCity, setDestinationCity, setMapMarkers, tripData.service?._id, tripData.driverConnected, tripData.status]);
 
   // The 180s countdown is only a local estimate — its expiry must reconcile
   // with the server before declaring "no driver" (fixing: a slow-but-alive
@@ -487,7 +517,7 @@ export const useMapTrip = ({
       resetTimer();
       if (['no_drivers', 'search_timeout', 'invalid_location'].includes(service.terminalReason)) {
         presentBottomSheet('payment');
-        showNoDriverAlert(service.terminalReason);
+        showNoDriverAlert(service.terminalReason, service);
       } else onResetRef.current?.();
       return true;
     }
@@ -510,7 +540,8 @@ export const useMapTrip = ({
       const rawRemaining = deadline
         ? Math.ceil((new Date(deadline).getTime() - Date.now()) / 1000)
         : null;
-      const remaining = rawRemaining != null && rawRemaining > 0 && rawRemaining <= DEFAULT_TIMER_DURATION
+      const maximumDuration = service.scheduledFor ? SCHEDULED_SEARCH_MAX_S : DEFAULT_TIMER_DURATION;
+      const remaining = rawRemaining != null && rawRemaining > 0 && rawRemaining <= maximumDuration
         ? rawRemaining
         : DEFAULT_TIMER_DURATION;
       timerRef.current = remaining;
@@ -638,7 +669,7 @@ export const useMapTrip = ({
         showAlert({
           type: 'success',
           title: 'Reboque agendado',
-          message: `Agendado para ${formatScheduledFor(resp.data.scheduledFor)}. Avisamos quando um motorista aceitar.`,
+          message: `Agendado para ${formatScheduledFor(resp.data.scheduledFor)}. Avisamos quando um motorista confirmar. Perto da hora, o mapa abre para acompanhar a chegada.`,
         });
         return resp.data;
       }

@@ -1,12 +1,17 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../common/AppText';
+import { AppHeader } from '../../common/AppHeader';
+import { AppField } from '../../common/AppField';
+import { AppButton } from '../../common/AppButton';
+
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 const Icon = MaterialIcons;
 import * as Haptics from 'expo-haptics';
 import { ScalePressable } from '../../common/ScalePressable';
-import { colors, shadows, borderRadius, spacing } from '../../../theme';
+import { componentStyles, sizes, colors, spacing } from "../../../theme";
 import { useAlert } from '../../../context/AlertContext';
 
 const ContactForm = ({ state, updateCurrentContact, saveContact, deleteContact, onClose }) => {
@@ -63,31 +68,21 @@ const ContactForm = ({ state, updateCurrentContact, saveContact, deleteContact, 
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <ScalePressable style={styles.closeButton} onPress={onClose}>
-          <Icon name="close" size={scale(22)} color={colors.textPrimary} />
-        </ScalePressable>
-        {isEdit && (
-          <ScalePressable style={styles.deleteButtonWrap} onPress={handleDelete}>
-            <Text style={styles.deleteText}>Apagar</Text>
-          </ScalePressable>
-        )}
-      </View>
+      <AppHeader title={isEdit ? 'Editar contacto' : 'Novo contacto'} subtitle="Preencha os dados do contacto."
+        leftIcon="close" leftLabel="Fechar contacto" onLeftPress={onClose}
+        rightIcon={isEdit ? 'delete-outline' : undefined} rightLabel="Apagar contacto"
+        rightColor={colors.error} onRightPress={handleDelete} />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <Text style={styles.title}>{isEdit ? 'EDITAR' : 'NOVO'} CONTACTO</Text>
-        </Animated.View>
-
         {[
           { key: 'name', label: 'Nome', placeholder: 'Ex: Maria Silva', keyboardType: 'default', autoCapitalize: 'words' },
           { key: 'phone', label: 'Telefone', placeholder: 'Ex: 923 456 789', keyboardType: 'phone-pad', autoCapitalize: 'none' },
           { key: 'relation', label: 'Relação', placeholder: 'Ex: Mãe, Pai, Cônjuge', keyboardType: 'default', autoCapitalize: 'words' },
         ].map((field, index) => (
           <Animated.View key={field.key} entering={FadeInDown.delay(150 + index * 60).springify()} style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>{field.label}</Text>
-            <TextInput
-              style={styles.input}
+            <AppField
+              label={field.label}
+              error={fieldHint[field.key]}
               placeholder={field.placeholder}
               placeholderTextColor={colors.textMuted}
               value={currentContact[field.key]}
@@ -95,23 +90,12 @@ const ContactForm = ({ state, updateCurrentContact, saveContact, deleteContact, 
               keyboardType={field.keyboardType}
               autoCapitalize={field.autoCapitalize}
             />
-            {fieldHint[field.key] ? (
-              <Text style={styles.fieldError}>{fieldHint[field.key]}</Text>
-            ) : null}
           </Animated.View>
         ))}
       </ScrollView>
 
       <Animated.View entering={FadeInUp.delay(400).springify()} style={styles.footer}>
-        <ScalePressable
-          style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={state.isLoading || !canSave}
-        >
-          <Text style={styles.saveButtonText}>
-            {state.isLoading ? 'A GUARDAR...' : 'GUARDAR'}
-          </Text>
-        </ScalePressable>
+        <AppButton onPress={handleSave} loading={state.isLoading} disabled={!canSave}>GUARDAR</AppButton>
       </Animated.View>
     </View>
   );
@@ -119,57 +103,9 @@ const ContactForm = ({ state, updateCurrentContact, saveContact, deleteContact, 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing.modalSafeTop,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  closeButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.sm,
-  },
-  deleteButtonWrap: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
-  deleteText: { fontWeight: '600', color: colors.error, fontSize: scale(14) },
-  fieldError: { color: colors.error, fontSize: scale(13), marginTop: scale(6), marginLeft: scale(4) },
   scroll: { flex: 1, paddingHorizontal: spacing.xl },
-  title: {
-    fontSize: scale(18),
-    fontWeight: '700',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: spacing.xxl,
-    letterSpacing: 0.5,
-  },
   fieldGroup: { marginBottom: spacing.lg },
-  fieldLabel: { fontSize: scale(13), fontWeight: '600', color: colors.textSecondary, marginBottom: spacing.xs },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    fontSize: scale(15),
-    color: colors.textPrimary,
-    ...shadows.sm,
-  },
   footer: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl, paddingTop: spacing.md },
-  saveButton: {
-    backgroundColor: colors.error,
-    borderRadius: borderRadius.xl,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: { backgroundColor: colors.textDisabled },
-  saveButtonText: { color: colors.surface, fontWeight: '700', fontSize: scale(15), letterSpacing: 0.5 },
 });
 
 export default ContactForm;

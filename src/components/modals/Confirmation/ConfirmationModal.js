@@ -1,12 +1,9 @@
 import React, { useMemo } from "react";
-import {
-  Image,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, Modal, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '../../common/AppText';
+import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
+import { AppIconButton } from '../../common/AppIconButton';
+
 import { scale } from "react-native-size-matters";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
@@ -15,7 +12,7 @@ import Animated, { FadeInUp } from "react-native-reanimated";
 import { useConfirmationModal } from "./components/useConfirmationModal";
 import { useAlert } from "../../../context/AlertContext";
 import StarRating from "../../cards/starRating";
-import { colors, shadows, borderRadius, spacing } from "../../../theme";
+import { colors, shadows, borderRadius, borderWidths, spacing, typography, sizes } from "../../../theme";
 
 const imgDef =
   "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
@@ -59,12 +56,10 @@ const ConfirmationModal = ({ visible, closeModal, payment_total, payment_type, s
 
         {/* ── Compact blue header ───────────────────────────── */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-            <Icon name="close" size={scale(22)} color={colors.surface} />
-          </TouchableOpacity>
+          <AppIconButton icon="close" label="Fechar viagem concluída" variant="ghostOnColor" onPress={closeModal} style={styles.closeButton} />
 
           <View style={styles.successBadge}>
-            <Icon name="check" size={scale(36)} color={colors.primary} />
+            <Icon name="check" size={sizes.iconXL} color={colors.primary} />
           </View>
           <Text style={styles.successTitle}>Viagem Concluída!</Text>
         </View>
@@ -101,7 +96,7 @@ const ConfirmationModal = ({ visible, closeModal, payment_total, payment_type, s
             <StarRating
               rating={models.rating}
               onRate={operations.handleRate}
-              size={scale(36)}
+              size={sizes.iconXL}
               gap={scale(4)}
             />
           </View>
@@ -142,10 +137,10 @@ const styles = StyleSheet.create({
   // ── Header ────────────────────────────────────────────────
   header: {
     backgroundColor: colors.primary,
-    borderBottomLeftRadius: scale(36),
-    borderBottomRightRadius: scale(36),
+    borderBottomLeftRadius: borderRadius.full,
+    borderBottomRightRadius: borderRadius.full,
     paddingTop: spacing.modalSafeTop,
-    paddingBottom: scale(64),           // breathing room for the card pull-up
+    paddingBottom: spacing.massive,           // breathing room for the card pull-up
     alignItems: "center",
     justifyContent: "flex-end",
   },
@@ -155,15 +150,15 @@ const styles = StyleSheet.create({
     left: spacing.xl,
     width: scale(44),
     height: scale(44),
-    borderRadius: scale(22),
-    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: borderRadius.xxl,
+    backgroundColor: colors.surfaceTint20,
     alignItems: "center",
     justifyContent: "center",
   },
   successBadge: {
     width: scale(72),
     height: scale(72),
-    borderRadius: scale(36),
+    borderRadius: borderRadius.full,
     backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
@@ -171,8 +166,8 @@ const styles = StyleSheet.create({
     ...shadows.md,
   },
   successTitle: {
-    fontSize: scale(20),
-    fontWeight: "800",
+    fontSize: typography.h3.fontSize, lineHeight: typography.h3.lineHeight,
+    fontWeight: "700",
     color: colors.surface,
     letterSpacing: 0.3,
   },
@@ -197,14 +192,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   amountLabel: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textMuted,
     fontWeight: "600",
-    marginBottom: scale(4),
+    marginBottom: spacing.xs,
   },
   amountValue: {
-    fontSize: scale(25),
-    fontWeight: "800",
+    fontSize: typography.h2.fontSize, lineHeight: typography.h2.lineHeight,
+    fontWeight: "700",
     color: colors.primary,
     letterSpacing: 0.5,
   },
@@ -224,13 +219,13 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   paymentChipText: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "700",
     color: colors.textPrimary,
   },
 
   divider: {
-    height: 1,
+    height: borderWidths.thin,
     backgroundColor: colors.borderLight,
     marginVertical: spacing.xl,
   },
@@ -240,7 +235,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   avatarRing: {
-    borderRadius: scale(48),
+    borderRadius: borderRadius.full,
     borderWidth: 3,
     borderColor: colors.primary,
     marginBottom: spacing.md,
@@ -249,16 +244,16 @@ const styles = StyleSheet.create({
   avatar: {
     width: scale(88),
     height: scale(88),
-    borderRadius: scale(44),
+    borderRadius: borderRadius.full,
   },
   driverName: {
-    fontSize: scale(18),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "700",
     color: colors.textPrimary,
-    marginBottom: scale(4),
+    marginBottom: spacing.xs,
   },
   ratingLabel: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textMuted,
     fontWeight: "600",
     marginBottom: spacing.lg,
@@ -279,7 +274,7 @@ const styles = StyleSheet.create({
   },
   problemText: {
     color: colors.textSecondary,
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "600",
     textDecorationLine: "underline",
   },
@@ -294,7 +289,7 @@ const styles = StyleSheet.create({
   },
   confirmText: {
     color: colors.surface,
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "700",
     letterSpacing: 0.5,
   },

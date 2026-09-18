@@ -1,20 +1,15 @@
 import React, { createContext, useContext, useEffect, memo, useMemo, useCallback, useRef, useState } from "react";
-import {
-  Image,
-  Modal,
-  PixelRatio,
-  Share,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, Modal, PixelRatio, useWindowDimensions, Share, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+
 import MapView, { Circle, Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import { LinearGradient } from "expo-linear-gradient";
 import { ScalePressable } from "../components/common/ScalePressable";
 import { BlurView } from "expo-blur";
 import Animated, { FadeIn, FadeInDown, FadeInRight, FadeInUp, useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
-import { colors, spacing, shadows, borderRadius } from '../theme';
+import { sizes, layout, typography, componentStyles, colors, spacing, shadows, borderRadius } from '../theme';
+import ScheduledTowDetails from '../components/common/ScheduledTowDetails';
 import { formatScheduledFor } from '../utils/scheduling';
 import { getPlaceIcon, ICON_ADD } from '../assets/icons';
 import { useMapScreen } from "../components/map/useMapScreen";
@@ -23,6 +18,7 @@ const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
 import BottomSheet, {
   BottomSheetView,
+  BottomSheetScrollView,
   BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
 import { Platform } from "react-native";
@@ -68,7 +64,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const useSheetHeight = () => {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const inset = Platform.OS === 'android' ? Math.max(bottomInset, scale(32)) : bottomInset;
-  const fontScale = Math.min(Math.max(PixelRatio.getFontScale(), 1), 1.6);
+  // Keep the map sheet proportional on large-display accessibility settings;
+  // text itself still scales, while the sheet avoids swallowing the map.
+  const fontScale = Math.min(Math.max(PixelRatio.getFontScale(), 1), 1.15);
   return useCallback((point) => Math.round(point * fontScale) + inset, [fontScale, inset]);
 };
 
@@ -87,10 +85,12 @@ const FlowBottomSheet = React.forwardRef(({
   ...props
 }, forwardedRef) => {
   const sheetRef = useRef(null);
+  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
+  const { top: topInset } = useSafeAreaInsets();
   const sheetHeight = useSheetHeight();
   const safeSnapPoints = useMemo(
-    () => snapPoints?.map((point) => typeof point === 'number' ? sheetHeight(point) : point),
-    [snapPoints, sheetHeight],
+    () => snapPoints?.map((point) => typeof point === 'number' ? Math.min(sheetHeight(point), viewportHeight - topInset - spacing.lg) : point),
+    [snapPoints, sheetHeight, viewportHeight, topInset],
   );
 
   React.useImperativeHandle(forwardedRef, () => ({
@@ -113,6 +113,7 @@ const FlowBottomSheet = React.forwardRef(({
       ref={sheetRef}
       onChange={handleChange}
       snapPoints={safeSnapPoints}
+      maxDynamicContentSize={viewportHeight - topInset - spacing.lg}
       index={index}
       // A sheet mounts at index -1 and animates up to its snap point. That
       // animation is driven by Reanimated, which does not run while the app is
@@ -163,13 +164,16 @@ const SHEET_SNAP_POINTS = {
 };
 
 const BOOKING_SNAP = {
-  initial:     [scale(260)],
-  initialWithScheduled: [scale(330)],
+  initial:     ['50%'],
+  initialWithScheduled: ['50%'],
   carType:     [scale(270)],
   userCarInfo: [scale(380), scale(500)],
   payment:     [scale(380)],
   paymentScheduled: [scale(500)],
   rideSearch:  [scale(270), scale(350)],
+  // The booking-for-later search explains its state in three lines; the taller
+  // rest height keeps "Cancelar Viagem" on screen.
+  rideSearchScheduled: [scale(370), scale(430)],
   details:     [SHEET_SNAP_POINTS.details],
   dragMarker:  [scale(250)],
 };
@@ -211,23 +215,7 @@ const getNearestHeading = (currentHeading, nextHeading) => {
 };
 
 // --- Reusable Glass Components ---
-const GlassBackground = memo(({ style }) => (
-  <BlurView
-    intensity={Platform.select({ ios: 40, android: 90 })}
-    tint={Platform.select({ ios: 'light', android: 'light' })}
-    style={[
-      style,
-      {
-        borderRadius: scale(32),
-        overflow: 'hidden',
-        backgroundColor: Platform.select({
-          ios: 'rgba(255,255,255,0.7)',
-          android: 'rgba(255,255,255,0.7)'
-        })
-      }
-    ]}
-  />
-));
+const GlassBackground = memo(({ style }) => <View style={[style, { backgroundColor: colors.surface, borderTopLeftRadius: borderRadius.xxl, borderTopRightRadius: borderRadius.xxl }]} />);
 
 const GlassHandle = memo(() => (
   <View style={styles.glassHandleContainer}>
@@ -352,7 +340,7 @@ const MapViewport = memo(({ models, operations, mapMarkers, carsAround }) => (
     style={styles.map}
   >
     {models?.showsUserLocation && isValidCoordinate(models?.userLocation) && (
-      <Circle center={models.userLocation} radius={models.userLocation.accuracy || 50} strokeWidth={1} strokeColor="rgba(0, 0, 255, 0.5)" fillColor="rgba(0, 0, 255, 0.2)" />
+      <Circle center={models.userLocation} radius={models.userLocation.accuracy || 50} strokeWidth={1} strokeColor={colors.mapAccuracyStroke} fillColor={colors.mapAccuracyFill} />
     )}
     {mapMarkers}
     <DriverTrackingLayer driver={models.driver} />
@@ -373,7 +361,7 @@ const MapViewport = memo(({ models, operations, mapMarkers, carsAround }) => (
 // resting height instead of chasing a sheet that is resizing.
 const RECENTER_GAP = scale(16);
 const SHEET_REST_HEIGHT = {
-  initial: BOOKING_SNAP.initial[0],
+  initial: 300,
   carType: BOOKING_SNAP.carType[0],
   userCarInfo: BOOKING_SNAP.userCarInfo[0],
   payment: BOOKING_SNAP.payment[0],
@@ -385,24 +373,27 @@ const SHEET_REST_HEIGHT = {
 };
 
 const MapControls = memo(({ models, operations, navigation, openDrawer }) => {
+  const insets = useSafeAreaInsets();
+  const controlTop = insets.top + spacing.lg;
   const rideActive = !!models.driver || ['assigned', 'in-progress', 'completed'].includes(models.tripState);
   const sheetHeight = useSheetHeight();
   const restHeight =
     models.activeBottomSheet === 'initial' && models.scheduledTow ? BOOKING_SNAP.initialWithScheduled[0]
       : models.activeBottomSheet === 'payment' && models.scheduledFor ? BOOKING_SNAP.paymentScheduled[0]
+      : models.activeBottomSheet === 'rideSearch' && models.service?.scheduledFor ? BOOKING_SNAP.rideSearchScheduled[0]
         : SHEET_REST_HEIGHT[models.activeBottomSheet];
   const showRecenter = models.mapMovedByUser && restHeight != null;
   return (
   <>
     {(models.isRouteVisible || models.canGoBackBottomSheet) && !models.service ? (
-      <TouchableOpacity style={styles.details} onPress={operations.handleBackButtonPress} activeOpacity={0.8}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="arrow-back" size={scale(24)} color={colors.primary} /></TouchableOpacity>
+      <TouchableOpacity accessibilityLabel="Voltar" style={[styles.details, { top: controlTop }]} onPress={operations.handleBackButtonPress} activeOpacity={0.8}><Icon name="arrow-back" size={scale(24)} color={colors.primary} /></TouchableOpacity>
     ) : (
-      <TouchableOpacity style={styles.menuGlassButton} onPress={openDrawer} activeOpacity={0.8}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="menu" size={scale(24)} color={colors.primary} /></TouchableOpacity>
+      <TouchableOpacity accessibilityLabel="Abrir menu" style={[styles.menuGlassButton, { top: controlTop }]} onPress={openDrawer} activeOpacity={0.8}><Text style={styles.menuGlyph}>☰</Text></TouchableOpacity>
     )}
-    {!models.isRouteVisible && !models.service && <View style={styles.bellWrapper}><TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('Notificacoes')} activeOpacity={0.8}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="notifications-none" size={scale(24)} color={colors.primary} /></TouchableOpacity>{models.unreadNotificationsCount > 0 && <View style={styles.bellBadge}><Text style={styles.bellBadgeText}>{models.unreadNotificationsCount > 99 ? '99+' : models.unreadNotificationsCount}</Text></View>}</View>}
-    {!rideActive && !models.markerVisible && <Animated.View entering={FadeIn.duration(300)} style={styles.locationChipWrapper}><ScalePressable onPress={operations.handleRecenterMap} style={styles.locationChip}><Icon name="my-location" size={scale(14)} color={colors.primary} style={{ marginRight: spacing.xs }} /><View><Text style={styles.locationChipLabel}>Sua Localização</Text><Text style={styles.locationChipAddress} numberOfLines={1}>{models.currentLocationLabel || 'Obtendo localização...'}</Text></View></ScalePressable></Animated.View>}
+    {!models.isRouteVisible && !models.service && <View style={[styles.bellWrapper, { top: controlTop }]}><TouchableOpacity accessibilityLabel="Notificações" style={styles.bellButton} onPress={() => navigation.navigate('Notificacoes')} activeOpacity={0.8}><Icon name="notifications-none" size={scale(24)} color={colors.primary} /></TouchableOpacity>{models.unreadNotificationsCount > 0 && <View style={styles.bellBadge}><Text style={styles.bellBadgeText}>{models.unreadNotificationsCount > 99 ? '99+' : models.unreadNotificationsCount}</Text></View>}</View>}
+    {!rideActive && !models.markerVisible && <Animated.View entering={FadeIn.duration(300)} style={[styles.locationChipWrapper, { top: controlTop }]}><ScalePressable onPress={operations.handleRecenterMap} style={styles.locationChip}><Icon name="my-location" size={sizes.iconSmall} color={colors.primary} style={{ marginRight: spacing.xs }} /><View><Text style={styles.locationChipLabel}>Sua Localização</Text><Text style={styles.locationChipAddress} numberOfLines={1}>{models.currentLocationLabel || 'Obtendo localização...'}</Text></View></ScalePressable></Animated.View>}
     {models.markerVisible && models.activeBottomSheet === 'dragMarker' && <View style={styles.markerOverlay} pointerEvents="none"><CustomMarker title={models.markerCity || 'Carregando...'} color={models.inputLocationObject === 0 ? colors.primary : colors.destinationPin} /></View>}
-    {showRecenter && <Animated.View entering={FadeIn.duration(200)} style={[styles.recenterButtonWrapper, { bottom: sheetHeight(restHeight) + RECENTER_GAP }]}><ScalePressable onPress={operations.handleRecenterMap} style={styles.recenterButton}><BlurView intensity={90} tint="systemMaterialLight" style={StyleSheet.absoluteFill} /><Icon name="my-location" size={scale(24)} color={colors.primary} /></ScalePressable></Animated.View>}
+    {showRecenter && <Animated.View entering={FadeIn.duration(200)} style={[styles.recenterButtonWrapper, { bottom: sheetHeight(restHeight) + RECENTER_GAP }]}><ScalePressable accessibilityLabel="Centrar mapa na minha localização" onPress={operations.handleRecenterMap} style={styles.recenterButton}><Icon name="my-location" size={scale(24)} color={colors.primary} /></ScalePressable></Animated.View>}
   </>
   );
 });
@@ -555,6 +546,7 @@ const MapModalHost = memo(({ models, operations }) => (
 ));
 
 const MapScreen = memo(() => {
+  const homeInsets = useSafeAreaInsets();
   const logger = useLogger('MapScreen');
   const { models, operations } = useMapScreen();
 
@@ -718,8 +710,8 @@ const MapScreen = memo(() => {
           <Image
             source={getCarIconByColor(item.color || 'default')}
             style={{
-              width: 50,
-              height: 50,
+              width: sizes.control,
+              height: sizes.control,
               transform: [{ rotate: "-90deg" }],
             }}
             resizeMode="contain"
@@ -750,6 +742,18 @@ const MapScreen = memo(() => {
       <MapViewport models={models} operations={operations} mapMarkers={memoizedMapMarkers} carsAround={memoizedCarsAround} />
 
 
+      <ScheduledTowDetails
+        job={models.scheduledTow}
+        visible={models.scheduledDetailsVisible && !!models.scheduledTow}
+        onClose={operations.closeScheduledDetails}
+        destructiveLabel="Cancelar agendamento"
+        confirmText={models.scheduledTow?.claimedBy
+          ? 'O seu reboque agendado será cancelado e o motorista que o reservou é avisado.'
+          : 'O seu reboque agendado será cancelado.'}
+        keepLabel="Manter"
+        confirmLabel="Sim, cancelar"
+        onDestructive={operations.handleCancelScheduledTow}
+      />
       <MapControls models={models} operations={operations} navigation={navigation} openDrawer={openDrawer} />
 
         <FlowBottomSheet
@@ -758,21 +762,22 @@ const MapScreen = memo(() => {
           // alert's Modal measured a zero-height container and renders nothing.
           ref={models.bottomSheetModalRef}
           index={0}
-          snapPoints={models.scheduledTow ? BOOKING_SNAP.initialWithScheduled : BOOKING_SNAP.initial}
-          enableDynamicSizing={false}
+          // Fit destinations and the search action; a fixed half-screen sheet
+          // clips the action when Poppins or long addresses increase content.
+          enableDynamicSizing={true}
           enablePanDownToClose={false}
           stackBehavior="replace"
-          backgroundStyle={{ backgroundColor: 'rgba(255,255,255,0.0)' }}
+          backgroundStyle={{ backgroundColor: colors.transparent }}
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <BottomSheetView style={styles.sheetContainerGlass}>
+          <BottomSheetScrollView style={styles.sheetContainerGlass} contentContainerStyle={{ paddingBottom: homeInsets.bottom + spacing.xxxl }}>
             {/* Tow booked for later: only present while one exists */}
             {models.scheduledTow && (
               <Animated.View entering={FadeInDown.springify()}>
                 <ScalePressable onPress={operations.handleScheduledTowPress} style={styles.scheduledCard}>
                   <View style={styles.scheduledIcon}>
-                    <Icon name="event" size={scale(18)} color={colors.primary} />
+                    <Icon name="event" size={sizes.icon} color={colors.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.scheduledTitle}>{capitalize(formatScheduledFor(models.scheduledTow.scheduledFor))}</Text>
@@ -780,12 +785,12 @@ const MapScreen = memo(() => {
                       <View style={[styles.scheduledDot, models.scheduledTow.claimedBy && styles.scheduledDotClaimed]} />
                       <Text style={styles.scheduledStatus} numberOfLines={1}>
                         {models.scheduledTow.claimedBy
-                          ? `Motorista: ${models.scheduledTow.claimedBy.details?.name || 'confirmado'}`
+                          ? `Confirmado${models.scheduledTow.claimedBy.details?.name ? ` · ${models.scheduledTow.claimedBy.details.name}` : ''}`
                           : 'À procura de motorista'}
                       </Text>
                     </View>
                   </View>
-                  <Icon name="chevron-right" size={scale(22)} color={colors.primary} />
+                  <Icon name="chevron-right" size={sizes.icon} color={colors.primary} />
                 </ScalePressable>
               </Animated.View>
             )}
@@ -793,7 +798,7 @@ const MapScreen = memo(() => {
             {/* Section header: Rebocar para + Ver tudo */}
             <Animated.View entering={FadeInDown.delay(60).springify()} style={styles.sectionHeaderRow}>
               <Text style={styles.sectionHeaderTitle}>Rebocar para</Text>
-              <TouchableOpacity onPress={operations.handleAddFavouriteButtonPress}>
+              <TouchableOpacity style={{ minHeight: sizes.control, minWidth: sizes.controlLarge + spacing.xl, justifyContent: 'center', alignItems: 'flex-end' }} onPress={operations.handleAddFavouriteButtonPress}>
                 <Text style={styles.sectionHeaderLink}>Ver tudo</Text>
               </TouchableOpacity>
             </Animated.View>
@@ -806,7 +811,7 @@ const MapScreen = memo(() => {
                 keyExtractor={(item, index) => String(item?._id ?? `favorite-${index}`)}
                 horizontal={true}
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: scale(8) }}
+                contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}
               />
             </Animated.View>
 
@@ -818,7 +823,7 @@ const MapScreen = memo(() => {
               >
                 <View style={styles.floatingPill}>
                   <View style={styles.pillIconBubble}>
-                    <Icon name="search" size={scale(18)} color={colors.primary} />
+                    <Icon name="search" size={sizes.icon} color={colors.primary} />
                   </View>
                   <Text style={styles.pillPlaceholder}>Para onde está indo?</Text>
                   <View style={styles.pillArrow}>
@@ -827,7 +832,7 @@ const MapScreen = memo(() => {
                 </View>
               </ScalePressable>
             </Animated.View>
-          </BottomSheetView>
+          </BottomSheetScrollView>
         </FlowBottomSheet>
 
         <FlowBottomSheet
@@ -845,16 +850,16 @@ const MapScreen = memo(() => {
           <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
             <Text
               style={{
-                fontSize: scale(18),
+                fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
                 // alignSelf centres the element but does not constrain it, so
                 // at larger text sizes the heading grew wider than the sheet
                 // and its first letter was clipped off the left edge. Fill the
                 // width and centre the text inside padding instead.
                 textAlign: "center",
-                paddingHorizontal: scale(16),
+                paddingHorizontal: spacing.lg,
                 color: colors.primary,
-                fontWeight: "900",
-                marginBottom: scale(10),
+                fontWeight: "700",
+                marginBottom: spacing.sm,
               }}
             >
               SELECIONE O TIPO DE CARRO
@@ -945,7 +950,7 @@ const MapScreen = memo(() => {
           isActive={models.activeBottomSheet === 'rideSearch'}
           ref={models.rideSearchSheetRef}
           index={0}
-          snapPoints={BOOKING_SNAP.rideSearch}
+          snapPoints={models.service?.scheduledFor ? BOOKING_SNAP.rideSearchScheduled : BOOKING_SNAP.rideSearch}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -959,6 +964,8 @@ const MapScreen = memo(() => {
             entering={FadeIn.duration(240)}
           >
             <DriverSearch
+              scheduledFor={models.service?.scheduledFor}
+              scheduledService={models.service}
               destination={models.destinationCity}
               origin={models.originCity}
               timer={models.timer}
@@ -1039,7 +1046,7 @@ const MapScreen = memo(() => {
                 style={styles.secondaryButton}
                 onPress={operations.handleReturnToSearchFromDragMarker}
               >
-                <Icon name="search" size={scale(18)} color={colors.textSecondary} />
+                <Icon name="search" size={sizes.icon} color={colors.textSecondary} />
                 <Text style={styles.secondaryButtonText}>
                   Voltar
                 </Text>
@@ -1049,7 +1056,7 @@ const MapScreen = memo(() => {
                 style={styles.confirmButton}
                 onPress={operations.handleConfirmDragMarkerLocation}
               >
-                <Icon name="check" size={scale(18)} color="#fff" />
+                <Icon name="check" size={sizes.icon} color={colors.surface} />
                 <Text style={styles.confirmButtonText}>
                   Confirmar
                 </Text>
@@ -1084,23 +1091,23 @@ const styles = StyleSheet.create({
   carTypesRetryButton: {
     alignSelf: 'center',
     marginTop: spacing.md,
-    paddingVertical: scale(10),
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xl,
-    borderRadius: scale(10),
+    borderRadius: borderRadius.md,
     backgroundColor: colors.primary,
   },
   carTypesRetryText: {
     color: colors.surface,
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '700',
   },
   carTypesEmptyText: {
     textAlign: 'center',
     color: colors.textSecondary,
-    fontSize: scale(14),
-    paddingHorizontal: scale(24),
-    paddingVertical: scale(16),
-    lineHeight: scale(20),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.lg,
+    lineHeight: 20,
   },
   driverCarIcon: {
     width: scale(50),
@@ -1113,24 +1120,24 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: scale(44),
     right: scale(20),
-    width: scale(48),
-    height: scale(48),
+    width: sizes.control,
+    minHeight: sizes.control,
   },
   bellButton: {
-    width: scale(48),
-    height: scale(48),
-    borderRadius: scale(24),
+    width: sizes.control,
+    minHeight: sizes.control,
+    borderRadius: borderRadius.xxl,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 8,
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: colors.borderLight,
   },
   bellBadge: {
     position: 'absolute',
@@ -1138,19 +1145,19 @@ const styles = StyleSheet.create({
     right: -scale(4),
     minWidth: scale(18),
     height: scale(18),
-    borderRadius: scale(9),
+    borderRadius: borderRadius.md,
     backgroundColor: colors.error,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: scale(3),
+    paddingHorizontal: spacing.xs,
     borderWidth: 2,
     borderColor: colors.background,
   },
   bellBadgeText: {
-    color: '#fff',
-    fontSize: scale(10),
+    color: colors.surface,
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: '700',
-    lineHeight: scale(13),
+    lineHeight: 16,
   },
   locationChipWrapper: {
     position: 'absolute',
@@ -1164,142 +1171,148 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderRadius: scale(20),
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.6)',
-    shadowColor: '#000',
+    borderColor: colors.borderLight,
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 4,
   },
   locationChipLabel: {
-    fontSize: scale(11),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: '700',
     color: colors.primary,
     letterSpacing: 0.3,
   },
   locationChipAddress: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textPrimary,
     fontWeight: '500',
     maxWidth: scale(200),
   },
   menuGlassButton: {
-    width: scale(48),
-    height: scale(48),
+    width: sizes.control,
+    minHeight: sizes.control,
     position: "absolute",
-    borderRadius: scale(24),
+    borderRadius: borderRadius.xxl,
     top: scale(44),
     left: scale(20),
     alignItems: "center",
     justifyContent: "center",
     overflow: 'hidden',
-    shadowColor: "#000",
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 8,
-    backgroundColor: 'rgba(255,255,255,0.4)', // Fallback
+    backgroundColor: colors.surface, // Fallback
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: colors.borderLight,
+  },
+  menuGlyph: {
+    fontSize: typography.h2.fontSize, lineHeight: typography.h2.lineHeight,
+    lineHeight: typography.h2.lineHeight,
+    color: colors.textPrimary,
+    fontWeight: '700',
   },
   details: {
-    width: scale(48),
-    height: scale(48),
+    width: sizes.control,
+    minHeight: sizes.control,
     position: 'absolute',
-    borderRadius: scale(24),
+    borderRadius: borderRadius.xxl,
     top: scale(44),
     left: scale(20),
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     ...shadows.md,
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: colors.borderLight,
   },
   recenterButtonWrapper: {
     position: 'absolute',
     right: spacing.xl,
   },
   recenterButton: {
-    width: scale(48),
-    height: scale(48),
-    borderRadius: scale(24),
+    width: sizes.control,
+    minHeight: sizes.control,
+    borderRadius: borderRadius.xxl,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     ...shadows.md,
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: colors.borderLight,
   },
   svgContainer: {
     width: scale(318),
     height: scale(50),
-    borderRadius: scale(7),
+    borderRadius: borderRadius.sm,
     borderWidth: scale(4),
     borderColor: colors.primary,
     overflow: "hidden",
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: scale(15),
-    paddingHorizontal: scale(16),
-    marginVertical: scale(10),
+    marginHorizontal: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    marginVertical: spacing.sm,
   },
   backDetails: {
-    width: scale(48),
-    height: scale(48),
+    width: sizes.control,
+    minHeight: sizes.control,
     position: 'absolute',
-    borderRadius: scale(24),
+    borderRadius: borderRadius.xxl,
     top: scale(44),
     left: scale(20),
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     ...shadows.md,
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: colors.borderLight,
   },
   containerInputs: {
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: scale(10),
+    paddingHorizontal: spacing.sm,
   },
   row: {
     flexDirection: "row",
-    marginBottom: scale(20),
+    marginBottom: spacing.xl,
   },
   input: {
     flex: 1,
     width: scale(318),
     height: scale(50),
-    borderRadius: scale(7),
+    borderRadius: borderRadius.sm,
     borderWidth: scale(4),
     borderColor: colors.primary,
     overflow: "hidden",
-    marginHorizontal: scale(10),
-    paddingHorizontal: scale(10),
+    marginHorizontal: spacing.sm,
+    paddingHorizontal: spacing.sm,
   },
   button: {
     width: scale(310),
     height: scale(50),
-    borderRadius: scale(7),
+    borderRadius: borderRadius.sm,
     backgroundColor: colors.primary,
-    marginHorizontal: scale(20),
+    marginHorizontal: spacing.xl,
     justifyContent: "center",
     alignItems: "center",
   },
   circle: {
     width: scale(60),
     height: scale(60),
-    borderRadius: scale(75),
+    borderRadius: borderRadius.full,
     borderColor: "black",
     borderWidth: scale(2),
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
@@ -1307,28 +1320,28 @@ const styles = StyleSheet.create({
   circle2: {
     width: scale(35),
     height: scale(35),
-    borderRadius: scale(75),
+    borderRadius: borderRadius.full,
     borderColor: colors.primary,
     borderWidth: scale(2),
     backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
-    marginHorizontal: scale(18),
-    marginTop: scale(20),
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xl,
   },
   circle3: {
     width: scale(20),
     height: scale(20),
-    borderRadius: scale(75),
+    borderRadius: borderRadius.full,
     borderWidth: scale(2),
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
   },
   cross: {
-    fontSize: scale(35),
+    fontSize: typography.hero.fontSize, lineHeight: typography.hero.lineHeight,
     color: "black",
   },
   spacing: {
@@ -1336,44 +1349,44 @@ const styles = StyleSheet.create({
   },
   divider: {
     alignSelf: "center",
-    borderBottomColor: "#000",
+    borderBottomColor: colors.textPrimary,
     borderBottomWidth: scale(2),
-    marginVertical: scale(5),
+    marginVertical: spacing.xs,
     width: scale(330),
   },
   overlay: {
     position: "absolute",
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     width: scale(300),
     height: scale(200),
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
     top: scale(250),
-    borderRadius: scale(20),
+    borderRadius: borderRadius.lg,
   },
   modalContent: {
-    marginHorizontal: scale(20),
+    marginHorizontal: spacing.xl,
   },
   modalTitle: {
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     color: colors.textPrimary,
-    fontWeight: "800",
-    marginTop: scale(15),
-    marginBottom: scale(20),
+    fontWeight: "700",
+    marginTop: spacing.lg,
+    marginBottom: spacing.xl,
     letterSpacing: 0.5,
   },
   searchContainer: {
-    borderRadius: scale(16),
+    borderRadius: borderRadius.lg,
     backgroundColor: colors.background,
-    padding: scale(16),
-    marginBottom: scale(20),
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
     flexDirection: "row",
     alignItems: "center",
   },
   searchGradientBorder: {
-    borderRadius: scale(16),
-    padding: scale(2), // serves as border width
+    borderRadius: borderRadius.lg,
+    padding: spacing.xs, // serves as border width
     elevation: 4,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
@@ -1382,18 +1395,18 @@ const styles = StyleSheet.create({
   },
   sheetContainerGlass: {
     flex: 1,
-    paddingTop: scale(12),
+    paddingTop: spacing.md,
   },
   capsuleHandleContainer: {
     alignItems: 'center',
-    marginBottom: scale(20),
-    marginTop: scale(8),
+    marginBottom: spacing.xl,
+    marginTop: spacing.sm,
   },
   capsuleHandle: {
     width: scale(40),
     height: scale(5),
-    backgroundColor: 'rgba(0,0,0,0.15)',
-    borderRadius: scale(10),
+    backgroundColor: colors.overlaySoft,
+    borderRadius: borderRadius.md,
   },
   scheduledCard: {
     flexDirection: 'row',
@@ -1414,11 +1427,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primaryLight,
   },
-  scheduledTitle: { fontSize: scale(15), fontWeight: '700', color: colors.textPrimary },
-  scheduledStatusRow: { flexDirection: 'row', alignItems: 'center', gap: scale(5), marginTop: scale(2) },
-  scheduledDot: { width: scale(7), height: scale(7), borderRadius: scale(4), backgroundColor: colors.warning },
+  scheduledTitle: { fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight, fontWeight: '700', color: colors.textPrimary },
+  scheduledStatusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs },
+  scheduledDot: { width: scale(7), height: scale(7), borderRadius: borderRadius.sm, backgroundColor: colors.warning },
   scheduledDotClaimed: { backgroundColor: colors.success },
-  scheduledStatus: { fontSize: scale(12), color: colors.textSecondary },
+  scheduledStatus: { fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight, color: colors.textSecondary },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1428,12 +1441,15 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   sectionHeaderTitle: {
-    fontSize: scale(14),
+    flex: 1,
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '700',
     color: colors.textPrimary,
   },
   sectionHeaderLink: {
-    fontSize: scale(14),
+    alignSelf: 'stretch',
+    textAlign: 'right',
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -1447,8 +1463,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderRadius: scale(26),
-    height: scale(52),
+    borderRadius: borderRadius.xxl,
+    minHeight: sizes.controlLarge,
+    paddingVertical: spacing.sm,
     paddingLeft: spacing.lg,
     paddingRight: spacing.sm,
     borderWidth: 1,
@@ -1462,19 +1479,19 @@ const styles = StyleSheet.create({
   },
   pillPlaceholder: {
     flex: 1,
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textMuted,
   },
   pillArrow: {
     width: scale(34),
     height: scale(34),
-    borderRadius: scale(17),
+    borderRadius: borderRadius.lg,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   glassSectionTitle: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '700',
     color: colors.textSecondary,
     marginBottom: spacing.md,
@@ -1489,64 +1506,64 @@ const styles = StyleSheet.create({
   squircleGradient: {
     width: scale(64),
     height: scale(64),
-    borderRadius: scale(24), // Super-ellipseish
+    borderRadius: borderRadius.xxl, // Super-ellipseish
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: scale(8),
-    shadowColor: "#000",
+    marginBottom: spacing.sm,
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: colors.borderLight,
   },
   squircleText: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   svgContainer: {
     // ...
 
-    paddingHorizontal: scale(10),
+    paddingHorizontal: spacing.sm,
   },
   glassHandleContainer: {
     alignItems: 'center',
-    paddingVertical: scale(12),
+    paddingVertical: spacing.md,
   },
   glassHandleIndicator: {
     width: scale(40),
     height: scale(5),
-    backgroundColor: 'rgba(0,0,0,0.15)',
-    borderRadius: scale(10),
+    backgroundColor: colors.overlaySoft,
+    borderRadius: borderRadius.md,
   },
   searchText: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '600',
     color: colors.textPrimary,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: scale(12),
-    marginTop: scale(5),
-    marginBottom: scale(10),
+    gap: spacing.md,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
   secondaryButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: scale(8),
-    backgroundColor: '#F1F5F9',
-    borderRadius: scale(14),
-    height: scale(48),
+    gap: spacing.sm,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.lg,
+    minHeight: sizes.control,
   },
   secondaryButtonText: {
-    color: '#64748B',
-    fontSize: scale(15),
+    color: colors.textSecondary,
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '600',
   },
   confirmButton: {
@@ -1554,10 +1571,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: scale(8),
+    gap: spacing.sm,
     backgroundColor: colors.primary,
-    borderRadius: scale(14),
-    height: scale(48),
+    borderRadius: borderRadius.lg,
+    minHeight: sizes.control,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1565,8 +1582,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   confirmButtonText: {
-    color: "#fff",
-    fontSize: scale(15),
+    color: colors.surface,
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '600',
   },
 });

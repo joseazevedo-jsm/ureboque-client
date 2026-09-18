@@ -1,15 +1,10 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Clipboard,
-  Share,
-  ActivityIndicator,
-  Vibration,
-} from "react-native";
+import { View, StyleSheet, ScrollView, Clipboard, Share, ActivityIndicator, Vibration } from 'react-native';
+import { AppText as Text } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+import { AppHeader } from '../components/common/AppHeader';
+
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -18,9 +13,10 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { useInviteScreen } from "../components/invite/useInviteScreen";
 import { useLogger } from "../hooks/useLogger";
 import { useAlert } from "../context/AlertContext";
-import { colors, spacing, shadows, borderRadius } from "../theme";
+import { colors, spacing, shadows, borderRadius, sizes, layout, typography } from "../theme";
 
 const InviteScreen = () => {
+  const insets = useSafeAreaInsets();
   const logger = useLogger("InviteScreen");
   const { models, operations } = useInviteScreen();
   const navigation = useNavigation();
@@ -57,24 +53,11 @@ const InviteScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <Animated.View
-        style={styles.header}
-        entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}
-      >
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => navigation.openDrawer()}
-          activeOpacity={0.7}
-        >
-          <Icon name="menu" size={scale(22)} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>CONVIDAR AMIGOS</Text>
-        <View style={styles.headerSpacer} />
-      </Animated.View>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <AppHeader title="CONVIDAR AMIGOS" leftIcon="menu" leftLabel="Abrir menu"
+        onLeftPress={() => navigation.openDrawer()} style={styles.header} />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.pageContent}>
 
         {/* Hero Card */}
         <Animated.View
@@ -97,7 +80,7 @@ const InviteScreen = () => {
             entering={FadeInDown.delay(120).springify().damping(28).stiffness(180)}
           >
             <View style={[styles.benefitIcon, { backgroundColor: colors.primaryLight }]}>
-              <Icon name="person-add" size={scale(22)} color={colors.primary} />
+              <Icon name="person-add" size={sizes.icon} color={colors.primary} />
             </View>
             <View style={styles.benefitText}>
               <Text style={styles.benefitTitle}>O seu amigo ganha 30%</Text>
@@ -110,7 +93,7 @@ const InviteScreen = () => {
             entering={FadeInDown.delay(160).springify().damping(28).stiffness(180)}
           >
             <View style={[styles.benefitIcon, { backgroundColor: colors.successLight }]}>
-              <Icon name="monetization-on" size={scale(22)} color={colors.success} />
+              <Icon name="monetization-on" size={sizes.icon} color={colors.success} />
             </View>
             <View style={styles.benefitText}>
               <Text style={styles.benefitTitle}>Você ganha 50%</Text>
@@ -130,7 +113,7 @@ const InviteScreen = () => {
               <ActivityIndicator color={colors.primary} />
             ) : models.error ? (
               <View style={styles.errorRow}>
-                <Icon name="error-outline" size={scale(18)} color={colors.error} />
+                <Icon name="error-outline" size={sizes.iconSmall} color={colors.error} />
                 <Text style={styles.errorText}>Não foi possível carregar o código</Text>
               </View>
             ) : (
@@ -144,7 +127,7 @@ const InviteScreen = () => {
                 >
                   <Icon
                     name={copied ? "check" : "content-copy"}
-                    size={scale(18)}
+                    size={sizes.icon}
                     color={copied ? colors.success : colors.primary}
                   />
                   <Text style={[styles.copyText, copied && styles.copyTextSuccess]}>
@@ -185,36 +168,14 @@ const InviteScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  pageContent: { width: "100%", maxWidth: layout.contentMaxWidth, alignSelf: "center" },
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: spacing.headerHeight,
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.xxl,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  menuButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: borderRadius.xxl,
-    backgroundColor: colors.surface,
-    justifyContent: "center",
-    alignItems: "center",
-    ...shadows.sm,
-  },
-  headerSpacer: {
-    width: scale(40),
-    height: scale(40),
-  },
-  headerTitle: {
-    fontSize: scale(17),
-    fontWeight: "800",
-    color: colors.textPrimary,
-    letterSpacing: 0.5,
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
   },
   heroCard: {
     marginHorizontal: spacing.xxl,
@@ -229,24 +190,23 @@ const styles = StyleSheet.create({
     width: scale(64),
     height: scale(64),
     borderRadius: borderRadius.full,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: colors.surfaceTint20,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: colors.surfaceTint30,
   },
   heroTitle: {
-    fontSize: scale(22),
-    fontWeight: "800",
+    fontSize: typography.h3.fontSize, lineHeight: typography.h3.lineHeight,
+    fontWeight: "700",
     color: colors.surface,
     marginBottom: spacing.sm,
   },
   heroSubtitle: {
-    fontSize: scale(14),
-    color: "rgba(255,255,255,0.85)",
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    color: colors.surfaceTint85,
     textAlign: "center",
-    lineHeight: scale(20),
   },
   section: {
     marginHorizontal: spacing.xxl,
@@ -264,8 +224,8 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   benefitIcon: {
-    width: scale(44),
-    height: scale(44),
+    width: sizes.control,
+    height: sizes.control,
     borderRadius: borderRadius.md,
     justifyContent: "center",
     alignItems: "center",
@@ -275,17 +235,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   benefitTitle: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "700",
     color: colors.textPrimary,
-    marginBottom: scale(2),
+    marginBottom: spacing.xs,
   },
   benefitDesc: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
   },
   sectionLabel: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: "700",
     color: colors.textSecondary,
     textTransform: "uppercase",
@@ -310,8 +270,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   codeText: {
-    fontSize: scale(24),
-    fontWeight: "800",
+    fontSize: typography.h2.fontSize, lineHeight: typography.h2.lineHeight,
+    fontWeight: "700",
     color: colors.textPrimary,
     letterSpacing: 2,
   },
@@ -328,7 +288,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.successLight,
   },
   copyText: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: "700",
     color: colors.primary,
   },
@@ -342,7 +302,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   errorText: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.error,
     fontWeight: "500",
   },
@@ -361,7 +321,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   shareButtonText: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "700",
     color: colors.surface,
     letterSpacing: 0.5,

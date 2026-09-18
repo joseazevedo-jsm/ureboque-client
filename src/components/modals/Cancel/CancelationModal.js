@@ -1,16 +1,10 @@
 import React from "react";
-import {
-  FlatList,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  SafeAreaView,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { FlatList, Modal, StyleSheet, View, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../common/AppText';
+import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
+import { AppHeader } from '../../common/AppHeader';
+import { AppButton } from '../../common/AppButton';
+
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
@@ -73,18 +67,8 @@ const CancelationModal = ({
           style={{ flex: 1 }}
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : scale(20)}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={closeModal}
-              activeOpacity={0.7}
-            >
-              <Icon name="close" size={scale(24)} color={colors.textPrimary} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Cancelar Viagem</Text>
-            <View style={styles.headerSpacer} />
-          </View>
+          <AppHeader title="Cancelar Viagem" leftIcon="close" leftLabel="Fechar cancelamento"
+            onLeftPress={closeModal} safeArea={false} />
 
           {/* Warning Card */}
           <View style={styles.warningCard}>
@@ -101,13 +85,8 @@ const CancelationModal = ({
           <View style={styles.contentArea}>
             {selectedQuestion === "Outro" ? (
               <View style={styles.focusedOtherContainer}>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={() => setSelectedQuestion(null)}
-                >
-                  <Icon name="arrow-back" size={scale(20)} color={colors.primary} />
-                  <Text style={styles.backButtonText}>Mudar motivo</Text>
-                </TouchableOpacity>
+                <AppButton variant="secondary" icon={<Icon name="arrow-back" size={scale(20)} color={colors.primary} />}
+                  onPress={() => setSelectedQuestion(null)}>Mudar motivo</AppButton>
 
                 <Text style={styles.sectionTitle}>Conte-nos o que aconteceu:</Text>
 
@@ -196,13 +175,13 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   warningIconContainer: {
-    marginTop: scale(2),
+    marginTop: spacing.xs,
   },
   warningText: {
     flex: 1,
     ...typography.bodySmall,
     color: colors.textPrimary,
-    lineHeight: scale(20),
+    lineHeight: 20,
   },
   contentArea: {
     flex: 1,
@@ -227,7 +206,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.xs,
     color: colors.primary,
     fontWeight: "600",
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
   },
   sectionTitle: {
     ...typography.sectionTitle,
@@ -282,7 +261,7 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     ...typography.buttonLabel,
     color: colors.surface,
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
   },
   disabledButton: {
     backgroundColor: colors.border,

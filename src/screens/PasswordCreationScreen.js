@@ -1,23 +1,22 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-} from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+import { AppHeader } from '../components/common/AppHeader';
+
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { scale } from 'react-native-size-matters';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 const Icon = MaterialIcons;
 import { useRegistrationFlow } from '../hooks/useRegistrationFlow';
 import { useAlert } from '../context/AlertContext';
-import { colors } from '../theme';
+import { shadows, componentStyles, borderRadius, colors, spacing, sizes, layout, typography } from "../theme";
 
 const PasswordCreationScreen = () => {
+  const insets = useSafeAreaInsets();
   const route = useRoute();
+  const navigation = useNavigation();
   const { phone } = route.params || {};
   const { showAlert } = useAlert();
 
@@ -40,7 +39,7 @@ const PasswordCreationScreen = () => {
 
   const handleBack = () => {
     logger.info('User going back from password creation');
-    // Navigation will be handled by React Navigation's built-in back functionality
+    navigation.goBack();
   };
 
   const handleContinue = () => {
@@ -56,27 +55,16 @@ const PasswordCreationScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <TouchableOpacity 
-            onPress={handleBack}
-            style={styles.backButton}
-            accessibilityLabel="Voltar"
-            accessibilityRole="button"
-          >
-            <Icon name="arrow-back" size={24} color={colors.primary} />
-          </TouchableOpacity>
-          <View style={styles.progressSection}>
-            <Text style={styles.progressText}>Passo 1 de 2</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '50%' }]} />
-            </View>
-          </View>
+        <AppHeader title="CRIAR CONTA" leftIcon="arrow-back" leftLabel="Voltar" onLeftPress={handleBack} style={styles.header} />
+        <View style={styles.progressSection}>
+          <Text style={styles.progressText}>Passo 1 de 2</Text>
+          <View style={styles.progressBar}><View style={[styles.progressFill, { width: '50%' }]} /></View>
         </View>
 
         <View style={styles.content}>
@@ -97,7 +85,7 @@ const PasswordCreationScreen = () => {
                   onChangeText={handlePasswordChange}
                   secureTextEntry={!uiState.showPassword}
                   placeholder="Digite sua senha"
-                  placeholderTextColor="#B0B0B0"
+                  placeholderTextColor={colors.textMuted}
                   accessibilityLabel="Campo de senha"
                   accessibilityRole="text"
                 />
@@ -110,7 +98,7 @@ const PasswordCreationScreen = () => {
                   <Icon 
                     name={uiState.showPassword ? "visibility-off" : "visibility"} 
                     size={20} 
-                    color="#707070" 
+                    color={colors.textSecondary} 
                   />
                 </TouchableOpacity>
               </View>
@@ -125,7 +113,7 @@ const PasswordCreationScreen = () => {
                   onChangeText={handleConfirmPasswordChange}
                   secureTextEntry={!uiState.showConfirmPassword}
                   placeholder="Digite a senha novamente"
-                  placeholderTextColor="#B0B0B0"
+                  placeholderTextColor={colors.textMuted}
                   accessibilityLabel="Campo de confirmação de senha"
                   accessibilityRole="text"
                 />
@@ -138,7 +126,7 @@ const PasswordCreationScreen = () => {
                   <Icon 
                     name={uiState.showConfirmPassword ? "visibility-off" : "visibility"} 
                     size={20} 
-                    color="#707070" 
+                    color={colors.textSecondary} 
                   />
                 </TouchableOpacity>
               </View>
@@ -212,196 +200,173 @@ const PasswordCreationScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    paddingVertical: scale(20),
+    backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: scale(20),
-    paddingVertical: scale(20),
-  },
-  backButton: {
-    width: scale(40),
-    height: scale(40),
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: scale(20),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    width: "100%",
+    maxWidth: layout.formMaxWidth,
+    alignSelf: "center",
   },
   progressSection: {
     flex: 1,
     alignItems: 'center',
   },
   progressText: {
-    fontSize: scale(14),
-    color: '#64748B',
-    marginBottom: scale(8),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   progressBar: {
     width: scale(100),
     height: scale(4),
-    backgroundColor: '#E2E8F0',
-    borderRadius: scale(2),
+    backgroundColor: colors.borderLight,
+    borderRadius: borderRadius.sm,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#0089FF',
-    borderRadius: scale(2),
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.sm,
   },
   // flexGrow rather than flex so the requirement rows keep their height inside
   // the ScrollView instead of being squeezed below the fold.
   scrollContent: {
+    width: "100%",
+    maxWidth: layout.formMaxWidth,
+    alignSelf: "center",
     flexGrow: 1,
   },
   inlineFieldError: {
-    fontSize: scale(13),
-    color: '#F44336',
-    marginTop: scale(8),
-    marginLeft: scale(4),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
+    color: colors.error,
+    marginTop: spacing.sm,
+    marginLeft: spacing.xs,
   },
   content: {
+    width: "100%",
+    maxWidth: layout.formMaxWidth,
+    alignSelf: "center",
     flexGrow: 1,
-    paddingHorizontal: scale(20),
+    paddingHorizontal: spacing.xl,
   },
   titleSection: {
     alignItems: 'center',
-    marginBottom: scale(40),
-    marginTop: scale(20),
+    marginBottom: spacing.jumbo,
+    marginTop: spacing.xl,
   },
   title: {
-    fontSize: scale(24),
+    fontSize: typography.h2.fontSize, lineHeight: typography.h2.lineHeight,
     fontWeight: 'bold',
-    color: '#1E293B',
-    marginBottom: scale(8),
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: scale(16),
-    color: '#64748B',
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: scale(22),
+    lineHeight: 24,
   },
   formSection: {
-    marginBottom: scale(30),
+    marginBottom: spacing.xxxl,
   },
   inputContainer: {
-    marginBottom: scale(20),
+    marginBottom: spacing.xl,
   },
   inputLabel: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: scale(8),
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
-  passwordInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    borderRadius: scale(14),
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  passwordInput: {
-    flex: 1,
-    fontSize: scale(15),
-    color: '#1E293B',
-    paddingVertical: scale(14),
-    paddingHorizontal: scale(16),
-  },
+  passwordInputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: borderRadius.md },
+  passwordInput: { ...componentStyles.input, flex: 1 },
   eyeButton: {
-    padding: scale(12),
+    width: sizes.control,
+    height: sizes.control,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.md,
   },
   strengthContainer: {
-    marginTop: scale(15),
+    marginTop: spacing.lg,
   },
   strengthLabel: {
-    fontSize: scale(14),
-    color: '#64748B',
-    marginBottom: scale(8),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   strengthBar: {
     width: '100%',
     height: scale(6),
-    backgroundColor: '#E2E8F0',
-    borderRadius: scale(3),
+    backgroundColor: colors.borderLight,
+    borderRadius: borderRadius.sm,
   },
   strengthFill: {
     height: '100%',
-    borderRadius: scale(3),
+    borderRadius: borderRadius.sm,
   },
   requirementsSection: {
-    marginBottom: scale(30),
+    marginBottom: spacing.xxxl,
   },
   requirementsTitle: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: scale(15),
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
   },
   requirementsList: {
-    paddingHorizontal: scale(10),
+    paddingHorizontal: spacing.sm,
   },
   requirementItem: {
-    marginBottom: scale(8),
+    marginBottom: spacing.sm,
   },
   requirementValid: {
-    fontSize: scale(14),
-    color: '#4CAF50',
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    color: colors.success,
   },
   requirementInvalid: {
-    fontSize: scale(14),
-    color: '#94A3B8',
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    color: colors.textMuted,
   },
   footer: {
-    paddingHorizontal: scale(20),
-    paddingBottom: scale(30),
-    paddingTop: scale(15),
+    width: "100%",
+    maxWidth: layout.formMaxWidth,
+    alignSelf: "center",
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxxl,
+    paddingTop: spacing.lg,
   },
   continueButton: {
-    borderRadius: scale(16),
-    paddingVertical: scale(16),
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.lg,
     alignItems: 'center',
   },
   continueButtonActive: {
-    backgroundColor: '#0089FF',
-    shadowColor: '#0089FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
+    backgroundColor: colors.primary,
+    ...shadows.sm,
+
+},
   continueButtonInactive: {
-    backgroundColor: '#CBD5E0',
+    backgroundColor: colors.disabledSurface,
     shadowOpacity: 0,
     elevation: 0,
   },
   continueButtonText: {
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
   continueButtonTextActive: {
-    color: '#FFFFFF',
+    color: colors.surface,
   },
   continueButtonTextInactive: {
-    color: '#94A3B8',
+    color: colors.textMuted,
   },
 });
 

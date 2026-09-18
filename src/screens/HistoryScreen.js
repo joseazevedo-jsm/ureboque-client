@@ -1,14 +1,10 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  TextInput,
-  RefreshControl,
-  ActivityIndicator,
-} from "react-native";
+import { View, StyleSheet, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+import { AppHeader } from '../components/common/AppHeader';
+
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -18,9 +14,10 @@ import ServiceDetailModal from "../components/modals/serviceDetailModal";
 import useHistoryScreen from "../components/history/useHistoryScreen";
 import { useLogger } from "../hooks/useLogger";
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { animations, colors, spacing, borderRadius, shadows } from '../theme';
+import { animations, colors, spacing, borderRadius, shadows, sizes, layout, typography } from '../theme';
 
 const HistoryScreen = () => {
+  const insets = useSafeAreaInsets();
   const logger = useLogger('HistoryScreen', {
     enableLifecycleLogging: true,
     logProps: true
@@ -168,22 +165,17 @@ const HistoryScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <Animated.View style={styles.headerContainer} entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => {
-            logger.logUserInteraction('menu_button_pressed', { from: 'HistoryScreen' });
-            navigation.openDrawer();
-          }}
-          activeOpacity={0.7}
-        >
-          <Icon name="menu" size={scale(22)} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>HISTÓRICO</Text>
-        <View style={styles.headerSpacer} />
-      </Animated.View>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <AppHeader
+        title="HISTÓRICO"
+        leftIcon="menu"
+        leftLabel="Abrir menu"
+        onLeftPress={() => {
+          logger.logUserInteraction('menu_button_pressed', { from: 'HistoryScreen' });
+          navigation.openDrawer();
+        }}
+        style={styles.headerContainer}
+      />
 
       {/* Search Bar */}
       <Animated.View style={styles.searchContainer} entering={FadeInDown.delay(80).springify().damping(28).stiffness(180)}>
@@ -222,7 +214,7 @@ const HistoryScreen = () => {
           showsHorizontalScrollIndicator={false}
           data={['all', 'completed', 'cancelled', 'requested']}
           keyExtractor={(item) => item}
-          contentContainerStyle={{ paddingHorizontal: scale(20), paddingBottom: scale(10), gap: scale(2) }}
+          contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.sm, gap: spacing.xs }}
           renderItem={({ item }) => {
             const labelMap = {
               all: 'Todos',
@@ -231,7 +223,7 @@ const HistoryScreen = () => {
               requested: 'Solicitados'
             };
             return (
-              <View style={{ marginRight: scale(8) }}>
+              <View style={{ marginRight: spacing.sm }}>
                 {renderFilterButton(item, labelMap[item])}
               </View>
             );
@@ -248,7 +240,7 @@ const HistoryScreen = () => {
         </View>
       ) : models.error ? (
         <View style={styles.errorContainer}>
-          <Icon name="error-outline" size={scale(60)} color={colors.error} />
+          <Icon name="error-outline" size={sizes.illustration} color={colors.error} />
           <Text style={styles.errorText}>{models.error}</Text>
           <TouchableOpacity
             style={styles.retryButton}
@@ -301,33 +293,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerContainer: {
-    paddingTop: spacing.headerHeight,
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.xxl,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  backButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: borderRadius.xxl,
-    backgroundColor: colors.surface,
-    justifyContent: "center",
-    alignItems: "center",
-    ...shadows.sm,
-  },
-  headerSpacer: {
-    width: scale(40),
-    height: scale(40),
-  },
-  headerText: {
-    fontSize: scale(17),
-    fontWeight: "800",
-    color: colors.textPrimary,
-    letterSpacing: 0.5,
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
   },
   searchContainer: {
+    minHeight: sizes.control,
     flexDirection: "row",
     alignItems: "center",
     marginHorizontal: spacing.xxl,
@@ -335,7 +305,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: borderRadius.xl,
     paddingHorizontal: spacing.lg,
-    height: scale(50),
     borderWidth: 1,
     borderColor: colors.borderLight,
     ...shadows.sm,
@@ -345,20 +314,25 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textPrimary,
-    height: "100%",
+    minHeight: sizes.control,
   },
   clearSearch: {
+    width: sizes.control,
+    height: sizes.control,
+    justifyContent: "center",
+    alignItems: "center",
     padding: spacing.sm,
   },
   filterContainer: {
     flexDirection: "row",
     marginBottom: spacing.lg,
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
     gap: spacing.sm,
   },
   filterButton: {
+    minHeight: sizes.control,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.full,
@@ -374,7 +348,7 @@ const styles = StyleSheet.create({
     ...shadows.primaryGlow,
   },
   filterText: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
     fontWeight: "600",
   },
@@ -383,8 +357,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   listContainer: {
-    paddingHorizontal: spacing.xxl,
-    paddingBottom: scale(40),
+    width: "100%",
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.jumbo,
   },
   loadingContainer: {
     flex: 1,
@@ -393,7 +370,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: spacing.lg,
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textSecondary,
     fontWeight: "500",
   },
@@ -401,17 +378,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: scale(40),
+    paddingTop: spacing.jumbo,
   },
   errorText: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.error,
     textAlign: "center",
     marginTop: spacing.lg,
-    marginHorizontal: scale(40),
-    lineHeight: scale(22),
+    marginHorizontal: spacing.jumbo,
+    lineHeight: 24,
   },
   retryButton: {
+    minHeight: sizes.control,
     backgroundColor: colors.primary,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xxxl,
@@ -421,7 +399,7 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: colors.surface,
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "700",
   },
   emptyContainer: {
@@ -431,18 +409,18 @@ const styles = StyleSheet.create({
     paddingTop: scale(80),
   },
   emptyTitle: {
-    fontSize: scale(18),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "700",
     color: colors.textPrimary,
     marginTop: spacing.xxl,
   },
   emptySubtitle: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textMuted,
     textAlign: "center",
     marginTop: spacing.sm,
-    marginHorizontal: scale(40),
-    lineHeight: scale(20),
+    marginHorizontal: spacing.jumbo,
+    lineHeight: 20,
   },
 });
 

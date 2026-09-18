@@ -1,10 +1,13 @@
 import React, { memo } from "react";
-import { View, TouchableOpacity, StyleSheet, Text, Image } from "react-native";
+import { View, StyleSheet, Image } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
 import RouteItem from "./routeItem";
-import { colors, shadows, spacing, borderRadius } from "../../theme";
+import { colors, shadows, spacing, borderRadius, typography, sizes } from "../../theme";
 import {
   getStatusInfo,
   formatServiceDate,
@@ -30,7 +33,7 @@ const ServiceHistoryItem = memo(({ service, onPress }) => {
           <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
             <Icon 
               name={statusInfo.icon} 
-              size={scale(12)} 
+              size={sizes.iconSmall} 
               color={statusInfo.color} 
               style={styles.statusIcon} 
             />
@@ -106,7 +109,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dateText: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textPrimary,
     fontWeight: "500",
     marginBottom: spacing.xs,
@@ -123,11 +126,11 @@ const styles = StyleSheet.create({
     marginRight: spacing.xs,
   },
   statusText: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: "600",
   },
   priceText: {
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "bold",
     color: colors.primary,
     marginRight: spacing.sm,
@@ -148,7 +151,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   carText: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
     marginLeft: spacing.xs,
     flex: 1,
@@ -160,7 +163,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
   },
   typeText: {
-    fontSize: scale(10),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
     fontWeight: "600",
   },
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.background,
   },
   driverText: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
     marginLeft: spacing.xs,
     flex: 1,
@@ -180,11 +183,11 @@ const styles = StyleSheet.create({
   licensePlate: {
     backgroundColor: colors.borderLight,
     paddingHorizontal: spacing.sm,
-    paddingVertical: scale(2),
+    paddingVertical: spacing.xs,
     borderRadius: borderRadius.sm,
   },
   licensePlateText: {
-    fontSize: scale(10),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textPrimary,
     fontWeight: "bold",
   },

@@ -1,12 +1,8 @@
 import React, { useContext, useCallback } from "react";
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
+import { View, Image, StyleSheet, ScrollView } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scale } from "react-native-size-matters";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -16,7 +12,7 @@ import { UserContext } from "../../context/UserContext";
 import { useUserData } from "../../context/UserDataContext";
 import { useTripState } from "../../context/TripStateContext";
 import { useAlert } from "../../context/AlertContext";
-import { colors, spacing, borderRadius, shadows } from "../../theme";
+import { colors, spacing, borderRadius, borderWidths, shadows, typography } from "../../theme";
 
 const MAIN_ITEMS = [
   { route: "Map",         label: "Início",          icon: "home" },
@@ -184,8 +180,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.surface,
-    borderTopRightRadius: scale(24),
-    borderBottomRightRadius: scale(24),
+    borderTopRightRadius: borderRadius.xxl,
+    borderBottomRightRadius: borderRadius.xxl,
     overflow: "hidden",
     ...shadows.lg,
   },
@@ -194,41 +190,41 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.xxl,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xl,
     gap: spacing.lg,
   },
   avatarRing: {
-    borderRadius: scale(36),
+    borderRadius: borderRadius.full,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.4)",
-    padding: 3,
+    borderColor: colors.surfaceTint40,
+    padding: spacing.xs,
   },
   avatar: {
     width: scale(56),
     height: scale(56),
-    borderRadius: scale(28),
-    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: borderRadius.xxl,
+    backgroundColor: colors.surfaceTint15,
   },
   userInfo: {
     flex: 1,
   },
   userName: {
     color: colors.surface,
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "700",
     letterSpacing: 0.2,
-    marginBottom: scale(3),
+    marginBottom: spacing.xs,
   },
   userSub: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: scale(12),
+    color: colors.surfaceTint70,
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: "500",
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   section: {
     paddingHorizontal: spacing.lg,
@@ -237,9 +233,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: borderRadius.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    marginBottom: scale(2),
+    marginBottom: spacing.xs,
   },
   menuItemActive: {
     backgroundColor: colors.primaryLight,
@@ -254,11 +250,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   menuIconWrapActive: {
-    backgroundColor: "rgba(0,137,255,0.12)",
+    backgroundColor: colors.primaryTint12,
   },
   menuLabel: {
     flex: 1,
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "600",
     color: colors.textSecondary,
   },
@@ -268,23 +264,23 @@ const styles = StyleSheet.create({
   },
   badge: {
     backgroundColor: colors.error,
-    borderRadius: scale(10),
+    borderRadius: borderRadius.md,
     minWidth: scale(20),
     height: scale(20),
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: scale(5),
+    paddingHorizontal: spacing.xs,
   },
   badgeText: {
     color: colors.surface,
-    fontSize: scale(10),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: "700",
   },
   divider: {
-    height: 1,
+    height: borderWidths.thin,
     backgroundColor: colors.borderLight,
     marginHorizontal: spacing.xxl,
-    marginVertical: spacing.lg,
+    marginVertical: spacing.sm,
   },
   logoutWrapper: {
     paddingHorizontal: spacing.lg,
@@ -306,7 +302,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.errorLight,
   },
   logoutLabel: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "600",
     color: colors.error,
   },

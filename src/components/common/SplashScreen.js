@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, Image } from 'react-native';
-import { colors } from '../../theme';
+import { View, Image } from 'react-native';
+import { AppText as Text } from './AppText';
+
+import { spacing, colors, typography } from '../../theme';
 
 const SplashScreen = () => {
   return (
@@ -14,18 +16,18 @@ const SplashScreen = () => {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 40
+        paddingHorizontal: spacing.jumbo
       }}>
         <View style={{
           alignItems: 'center',
-          marginBottom: 60
+          marginBottom: spacing.massive
         }}>
           <Image
             source={require('../../../resources/icons/UREB_LOGO.png')}
             style={{
               width: 100,
               height: 100,
-              marginBottom: 20,
+              marginBottom: spacing.xl,
               tintColor: colors.surface,
             }}
             resizeMode="contain"
@@ -42,23 +44,23 @@ const SplashScreen = () => {
         </View>
 
         <Text style={{
-          fontSize: 16,
+          fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
           color: colors.primaryLight,
           textAlign: 'center',
           lineHeight: 24,
-          fontWeight: '300'
+          fontWeight: '400'
         }}>Serviço de Reboque Rápido e Confiável</Text>
       </View>
 
       <View style={{
-        paddingBottom: 40,
-        paddingHorizontal: 20
+        paddingBottom: spacing.jumbo,
+        paddingHorizontal: spacing.xl
       }}>
         <Text style={{
-          fontSize: 12,
+          fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
           color: colors.primaryLight,
           textAlign: 'center',
-          fontWeight: '300'
+          fontWeight: '400'
         }}>© 2025 Ureboque</Text>
       </View>
     </View>

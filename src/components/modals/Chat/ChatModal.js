@@ -1,20 +1,15 @@
 import React from "react";
 import { Modal, Platform, KeyboardAvoidingView } from "react-native";
-import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-} from "react-native";
+import { View, FlatList, StyleSheet, Image } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../common/AppText';
+import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
+
 import { useChatModal } from "./component/useChatModal";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
 import ChatItem from "../../cards/chatItem";
-import { colors, shadows, borderRadius, spacing } from "../../../theme";
+import { colors, shadows, borderRadius, spacing, typography, sizes } from "../../../theme";
 
 const imgDef =
   "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
@@ -58,7 +53,7 @@ const ChatModal = ({ visible, closeModal, idService, driver, setUnreadMessageCou
         {/* Header */}
         <View style={styles.topBar}>
           <TouchableOpacity style={styles.iconButton} onPress={closeModal}>
-            <Icon name="arrow-back" size={scale(22)} color={colors.primary} />
+            <Icon name="arrow-back" size={sizes.iconLarge} color={colors.primary} />
           </TouchableOpacity>
 
           <View style={styles.driverInfo}>
@@ -76,7 +71,7 @@ const ChatModal = ({ visible, closeModal, idService, driver, setUnreadMessageCou
           </View>
 
           <TouchableOpacity style={styles.iconButton} onPress={onCallDriver}>
-            <Icon name="phone" size={scale(22)} color={colors.primary} />
+            <Icon name="phone" size={sizes.iconLarge} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -137,7 +132,7 @@ const styles = StyleSheet.create({
   iconButton: {
     width: scale(40),
     height: scale(40),
-    borderRadius: scale(20),
+    borderRadius: borderRadius.lg,
     backgroundColor: colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
@@ -156,7 +151,7 @@ const styles = StyleSheet.create({
   driverPhoto: {
     width: scale(42),
     height: scale(42),
-    borderRadius: scale(21),
+    borderRadius: borderRadius.xxl,
     borderWidth: 2,
     borderColor: colors.primary,
   },
@@ -166,7 +161,7 @@ const styles = StyleSheet.create({
     right: 1,
     width: scale(10),
     height: scale(10),
-    borderRadius: scale(5),
+    borderRadius: borderRadius.sm,
     backgroundColor: colors.success,
     borderWidth: 2,
     borderColor: colors.surface,
@@ -175,12 +170,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   driverName: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "700",
     color: colors.textPrimary,
   },
   onlineLabel: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.success,
     fontWeight: "600",
   },
@@ -192,14 +187,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
-    paddingBottom: scale(28),
+    paddingBottom: spacing.xxl,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.borderLight,
   },
   input: {
     flex: 1,
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     backgroundColor: colors.background,
@@ -213,7 +208,7 @@ const styles = StyleSheet.create({
   sendButton: {
     width: scale(44),
     height: scale(44),
-    borderRadius: scale(22),
+    borderRadius: borderRadius.xxl,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",

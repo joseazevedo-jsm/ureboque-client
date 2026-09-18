@@ -1,13 +1,10 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-  ActivityIndicator,
-} from "react-native";
+import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+import { AppHeader } from '../components/common/AppHeader';
+
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -17,7 +14,7 @@ import { usePromotionScreen } from "../components/promotion/usePromotionScreen";
 import DiscountItem from "../components/cards/discountItem";
 import { useLogger } from "../hooks/useLogger";
 import KeyboardAvoidingWrapper from "../components/common/KeyboardAvoidingWrapper";
-import { colors, spacing, shadows, borderRadius } from "../theme";
+import { colors, spacing, shadows, borderRadius, sizes, layout, typography } from "../theme";
 
 const BENEFITS = [
   { icon: "flash-on", label: "Ativação\nImediata", bg: colors.primaryLight, color: colors.primary },
@@ -32,6 +29,7 @@ const STEPS = [
 ];
 
 const PromotionScreen = () => {
+  const insets = useSafeAreaInsets();
   const logger = useLogger("PromotionScreen");
   const { models, operations } = usePromotionScreen();
   const navigation = useNavigation();
@@ -59,26 +57,14 @@ const PromotionScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingWrapper style={styles.container}>
+    <KeyboardAvoidingWrapper style={[styles.container, { paddingBottom: insets.bottom }]}>
       <ScrollView
+        contentContainerStyle={styles.pageContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
-        <Animated.View
-          style={styles.header}
-          entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}
-        >
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => navigation.openDrawer()}
-            activeOpacity={0.7}
-          >
-            <Icon name="menu" size={scale(22)} color={colors.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>PROMOÇÕES</Text>
-          <View style={styles.headerSpacer} />
-        </Animated.View>
+        <AppHeader title="PROMOÇÕES" leftIcon="menu" leftLabel="Abrir menu"
+          onLeftPress={() => navigation.openDrawer()} style={styles.header} />
 
         {/* Hero Card */}
         <Animated.View
@@ -102,7 +88,7 @@ const PromotionScreen = () => {
           {BENEFITS.map((b, i) => (
             <View key={i} style={styles.benefitTile}>
               <View style={[styles.benefitIcon, { backgroundColor: b.bg }]}>
-                <Icon name={b.icon} size={scale(22)} color={b.color} />
+                <Icon name={b.icon} size={sizes.icon} color={b.color} />
               </View>
               <Text style={styles.benefitLabel}>{b.label}</Text>
             </View>
@@ -160,12 +146,12 @@ const PromotionScreen = () => {
 
           {models.codeError ? (
             <View style={styles.feedbackRow}>
-              <Icon name="error" size={scale(14)} color={colors.error} />
+              <Icon name="error" size={sizes.iconSmall} color={colors.error} />
               <Text style={styles.errorText}>{models.codeError}</Text>
             </View>
           ) : successVisible ? (
             <View style={styles.feedbackRow}>
-              <Icon name="check-circle" size={scale(14)} color={colors.success} />
+              <Icon name="check-circle" size={sizes.iconSmall} color={colors.success} />
               <Text style={styles.successText}>Código aplicado com sucesso!</Text>
             </View>
           ) : null}
@@ -233,36 +219,14 @@ const PromotionScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  pageContent: { width: "100%", maxWidth: layout.contentMaxWidth, alignSelf: "center" },
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: spacing.headerHeight,
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.xxl,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  menuButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: borderRadius.xxl,
-    backgroundColor: colors.surface,
-    justifyContent: "center",
-    alignItems: "center",
-    ...shadows.sm,
-  },
-  headerSpacer: {
-    width: scale(40),
-    height: scale(40),
-  },
-  headerTitle: {
-    fontSize: scale(17),
-    fontWeight: "800",
-    color: colors.textPrimary,
-    letterSpacing: 0.5,
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
   },
   heroCard: {
     marginHorizontal: spacing.xxl,
@@ -277,25 +241,25 @@ const styles = StyleSheet.create({
     width: scale(64),
     height: scale(64),
     borderRadius: borderRadius.full,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: colors.surfaceTint20,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: colors.surfaceTint30,
   },
   heroTitle: {
-    fontSize: scale(20),
-    fontWeight: "800",
+    fontSize: typography.h3.fontSize, lineHeight: typography.h3.lineHeight,
+    fontWeight: "700",
     color: colors.surface,
     marginBottom: spacing.sm,
     textAlign: "center",
   },
   heroSubtitle: {
-    fontSize: scale(13),
-    color: "rgba(255,255,255,0.85)",
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
+    color: colors.surfaceTint85,
     textAlign: "center",
-    lineHeight: scale(19),
+    lineHeight: 20,
   },
   benefitsRow: {
     flexDirection: "row",
@@ -322,11 +286,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   benefitLabel: {
-    fontSize: scale(11),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: "600",
     color: colors.textSecondary,
     textAlign: "center",
-    lineHeight: scale(15),
+    lineHeight: 16,
   },
   activePromo: {
     backgroundColor: colors.surface,
@@ -345,7 +309,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   activePromoTitle: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "700",
     color: colors.success,
   },
@@ -354,7 +318,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   sectionLabel: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: "700",
     color: colors.textSecondary,
     textTransform: "uppercase",
@@ -380,8 +344,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.errorLight,
   },
   textInput: {
+    minHeight: sizes.control,
     flex: 1,
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "600",
     color: colors.textPrimary,
     paddingVertical: spacing.md,
@@ -395,12 +360,12 @@ const styles = StyleSheet.create({
     paddingLeft: spacing.xs,
   },
   errorText: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.error,
     fontWeight: "500",
   },
   successText: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.success,
     fontWeight: "600",
   },
@@ -424,7 +389,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: colors.surface,
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "700",
     letterSpacing: 0.5,
   },
@@ -451,7 +416,7 @@ const styles = StyleSheet.create({
     width: scale(2),
     height: scale(32),
     backgroundColor: colors.borderLight,
-    marginVertical: scale(4),
+    marginVertical: spacing.xs,
   },
   stepContent: {
     flex: 1,
@@ -459,15 +424,15 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   stepTitle: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "700",
     color: colors.textPrimary,
-    marginBottom: scale(3),
+    marginBottom: spacing.xs,
   },
   stepDesc: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
-    lineHeight: scale(18),
+    lineHeight: 20,
   },
 });
 

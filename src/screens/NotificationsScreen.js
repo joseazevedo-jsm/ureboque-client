@@ -1,13 +1,10 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useEffect, useCallback, useState, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  RefreshControl,
-  ActivityIndicator,
-} from "react-native";
+import { View, StyleSheet, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
+import { AppText as Text } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+import { AppHeader } from '../components/common/AppHeader';
+
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -16,7 +13,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { useUserData } from "../context/UserDataContext";
 import { useAlert } from "../context/AlertContext";
 import { useLogger } from "../hooks/useLogger";
-import { animations, colors, spacing, borderRadius, shadows } from "../theme";
+import { animations, colors, spacing, borderRadius, shadows, sizes, layout, typography } from "../theme";
 
 const TYPE_CONFIG = {
   SUCCESS: { icon: "check-circle", color: colors.success, bg: colors.successLight },
@@ -69,11 +66,11 @@ const NotificationItem = ({
       >
         {selectionMode ? (
           <View style={[styles.checkboxContainer, isSelected && styles.checkboxSelected]}>
-            {isSelected && <Icon name="check" size={scale(14)} color={colors.surface} />}
+            {isSelected && <Icon name="check" size={sizes.iconSmall} color={colors.surface} />}
           </View>
         ) : (
           <View style={[styles.iconContainer, { backgroundColor: cfg.bg }]}>
-            <Icon name={cfg.icon} size={scale(22)} color={cfg.color} />
+            <Icon name={cfg.icon} size={sizes.icon} color={cfg.color} />
           </View>
         )}
 
@@ -117,6 +114,7 @@ const NotificationItem = ({
 };
 
 const NotificationsScreen = () => {
+  const insets = useSafeAreaInsets();
   const logger = useLogger("NotificationsScreen", { enableLifecycleLogging: true });
   const navigation = useNavigation();
   const {
@@ -280,7 +278,7 @@ const NotificationsScreen = () => {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Icon name="notifications-none" size={scale(80)} color={colors.legacyBorder} />
+      <Icon name="notifications-none" size={sizes.illustration} color={colors.legacyBorder} />
       <Text style={styles.emptyTitle}>Sem notificações</Text>
       <Text style={styles.emptySubtitle}>
         As suas notificações aparecerão aqui
@@ -291,66 +289,20 @@ const NotificationsScreen = () => {
   const allSelected = notifications.length > 0 && selectedIds.size === notifications.length;
 
   return (
-    <View style={styles.container}>
-      <Animated.View
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <AppHeader
+        title={selectionMode
+          ? selectedIds.size > 0 ? `${selectedIds.size} selecionada${selectedIds.size !== 1 ? 's' : ''}` : 'Selecionar'
+          : 'NOTIFICAÇÕES'}
+        leftIcon={selectionMode ? 'close' : 'menu'}
+        leftLabel={selectionMode ? 'Cancelar seleção' : 'Abrir menu'}
+        onLeftPress={selectionMode ? handleCancelSelection : () => navigation.openDrawer()}
+        rightIcon={selectionMode ? (selectedIds.size > 0 ? 'delete' : undefined) : notifications.length > 0 ? 'delete-sweep' : undefined}
+        rightLabel={selectionMode ? 'Apagar selecionadas' : 'Limpar notificações'}
+        rightColor={selectionMode ? (selectedIds.size > 0 ? colors.error : colors.textDisabled) : colors.textSecondary}
+        onRightPress={selectionMode ? (selectedIds.size > 0 ? handleDeleteSelected : undefined) : handleClearPress}
         style={styles.headerContainer}
-        entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}
-      >
-        {selectionMode ? (
-          <>
-            <TouchableOpacity
-              style={styles.menuButton}
-              onPress={handleCancelSelection}
-              activeOpacity={0.7}
-            >
-              <Icon name="close" size={scale(22)} color={colors.textPrimary} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleSelectAll} activeOpacity={0.7}>
-              <Text style={styles.headerText}>
-                {selectedIds.size > 0
-                  ? `${selectedIds.size} selecionada${selectedIds.size !== 1 ? "s" : ""}`
-                  : "Selecionar"}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.menuButton, selectedIds.size === 0 && styles.menuButtonDisabled]}
-              onPress={selectedIds.size > 0 ? handleDeleteSelected : undefined}
-              activeOpacity={0.7}
-              disabled={selectedIds.size === 0}
-            >
-              <Icon
-                name="delete"
-                size={scale(22)}
-                color={selectedIds.size > 0 ? colors.error : colors.textDisabled}
-              />
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <TouchableOpacity
-              style={styles.menuButton}
-              onPress={() => navigation.openDrawer()}
-              activeOpacity={0.7}
-            >
-              <Icon name="menu" size={scale(22)} color={colors.primary} />
-            </TouchableOpacity>
-            <Text style={styles.headerText}>NOTIFICAÇÕES</Text>
-            {notifications.length > 0 ? (
-              <TouchableOpacity
-                style={styles.menuButton}
-                onPress={handleClearPress}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityLabel="Limpar notificações"
-              >
-                <Icon name="delete-sweep" size={scale(22)} color={colors.textSecondary} />
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.headerSpacer} />
-            )}
-          </>
-        )}
-      </Animated.View>
+      />
 
       {selectionMode && notifications.length > 0 && (
         <TouchableOpacity
@@ -401,52 +353,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerContainer: {
-    paddingTop: spacing.headerHeight,
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.xxl,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  menuButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: borderRadius.xxl,
-    backgroundColor: colors.surface,
-    justifyContent: "center",
-    alignItems: "center",
-    ...shadows.sm,
-  },
-  headerSpacer: {
-    width: scale(40),
-    height: scale(40),
-  },
-  menuButtonDisabled: {
-    opacity: 0.5,
-  },
-  headerText: {
-    fontSize: scale(17),
-    fontWeight: "800",
-    color: colors.textPrimary,
-    letterSpacing: 0.5,
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
   },
   selectAllRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
   selectAllText: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
     marginLeft: spacing.sm,
     fontWeight: "500",
   },
   listContainer: {
-    paddingHorizontal: spacing.xxl,
-    paddingBottom: scale(40),
+    width: "100%",
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.jumbo,
     paddingTop: spacing.sm,
     flexGrow: 1,
   },
@@ -484,15 +413,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: spacing.md,
-    marginTop: scale(2),
+    marginTop: spacing.xs,
   },
   checkboxSelected: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   iconContainer: {
-    width: scale(44),
-    height: scale(44),
+    width: sizes.control,
+    height: sizes.control,
     borderRadius: borderRadius.xxl,
     justifyContent: "center",
     alignItems: "center",
@@ -508,7 +437,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   itemTitle: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "700",
     color: colors.textPrimary,
     flex: 1,
@@ -516,14 +445,14 @@ const styles = StyleSheet.create({
   unreadDot: {
     width: scale(8),
     height: scale(8),
-    borderRadius: scale(4),
+    borderRadius: borderRadius.sm,
     backgroundColor: colors.primary,
     marginLeft: spacing.sm,
   },
   itemMessage: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
-    lineHeight: scale(18),
+    lineHeight: 20,
     marginBottom: spacing.xs,
   },
   itemFooter: {
@@ -532,18 +461,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   itemDate: {
-    fontSize: scale(11),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textMuted,
     fontWeight: "500",
   },
   expandHint: {
-    fontSize: scale(11),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.primary,
     fontWeight: "600",
   },
   deleteButton: {
     padding: spacing.xs,
-    marginTop: scale(2),
+    marginTop: spacing.xs,
   },
   emptyContainer: {
     flex: 1,
@@ -552,18 +481,18 @@ const styles = StyleSheet.create({
     paddingTop: scale(80),
   },
   emptyTitle: {
-    fontSize: scale(18),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "700",
     color: colors.textPrimary,
     marginTop: spacing.xxl,
   },
   emptySubtitle: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textMuted,
     textAlign: "center",
     marginTop: spacing.sm,
-    marginHorizontal: scale(40),
-    lineHeight: scale(20),
+    marginHorizontal: spacing.jumbo,
+    lineHeight: 20,
   },
 });
 

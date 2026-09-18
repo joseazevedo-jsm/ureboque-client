@@ -1,3 +1,7 @@
+import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { AppButton } from './components/common/AppButton';
 import * as Sentry from '@sentry/react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { UserContextProvider } from "./context/UserContext";
@@ -15,10 +19,13 @@ import { LocationAccessProvider } from './context/LocationAccessContext';
 import { AlertProvider } from './context/AlertContext';
 import { TripStateProvider } from './context/TripStateContext';
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { AppText as Text } from './components/common/AppText';
+import { AppPressable as TouchableOpacity } from './components/common/AppPressable';
+
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { colors, spacing, borderRadius } from './theme';
+import { colors, spacing, borderRadius, sizes, typography } from './theme';
 
 // Keep the native splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -92,9 +99,7 @@ function ConnectionErrorScreen({ onRetry }) {
         Não foi possível ligar ao servidor.{'\n'}
         Verifique a sua ligação à internet e tente novamente.
       </Text>
-      <TouchableOpacity style={errorStyles.button} onPress={onRetry} activeOpacity={0.8} accessibilityLabel="Tentar novamente" accessibilityRole="button">
-        <Text style={errorStyles.buttonText}>Tentar novamente</Text>
-      </TouchableOpacity>
+      <AppButton onPress={onRetry}>Tentar novamente</AppButton>
     </View>
   );
 }
@@ -108,20 +113,20 @@ const errorStyles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   icon: {
-    fontSize: 56,
+    fontSize: sizes.controlLarge,
     marginBottom: spacing.lg,
   },
   title: {
-    fontSize: 22,
+    fontSize: typography.h3.fontSize, lineHeight: typography.h3.lineHeight,
     fontWeight: 'bold',
     color: colors.textPrimary,
     marginBottom: spacing.md,
   },
   message: {
-    fontSize: 15,
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
     marginBottom: spacing.xl * 2,
   },
   button: {
@@ -132,7 +137,7 @@ const errorStyles = StyleSheet.create({
   },
   buttonText: {
     color: colors.surface,
-    fontSize: 16,
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: '600',
   },
 });
@@ -210,11 +215,20 @@ function AppWithContexts() {
 }
 
 function App() {
+  const [fontsLoaded, fontError] = useFonts({
+    Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold,
+  });
+  useEffect(() => {
+    if (fontError) Logger.warn('App', 'Unable to load bundled Poppins fonts', fontError);
+  }, [fontError]);
+  // Keep product text from rendering in a fallback face during font loading.
+  if (!fontsLoaded && !fontError) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AppWithContexts />
+      <SafeAreaProvider><StatusBar style="dark" /><AppWithContexts /></SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
 
 export default App;
+

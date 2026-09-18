@@ -1,10 +1,12 @@
 import React, { memo, useCallback, useMemo } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+
 import { scale } from "react-native-size-matters";
 import { useLogger } from "../../hooks/useLogger";
 import { ScalePressable } from "../common/ScalePressable";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors, shadows, spacing, borderRadius } from "../../theme";
+import { colors, shadows, spacing, borderRadius, typography } from "../../theme";
 
 // Memoized image sources for performance
 const imageMap = {
@@ -21,7 +23,7 @@ const CarTypes = memo(({ typeCar, descr, descr2, price, route, onPress }) => {
   return (
     <ScalePressable onPress={onPress} style={styles.container}>
       <LinearGradient
-        colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
+        colors={[colors.surfaceTint90, colors.surfaceTint60]}
         style={styles.cardGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -62,7 +64,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.xxl,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.6)',
+    borderColor: colors.surfaceTint60,
     ...shadows.sm,
   },
   contentRow: {
@@ -78,13 +80,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: scale(18),
-    fontWeight: "800",
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
+    fontWeight: "700",
     color: colors.textPrimary,
     marginBottom: spacing.xs,
   },
   subtext: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
     fontWeight: "500",
   },
@@ -93,14 +95,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   currency: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: "700",
     color: colors.textMuted,
-    marginBottom: scale(2),
+    marginBottom: spacing.xs,
   },
   price: {
-    fontSize: scale(20),
-    fontWeight: "900",
+    fontSize: typography.h3.fontSize, lineHeight: typography.h3.lineHeight,
+    fontWeight: "700",
     color: colors.textPrimary,
   },
 });

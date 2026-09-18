@@ -1,5 +1,8 @@
 import React from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '../../common/AppText';
+import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
+
 import { scale } from "react-native-size-matters";
 import { BlurView } from "expo-blur";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -77,7 +80,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: scale(64),
     height: scale(64),
-    borderRadius: scale(32),
+    borderRadius: borderRadius.xxl,
     backgroundColor: colors.warningLight,
     justifyContent: "center",
     alignItems: "center",
@@ -92,7 +95,7 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     textAlign: "center",
     marginBottom: spacing.xl,
-    lineHeight: scale(20),
+    lineHeight: 20,
   },
   buttonContainer: {
     width: "100%",
@@ -107,7 +110,7 @@ const styles = StyleSheet.create({
   },
   continueButtonText: {
     color: colors.surface,
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "600",
   },
   cancelButton: {
@@ -120,7 +123,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: colors.error,
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "600",
   },
 });

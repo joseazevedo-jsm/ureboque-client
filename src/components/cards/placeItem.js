@@ -1,8 +1,11 @@
 import React, { memo, useCallback, useMemo } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+
 import { Icon } from "react-native-elements/dist/icons/Icon";
 import { scale } from "react-native-size-matters";
-import { colors, spacing, borderRadius } from "../../theme";
+import { colors, spacing, borderRadius, sizes, typography } from "../../theme";
 
 const PlaceItem = memo(({ name, address, iconUrl, onPress, saved }) => {
   const handlePress = useCallback(() => {
@@ -11,11 +14,11 @@ const PlaceItem = memo(({ name, address, iconUrl, onPress, saved }) => {
 
   const iconComponent = useMemo(() => {
     if (saved) {
-      return <Icon name={iconUrl} size={scale(25)} color={colors.primary} />;
+      return <Icon name={iconUrl} size={sizes.iconLarge} color={colors.primary} />;
     } else if (iconUrl) {
       return <Image source={{ uri: iconUrl }} style={styles.iconImage} />;
     } else {
-      return <Icon name="location-on" size={scale(25)} color={colors.primary} />;
+      return <Icon name="location-on" size={sizes.iconLarge} color={colors.primary} />;
     }
   }, [saved, iconUrl]);
 
@@ -43,35 +46,36 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    height: scale(60),
+    minHeight: sizes.illustration,
+    paddingVertical: spacing.sm,
   },
   iconContainer: {
-    height: scale(45),
-    width: scale(45),
-    borderRadius: borderRadius.sm,
+    height: sizes.handleWidth,
+    width: sizes.handleWidth,
+    borderRadius: borderRadius.full,
     borderColor: colors.primary,
-    borderWidth: scale(3),
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
     marginRight: spacing.sm,
   },
   iconImage: {
     tintColor: colors.primary,
-    height: scale(25),
-    width: scale(25),
+    height: sizes.iconLarge,
+    width: sizes.iconLarge,
   },
   textContainer: {
     flex: 1,
     flexShrink: 1,
   },
   nameStyle: {
-    marginBottom: scale(1),
-    fontSize: scale(12),
-    fontWeight: "bold",
+    marginBottom: spacing.xs,
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
+    fontWeight: "600",
   },
   addressStyle: {
-    marginBottom: scale(1),
-    fontSize: scale(10),
+    marginBottom: spacing.xs,
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
   },
   divider: {
     borderBottomColor: colors.borderLight,
@@ -80,12 +84,3 @@ const styles = StyleSheet.create({
   },
 });
 export default PlaceItem;
-{
-  /* 
-          <Icon
-            name="location-on"
-            size={scale(25)}
-            color={colors.primary}
-            style={styles.icon}
-          /> */
-}

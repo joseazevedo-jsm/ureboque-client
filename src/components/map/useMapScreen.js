@@ -319,7 +319,9 @@ export const useMapScreen = () => {
     });
   }, [markers, routing.getDistanceInKm]);
 
-  const { scheduledTow, refreshScheduledTow, cancelScheduledTow } = useScheduledTow({ enabled: !!user?.id, socket });
+  const onScheduledActiveRef = useRef(null);
+  const [scheduledDetailsVisible, setScheduledDetailsVisible] = useState(false);
+  const { scheduledTow, refreshScheduledTow, cancelScheduledTow } = useScheduledTow({ enabled: user?.id, socket, onActivatedRef: onScheduledActiveRef });
   onScheduledRef.current = refreshScheduledTow;
 
   const trip = useMapTrip({
@@ -486,6 +488,14 @@ export const useMapScreen = () => {
     }
     if (socket?.connected && service.status !== 'cancelled') socket.emit('join', 'service-request-' + service._id);
   }, [socket, trip.handleServiceSnapshot, trip.updateTripData, setOriginCity, setDestinationCity]);
+
+  onScheduledActiveRef.current = (service) => {
+    if (!service?._id) return;
+    const current = trip.tripDataRef.current.service;
+    if (current?._id && String(current._id) !== String(service._id)) return;
+    setScheduledDetailsVisible(false);
+    applyRecoveredSnapshot(service);
+  };
 
   // Single reconciliation path used on launch, foreground return, AND socket
   // reconnect — Socket.IO does not remember room membership across a
@@ -1095,35 +1105,68 @@ export const useMapScreen = () => {
     trip.updateTripData({ scheduledFor });
   }, [trip]);
 
-  const handleScheduledTowPress = useCallback(() => {
-    if (!scheduledTow) return;
-    const driverName = scheduledTow.claimedBy?.details?.name;
-    const destination = scheduledTow.locations?.[1]?.name;
+  const handleScheduledTowPress = useCallback(() => setScheduledDetailsVisible(true), []);
+  // A booking for later was planned in advance: ask before ending its search
+  // with one tap. An immediate request keeps the direct cancel.
+  const handleCancelSearch = useCallback(() => {
+    if (!trip.tripDataRef.current.service?.scheduledFor) {
+      trip.handleCancelSearch();
+      return;
+    }
     showAlert({
-      type: 'info',
-      title: 'Reboque agendado',
-      message: [
-        `Para ${formatScheduledFor(scheduledTow.scheduledFor)}.`,
-        destination ? `Destino: ${destination}.` : null,
-        driverName ? `Motorista: ${driverName}.` : 'Ainda à procura de motorista.',
-      ].filter(Boolean).join('\n'),
+      type: 'warning',
+      title: 'Cancelar reboque agendado?',
+      message: 'Ainda estamos a procurar um motorista para a sua recolha. Se cancelar, o agendamento termina.',
       buttons: [
-        { text: 'Fechar', style: 'cancel' },
+        { text: 'Continuar', style: 'cancel' },
+        { text: 'Sim, cancelar', onPress: () => trip.handleCancelSearch() },
+      ],
+    });
+  }, [trip, showAlert]);
+  const closeScheduledDetails = useCallback(() => setScheduledDetailsVisible(false), []);
+  // One live tow per client: requesting a tow now while a booking for later
+  // exists would send two trucks, so offer to replace the booking first. The
+  // API also drops the booking at dispatch if a live trip exists.
+  const handleConfirmPaymentPress = useCallback((paymentType) => () => {
+    const booking = scheduledTow;
+    if (trip.tripDataRef.current.scheduledFor || !booking?._id) {
+      trip.handleConfirmPaymentPress(paymentType)();
+      return;
+    }
+    showAlert({
+      type: 'warning',
+      title: 'Já tem um reboque agendado',
+      message: `Tem um reboque agendado para ${formatScheduledFor(booking.scheduledFor)}. Quer cancelá-lo e pedir um reboque agora?`,
+      buttons: [
+        { text: 'Voltar', style: 'cancel' },
         {
-          text: 'Cancelar',
-          style: 'destructive',
+          text: 'Cancelar e pedir agora',
           onPress: async () => {
             try {
-              await cancelScheduledTow(scheduledTow._id);
+              await cancelScheduledTow(booking._id);
             } catch (error) {
+              logger.warn('Could not cancel scheduled tow before requesting now', error);
               refreshScheduledTow();
-              showAlert({ type: 'error', title: 'Não foi possível cancelar', message: 'O reboque pode já ter começado. Tente novamente.' });
+              showAlert({ type: 'error', title: 'Não foi possível cancelar', message: 'O agendamento pode já ter começado. Verifique o estado e tente novamente.' });
+              return;
             }
+            trip.handleConfirmPaymentPress(paymentType)();
           },
         },
       ],
     });
-  }, [scheduledTow, showAlert, cancelScheduledTow, refreshScheduledTow]);
+  }, [scheduledTow, trip, showAlert, cancelScheduledTow, refreshScheduledTow, logger]);
+
+  const handleCancelScheduledTow = useCallback(async () => {
+    if (!scheduledTow) return;
+    try {
+      await cancelScheduledTow(scheduledTow._id);
+      setScheduledDetailsVisible(false);
+    } catch (error) {
+      refreshScheduledTow();
+      throw error;
+    }
+  }, [scheduledTow, cancelScheduledTow, refreshScheduledTow]);
 
   const handleConfirmButtonPress = useCallback(async (shouldSave) => {
     Keyboard.dismiss();
@@ -1328,6 +1371,7 @@ export const useMapScreen = () => {
       isSubmittingBooking: trip.isSubmittingBooking,
       scheduledFor: trip.tripData.scheduledFor,
       scheduledTow,
+      scheduledDetailsVisible,
       ridePrice,
       brand: trip.tripData.brand,
       model: trip.tripData.model,
@@ -1418,14 +1462,16 @@ export const useMapScreen = () => {
       handleLicenseInputValueChange,
       handleColorInputValueChange,
       handleConfirmButtonPress,
-      handleConfirmPaymentPress: trip.handleConfirmPaymentPress,
+      handleConfirmPaymentPress,
       handleScheduleChange,
       handleScheduledTowPress,
+      closeScheduledDetails,
+      handleCancelScheduledTow,
       handleMessageDriver,
       handleCallDriver,
       setUnreadMessageCount,
       handleCancelTrip: trip.handleCancelTrip,
-      handleCancelSearch: trip.handleCancelSearch,
+      handleCancelSearch,
       startTimer: trip.startTimer,
       resetTimer: trip.resetTimer,
       formatTime: trip.formatTime,

@@ -1,19 +1,15 @@
 import React, { memo } from "react";
-import {
-  Modal,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Image,
-} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Modal, View, StyleSheet, ScrollView, Image } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+import { AppHeader } from '../common/AppHeader';
+
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
-import { scale } from "react-native-size-matters";
 import RouteItem from "../cards/routeItem";
 import StarRating from "../cards/starRating";
-import { colors, spacing, borderRadius, shadows } from "../../theme";
+import { colors, spacing, borderRadius, shadows, typography, sizes, layout } from "../../theme";
 import {
   getStatusInfo,
   formatServiceDate,
@@ -25,6 +21,7 @@ import {
 const driverImgDef = "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
 
 const ServiceDetailModal = memo(({ visible, service, onClose }) => {
+  const insets = useSafeAreaInsets();
   if (!service) return null;
 
   const serviceData = service.service || service;
@@ -42,21 +39,16 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Detalhes do Serviço</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Icon name="close" size={scale(24)} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
+        <View style={[styles.modalContainer, { paddingBottom: insets.bottom }]}>
+          <AppHeader title="Detalhes do Serviço" leftIcon="close" leftLabel="Fechar detalhes do serviço"
+            onLeftPress={onClose} safeArea={false} />
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Status and Date */}
             <View style={styles.section}>
               <View style={styles.statusContainer}>
                 <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
-                  <Icon name={statusInfo.icon} size={scale(16)} color={statusInfo.color} />
+                  <Icon name={statusInfo.icon} size={sizes.icon} color={statusInfo.color} />
                   <Text style={[styles.statusText, { color: statusInfo.color }]}>
                     {statusInfo.text}
                   </Text>
@@ -77,7 +69,7 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Veículo</Text>
               <View style={styles.infoRow}>
-                <Icon name="directions-car" size={scale(20)} color={colors.primary} />
+                <Icon name="directions-car" size={sizes.icon} color={colors.primary} />
                 <View style={styles.infoContent}>
                   <Text style={styles.infoText}>{formatCarDetails(carData)}</Text>
                   {serviceData.type_car && (
@@ -120,7 +112,7 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Pagamento</Text>
               <View style={styles.infoRow}>
-                <Icon name="payments" size={scale(20)} color={colors.primary} />
+                <Icon name="payments" size={sizes.icon} color={colors.primary} />
                 <View style={styles.infoContent}>
                   <Text style={styles.priceText}>{price}</Text>
                   {serviceData.payment?.method && (
@@ -139,7 +131,7 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
                 <View style={styles.reviewContainer}>
                   {serviceData.review.rating && (
                     <View style={styles.ratingContainer}>
-                      <StarRating rating={serviceData.review.rating} size={scale(20)} readonly={true} />
+                      <StarRating rating={serviceData.review.rating} size={sizes.icon} readonly={true} />
                       <Text style={styles.ratingText}>{serviceData.review.rating}/5</Text>
                     </View>
                   )}
@@ -155,7 +147,7 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Reclamações</Text>
                 <View style={styles.complaintsContainer}>
-                  <Icon name="warning" size={scale(20)} color={colors.warning} />
+                  <Icon name="warning" size={sizes.icon} color={colors.warning} />
                   <Text style={styles.complaintsText}>
                     Este serviço possui reclamações registradas
                   </Text>
@@ -167,7 +159,7 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Identificação</Text>
               <View style={styles.infoRow}>
-                <Icon name="tag" size={scale(20)} color={colors.textSecondary} />
+                <Icon name="tag" size={sizes.icon} color={colors.textSecondary} />
                 <Text style={styles.serviceId}>ID: {serviceData._id}</Text>
               </View>
             </View>
@@ -177,12 +169,12 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
           <View style={styles.actions}>
             {serviceData.status === 'completed' && !serviceData.review?.rating && (
               <TouchableOpacity style={styles.actionButton}>
-                <Icon name="star" size={scale(20)} color={colors.surface} />
+                <Icon name="star" size={sizes.icon} color={colors.surface} />
                 <Text style={styles.actionButtonText}>Avaliar Serviço</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={[styles.actionButton, styles.supportButton]}>
-              <Icon name="support-agent" size={scale(20)} color={colors.primary} />
+              <Icon name="support-agent" size={sizes.icon} color={colors.primary} />
               <Text style={[styles.actionButtonText, styles.supportButtonText]}>
                 Contatar Suporte
               </Text>
@@ -197,14 +189,17 @@ const ServiceDetailModal = memo(({ visible, service, onClose }) => {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: colors.overlay,
     justifyContent: "flex-end",
   },
   modalContainer: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    minHeight: "70%",
+    borderTopLeftRadius: borderRadius.xxl,
+    borderTopRightRadius: borderRadius.xxl,
+    height: "85%",
+    width: "100%",
+    maxWidth: layout.sheetMaxWidth,
+    alignSelf: "center",
   },
   header: {
     flexDirection: "row",
@@ -216,12 +211,17 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.borderLight,
   },
   headerTitle: {
-    fontSize: scale(18),
-    fontWeight: "bold",
+    flex: 1,
+    ...typography.h3,
     color: colors.textPrimary,
   },
   closeButton: {
-    padding: spacing.xs,
+    width: sizes.control,
+    height: sizes.control,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -231,12 +231,13 @@ const styles = StyleSheet.create({
     marginVertical: spacing.lg,
   },
   sectionTitle: {
-    fontSize: scale(16),
-    fontWeight: "bold",
+    ...typography.body,
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   statusContainer: {
+    flexWrap: "wrap",
+    gap: spacing.sm,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -249,12 +250,11 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.xl,
   },
   statusText: {
-    fontSize: scale(14),
-    fontWeight: "600",
+    ...typography.bodySmall,
     marginLeft: spacing.xs,
   },
   dateText: {
-    fontSize: scale(14),
+    ...typography.bodySmall,
     color: colors.textSecondary,
   },
   routeContainer: {
@@ -271,14 +271,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoText: {
-    fontSize: scale(14),
+    ...typography.bodySmall,
     color: colors.textPrimary,
     fontWeight: "500",
   },
   infoSubText: {
-    fontSize: scale(12),
+    ...typography.caption,
     color: colors.textSecondary,
-    marginTop: scale(2),
+    marginTop: spacing.xs,
   },
   driverContainer: {
     flexDirection: "row",
@@ -288,48 +288,46 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   driverImage: {
-    width: scale(50),
-    height: scale(50),
-    borderRadius: scale(25),
+    width: sizes.illustration,
+    height: sizes.illustration,
+    borderRadius: borderRadius.full,
     marginRight: spacing.md,
   },
   driverInfo: {
     flex: 1,
   },
   driverName: {
-    fontSize: scale(16),
-    fontWeight: "bold",
+    ...typography.body,
     color: colors.textPrimary,
   },
   driverPhone: {
-    fontSize: scale(14),
+    ...typography.bodySmall,
     color: colors.textSecondary,
-    marginTop: scale(2),
+    marginTop: spacing.xs,
   },
   licensePlateContainer: {
+    flexWrap: "wrap",
     flexDirection: "row",
     alignItems: "center",
     marginTop: spacing.xs,
   },
   licensePlateLabel: {
-    fontSize: scale(12),
+    ...typography.caption,
     color: colors.textSecondary,
     marginRight: spacing.sm,
   },
   licensePlate: {
     backgroundColor: colors.borderLight,
     paddingHorizontal: spacing.sm,
-    paddingVertical: scale(4),
+    paddingVertical: spacing.xs,
     borderRadius: borderRadius.sm,
   },
   licensePlateText: {
-    fontSize: scale(12),
-    fontWeight: "bold",
+    ...typography.caption,
     color: colors.textPrimary,
   },
   priceText: {
-    fontSize: scale(18),
-    fontWeight: "bold",
+    ...typography.h3,
     color: colors.primary,
   },
   reviewContainer: {
@@ -344,12 +342,11 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     marginLeft: spacing.sm,
-    fontSize: scale(16),
-    fontWeight: "bold",
+    ...typography.body,
     color: colors.textPrimary,
   },
   reviewComment: {
-    fontSize: scale(14),
+    ...typography.bodySmall,
     color: colors.textSecondary,
     fontStyle: "italic",
   },
@@ -361,15 +358,16 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
   },
   complaintsText: {
+    flex: 1,
     marginLeft: spacing.sm,
-    fontSize: scale(14),
+    ...typography.bodySmall,
     color: colors.warning,
   },
   serviceId: {
-    fontSize: scale(12),
+    ...typography.caption,
     color: colors.textSecondary,
     marginLeft: spacing.md,
-    fontFamily: "monospace",
+    flexShrink: 1,
   },
   actions: {
     padding: spacing.xl,
@@ -377,6 +375,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.borderLight,
   },
   actionButton: {
+    minHeight: sizes.control,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -384,17 +383,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: borderRadius.sm,
     marginBottom: spacing.sm,
-    ...shadows.primaryGlow,
+    ...shadows.sm,
   },
   actionButtonText: {
     color: colors.surface,
-    fontSize: scale(16),
-    fontWeight: "600",
+    ...typography.body,
     marginLeft: spacing.sm,
   },
   supportButton: {
     backgroundColor: "transparent",
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.primary,
     shadowOpacity: 0,
     elevation: 0,

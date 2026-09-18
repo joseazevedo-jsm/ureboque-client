@@ -1,9 +1,12 @@
 import React from "react";
-import { View, TouchableOpacity, StyleSheet, Text, Image } from "react-native";
+import { View, StyleSheet, Image } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
-import { colors, shadows, spacing, borderRadius } from "../../theme";
+import { colors, shadows, spacing, borderRadius, typography, sizes } from "../../theme";
 import { TRIP_STATUS } from "../../constants/tripStatus";
 
 const imgDef =
@@ -46,7 +49,7 @@ const DriverItem = ({
         <View style={styles.actionsRow}>
           <TouchableOpacity onPress={onCallDriver}>
             <View style={styles.circle}>
-              <Icon name="add-call" size={scale(15)} color={colors.surface} />
+              <Icon name="add-call" size={sizes.iconSmall} color={colors.surface} />
             </View>
           </TouchableOpacity>
           <View style={styles.driverAvatarContainer}>
@@ -58,7 +61,7 @@ const DriverItem = ({
           </View>
           <TouchableOpacity onPress={onMessageDriver}>
             <View style={styles.circle}>
-              <Icon name="message" size={scale(15)} color={colors.surface} />
+              <Icon name="message" size={sizes.iconSmall} color={colors.surface} />
               {unreadMessageCount > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{unreadMessageCount}</Text>
@@ -81,7 +84,7 @@ const styles = StyleSheet.create({
   },
   carName: {
     color: colors.textPrimary,
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: "bold",
   },
   plateBadge: {
@@ -89,10 +92,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.sm,
-    paddingVertical: scale(3),
+    paddingVertical: spacing.xs,
   },
   plateText: {
-    fontSize: scale(10),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.surface,
     fontWeight: "bold",
   },
@@ -107,19 +110,19 @@ const styles = StyleSheet.create({
   driverPhoto: {
     width: scale(75),
     height: scale(75),
-    borderRadius: scale(45),
+    borderRadius: borderRadius.full,
     borderWidth: 3,
     borderColor: colors.primary,
   },
   driverName: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     marginTop: spacing.xs,
     color: colors.textMuted,
   },
   mainText: {
     color: colors.textPrimary,
-    fontSize: scale(18),
-    fontWeight: "800",
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
+    fontWeight: "700",
     marginBottom: spacing.sm,
     marginTop: spacing.xs,
   },
@@ -140,7 +143,7 @@ const styles = StyleSheet.create({
     top: scale(-2),
     right: scale(-2),
     backgroundColor: colors.error,
-    borderRadius: scale(10),
+    borderRadius: borderRadius.md,
     minWidth: scale(18),
     height: scale(18),
     justifyContent: "center",
@@ -150,7 +153,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: colors.surface,
-    fontSize: scale(10),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: "bold",
     textAlign: "center",
   },

@@ -1,6 +1,8 @@
 import React, { memo, useCallback } from "react";
-import { Image, StyleSheet, Text, View, TouchableOpacity } from "react-native";
-import { scale } from "react-native-size-matters";
+import { Image, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+
 import Animated, {
   FadeInRight,
   useSharedValue,
@@ -9,10 +11,10 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { colors, spacing, shadows, fontWeights, animations } from "../../theme";
+import { colors, spacing, borderRadius, shadows, typography, sizes, animations } from "../../theme";
 
-const CARD_WIDTH = scale(155);
-const CARD_HEIGHT = scale(100);
+// A compact destination card uses the same content rhythm as saved places.
+const CARD_WIDTH = sizes.placeCardWidth;
 
 const CardSpots = memo(
   ({
@@ -60,7 +62,9 @@ const CardSpots = memo(
           .stiffness(180)}
       >
         <TouchableOpacity
-          activeOpacity={1}
+          accessibilityRole="button"
+          accessibilityLabel={title}
+          activeOpacity={0.8}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           onPress={handlePress}
@@ -81,11 +85,11 @@ const CardSpots = memo(
             ) : null}
 
             <View style={styles.textContainer}>
-              <Text style={styles.title} numberOfLines={1}>
+              <Text style={styles.title}>
                 {title}
               </Text>
               {description ? (
-                <Text style={styles.description} numberOfLines={2}>
+                <Text style={styles.description}>
                   {description}
                 </Text>
               ) : null}
@@ -100,43 +104,39 @@ const CardSpots = memo(
 const styles = StyleSheet.create({
   cardContainer: {
     width: CARD_WIDTH,
-    height: CARD_HEIGHT,
+    minHeight: sizes.placeCardMinHeight,
     backgroundColor: colors.surface,
-    borderRadius: scale(14),
+    borderRadius: borderRadius.lg,
     marginRight: spacing.md,
-    marginBottom: scale(6),
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    overflow: "hidden",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.sm,
-    ...shadows.md,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    padding: spacing.md,
+    ...shadows.sm,
   },
   addCardContainer: {
     backgroundColor: colors.surface,
     borderColor: colors.borderLight,
   },
   icon: {
-    width: scale(50),
-    height: scale(50),
-    marginRight: spacing.sm,
+    width: sizes.illustration,
+    height: sizes.illustration,
+    marginBottom: spacing.sm,
   },
   textContainer: {
-    flex: 1,
+    width: "100%",
   },
   title: {
-    fontSize: scale(13),
-    fontWeight: "700",
+    ...typography.label,
     color: colors.textPrimary,
     letterSpacing: -0.2,
   },
   description: {
-    fontSize: scale(11),
-    fontWeight: fontWeights.light,
+    ...typography.caption,
     color: colors.textSecondary,
-    marginTop: scale(3),
-    lineHeight: scale(15),
+    marginTop: spacing.xs,
   },
 });
 

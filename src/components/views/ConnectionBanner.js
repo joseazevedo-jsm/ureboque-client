@@ -1,8 +1,10 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+
 import { scale } from "react-native-size-matters";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useSocket } from "../../context/SocketContext";
-import { colors, spacing, borderRadius } from "../../theme";
+import { colors, spacing, borderRadius, typography } from "../../theme";
 
 /**
  * Shown while the realtime connection is down.
@@ -33,14 +35,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.warningLight,
     borderRadius: borderRadius.md,
-    paddingVertical: scale(10),
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.md,
   },
   text: {
     flex: 1,
     marginLeft: spacing.sm,
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: "600",
     color: colors.textPrimary,
   },

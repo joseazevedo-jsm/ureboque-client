@@ -1,11 +1,22 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors } from '../theme';
 
 export const BACKGROUND_LOCATION_TASK = 'ureboque-background-location';
 const LAST_BACKGROUND_LOCATION_KEY = 'ureboque:last-background-location';
 
+// Background task name used by older app versions. Android keeps a registered
+// task across updates, so it kept waking the app in a second JS runtime that
+// had no handler for it — and that runtime could knock the trip sheet off the
+// screen. Unregister it once so it never fires again.
+const LEGACY_LOCATION_TASK = 'LOCATION_TASK';
+
 let locationSink = null;
+
+TaskManager.isTaskRegisteredAsync(LEGACY_LOCATION_TASK)
+  .then((registered) => registered && TaskManager.unregisterTaskAsync(LEGACY_LOCATION_TASK))
+  .catch(() => {});
 
 if (!TaskManager.isTaskDefined(BACKGROUND_LOCATION_TASK)) {
   TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
@@ -47,7 +58,7 @@ export const startBackgroundLocation = async () => {
       foregroundService: {
         notificationTitle: 'Reboque em andamento',
         notificationBody: 'A localização está a ser atualizada para acompanhar o serviço.',
-        notificationColor: '#E53935',
+        notificationColor: colors.error,
       },
     });
   }

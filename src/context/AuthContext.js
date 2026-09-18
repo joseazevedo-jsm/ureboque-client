@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLogger } from '../hooks/useLogger';
 import sentryService from '../services/SentryService';
 import AuthEventService from '../services/AuthEventService';
+import api from '../services/APIService';
+import { unregisterPushToken } from '../services/pushRegistration';
  
 const AuthContext = createContext();
 
@@ -91,6 +93,7 @@ export const AuthProvider = ({ children }) => {
       logger.logStateChange('isLoading', false, true, 'logout_started');
       
       if (!mountedRef.current || operationId !== authOperationRef.current) return;
+      await unregisterPushToken(api);
       setUserToken(null);
       setIsAuthenticated(false);
       logger.logStateChange('isAuthenticated', true, false, 'logout_success');

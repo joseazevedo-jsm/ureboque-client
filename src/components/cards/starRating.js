@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";

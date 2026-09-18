@@ -1,14 +1,10 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState } from "react";
-import {
-  ActivityIndicator,
-  View,
-  Image,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-} from "react-native";
+import { ActivityIndicator, View, Image, StyleSheet, ScrollView } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+import { AppHeader } from '../components/common/AppHeader';
+
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -18,7 +14,7 @@ import { useLogger } from "../hooks/useLogger";
 import { extractCountryCode, extractPhoneNumber } from "../utils/phoneUtils";
 import OTPModal from "../components/modals/OTP/OTPModal";
 import KeyboardAvoidingWrapper from "../components/common/KeyboardAvoidingWrapper";
-import { colors, spacing, shadows, borderRadius } from "../theme";
+import { colors, spacing, shadows, borderRadius, sizes, layout, typography } from "../theme";
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAlert } from "../context/AlertContext";
 import VehiclesModal from "../components/vehicles/VehiclesModal";
@@ -33,6 +29,7 @@ import leaveIcon from "../../resources/icons/profile_settings/leave.png";
 import optionsIcon from "../../resources/icons/profile_settings/options.png";
 
 const ProfileScreen = () => {
+  const insets = useSafeAreaInsets();
   const logger = useLogger('ProfileScreen', {
     enableLifecycleLogging: true,
     logProps: true
@@ -54,24 +51,12 @@ const ProfileScreen = () => {
   });
 
   return (
-    <KeyboardAvoidingWrapper style={styles.container}>
-      {/* Header */}
-      <Animated.View style={styles.headerContainer} entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => {
-            logger.logUserInteraction('menu_button_pressed', { from: 'ProfileScreen' });
-            navigation.openDrawer();
-          }}
-        >
-          <Icon name="menu" size={scale(22)} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>PERFIL</Text>
-
-        <View style={{
-          paddingHorizontal: spacing.lg,
-        }} />
-      </Animated.View>
+    <KeyboardAvoidingWrapper style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <AppHeader title="PERFIL" leftIcon="menu" leftLabel="Abrir menu"
+        onLeftPress={() => {
+          logger.logUserInteraction('menu_button_pressed', { from: 'ProfileScreen' });
+          navigation.openDrawer();
+        }} style={styles.headerContainer} />
 
       <ScrollView style={styles.contentContainer} contentContainerStyle={styles.contentContainerInner} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* Profile Image Section */}
@@ -185,7 +170,7 @@ const ProfileScreen = () => {
             { icon: 'accessibility', label: 'Acessibilidade', onPress: () => setAccessibilityModalVisible(true) },
           ].map((item) => (
             <TouchableOpacity key={item.label} style={[styles.actionItem, styles.actionItemSpaced]} onPress={item.onPress} activeOpacity={0.7}>
-              <Icon name={item.icon} size={scale(22)} color={colors.primary} style={styles.actionIconMaterial} />
+              <Icon name={item.icon} size={sizes.icon} color={colors.primary} style={styles.actionIconMaterial} />
               <Text style={styles.actionText}>{item.label}</Text>
               <Icon name="arrow-forward-ios" size={scale(16)} style={styles.actionArrow} />
             </TouchableOpacity>
@@ -232,31 +217,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerContainer: {
-    paddingTop: spacing.headerHeight,
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.xxl,
-    backgroundColor: 'transparent',
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  backButton: {
-    padding: spacing.sm,
-    borderRadius: borderRadius.xxl,
-    backgroundColor: colors.surface,
-    ...shadows.sm,
-  },
-  headerText: {
-    fontWeight: "800",
-    fontSize: scale(18),
-    color: colors.textPrimary,
-    letterSpacing: 0.5,
+    maxWidth: layout.formMaxWidth,
+    alignSelf: "center",
   },
   contentContainer: {
     flex: 1,
-    paddingHorizontal: spacing.xxl,
   },
   contentContainerInner: {
+    paddingHorizontal: spacing.xl,
+    width: "100%",
+    maxWidth: layout.formMaxWidth,
+    alignSelf: "center",
     paddingBottom: spacing.xxxl,
   },
   profileSection: {
@@ -274,18 +245,18 @@ const styles = StyleSheet.create({
   profileImage: {
     width: "100%",
     height: "100%",
-    borderRadius: scale(46),
+    borderRadius: borderRadius.full,
   },
   editIconContainer: {
+    width: sizes.control,
+    height: sizes.control,
+    justifyContent: "center",
+    alignItems: "center",
     position: "absolute",
     bottom: 0,
     right: 0,
     backgroundColor: colors.primary,
     borderRadius: borderRadius.xxl,
-    width: scale(36),
-    height: scale(36),
-    justifyContent: "center",
-    alignItems: "center",
     borderWidth: 3,
     borderColor: colors.surface,
     ...shadows.md,
@@ -294,7 +265,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxl,
   },
   sectionTitle: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '700',
     color: colors.textSecondary,
     marginBottom: spacing.lg,
@@ -305,15 +276,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   inputLabel: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: '600',
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   textInput: {
-    fontSize: scale(15),
+    minHeight: sizes.control,
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textPrimary,
-    paddingVertical: scale(14),
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
@@ -332,6 +304,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputWithIcon: {
+    minHeight: sizes.control,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.surface,
@@ -339,7 +312,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: spacing.lg,
-    paddingVertical: scale(2),
+    paddingVertical: spacing.xs,
     ...shadows.sm,
   },
   icon_small: {
@@ -350,11 +323,12 @@ const styles = StyleSheet.create({
   },
   textInputInContainer: {
     flex: 1,
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textPrimary,
     paddingVertical: spacing.md,
   },
   saveButton: {
+    minHeight: sizes.control,
     backgroundColor: colors.primary,
     paddingVertical: spacing.lg,
     borderRadius: borderRadius.xl,
@@ -369,12 +343,12 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: colors.surface,
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "700",
     letterSpacing: 0.5,
   },
   actionSection: {
-    marginBottom: scale(40),
+    marginBottom: spacing.jumbo,
   },
   actionItem: {
     flexDirection: "row",
@@ -395,7 +369,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     flex: 1,
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '600',
     color: colors.textPrimary,
   },

@@ -1,20 +1,17 @@
 import React from "react";
-import {
-  FlatList,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { scale } from "react-native-size-matters";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { FlatList, Modal, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '../../common/AppText';
+import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
+import { AppHeader } from '../../common/AppHeader';
+
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import PlaceSavedItem from "../../cards/placeSavedItem";
 import { useSavedPlacesModal } from "./components/useSavedPlacesModal.js";
 import AddressModal from "./AddressModal";
 import { useLogger } from "../../../hooks/useLogger";
-import { colors, borderRadius, shadows, spacing } from "../../../theme";
+import { colors, spacing, borderRadius, shadows, typography, sizes, layout } from "../../../theme";
 
 import { ICON_ADD, getPlaceIcon } from "../../../assets/icons";
 
@@ -24,6 +21,7 @@ const SavedPlacesModal = ({
   addressCallBack,
   mapDrag,
 }) => {
+  const insets = useSafeAreaInsets();
   const logger = useLogger("SavedPlacesModal");
   const { models, operations } = useSavedPlacesModal();
   logger.debug("Modal props received", { addressCallBack, mapDrag });
@@ -78,33 +76,12 @@ const SavedPlacesModal = ({
           activeOpacity={1}
           onPress={closeModal}
         >
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { paddingBottom: insets.bottom }]}>
             <TouchableOpacity activeOpacity={1} style={styles.contentWrapper}>
-              {/* Header */}
-              <View style={styles.header}>
-                <TouchableOpacity
-                  style={styles.circleButton}
-                  onPress={closeModal}
-                  accessibilityLabel="Fechar"
-                  accessibilityRole="button"
-                >
-                  <Icon name="close" size={scale(20)} color={colors.textPrimary} />
-                </TouchableOpacity>
-
-                <View style={styles.headerCenter}>
-                  <Text style={styles.title}>Lugares Salvos</Text>
-                  <Text style={styles.subtitle}>Acelere o pedido de reboques.</Text>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.circleButton}
-                  onPress={operations.handleEditPress}
-                  accessibilityLabel="Editar lugares"
-                  accessibilityRole="button"
-                >
-                  <Icon name="edit" size={scale(20)} color={colors.primary} />
-                </TouchableOpacity>
-              </View>
+              <AppHeader title="Lugares Salvos" subtitle="Acelere o pedido de reboques."
+                leftIcon="close" leftLabel="Fechar lugares salvos" onLeftPress={closeModal}
+                rightIcon={models.edit ? 'done' : 'edit'} rightLabel={models.edit ? 'Concluir edição' : 'Editar lugares'}
+                rightSelected={models.edit} onRightPress={operations.handleEditPress} safeArea={false} />
 
               {/* List */}
               <View style={styles.listContainer}>
@@ -141,7 +118,7 @@ const SavedPlacesModal = ({
         onGoHomePress={closeModal}
         type={models.type}
         button={models.button}
-        address={addressCallBack.city ? addressCallBack.city : models.address}
+        address={addressCallBack?.city ? addressCallBack.city : models.address}
         name={models.name}
         instructions={models.instructions}
         placeId={models.placeId}
@@ -161,14 +138,17 @@ const SavedPlacesModal = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: colors.overlay,
     justifyContent: "flex-end",
   },
   modalContent: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: scale(25),
-    borderTopRightRadius: scale(25),
+    borderTopLeftRadius: borderRadius.xxl,
+    borderTopRightRadius: borderRadius.xxl,
     height: "85%",
+    width: "100%",
+    maxWidth: layout.sheetMaxWidth,
+    alignSelf: "center",
     ...shadows.lg,
   },
   contentWrapper: {
@@ -183,9 +163,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   circleButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(20),
+    width: sizes.control,
+    height: sizes.control,
+    borderRadius: borderRadius.full,
     backgroundColor: colors.surface,
     justifyContent: "center",
     alignItems: "center",
@@ -197,14 +177,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   title: {
-    fontSize: scale(18),
-    fontWeight: "800",
+    ...typography.h3,
     color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: scale(13),
+    ...typography.caption,
     color: colors.textSecondary,
-    marginTop: scale(2),
+    marginTop: spacing.xs,
     textAlign: "center",
   },
   listContainer: {

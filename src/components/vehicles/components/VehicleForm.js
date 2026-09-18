@@ -1,12 +1,17 @@
 import React from 'react';
-import { View, Text, TextInput, Switch, StyleSheet, ScrollView } from 'react-native';
+import { View, Switch, StyleSheet, ScrollView } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../common/AppText';
+import { AppHeader } from '../../common/AppHeader';
+import { AppField } from '../../common/AppField';
+import { AppButton } from '../../common/AppButton';
+
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { scale } from 'react-native-size-matters';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 const Icon = MaterialIcons;
 import * as Haptics from 'expo-haptics';
 import { ScalePressable } from '../../common/ScalePressable';
-import { colors, shadows, borderRadius, spacing } from '../../../theme';
+import { componentStyles, sizes, colors, shadows, borderRadius, spacing, typography } from "../../../theme";
 import { useAlert } from '../../../context/AlertContext';
 
 const FIELDS = [
@@ -78,29 +83,17 @@ const VehicleForm = ({ state, updateCurrentVehicle, saveVehicle, deleteVehicle, 
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <ScalePressable style={styles.closeButton} onPress={onClose}>
-          <Icon name="close" size={scale(22)} color={colors.textPrimary} />
-        </ScalePressable>
-        {isEdit && (
-          <ScalePressable style={styles.deleteButton} onPress={handleDelete}>
-            <Text style={styles.deleteText}>Apagar</Text>
-          </ScalePressable>
-        )}
-      </View>
+      <AppHeader title={isEdit ? 'Editar veículo' : 'Novo veículo'} subtitle="Preencha os dados do veículo."
+        leftIcon="close" leftLabel="Fechar veículo" onLeftPress={onClose}
+        rightIcon={isEdit ? 'delete-outline' : undefined} rightLabel="Apagar veículo"
+        rightColor={colors.error} onRightPress={handleDelete} />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <Text style={styles.title}>{isEdit ? 'EDITAR' : 'NOVO'} VEÍCULO</Text>
-        </Animated.View>
-
         <View style={styles.grid}>
           {FIELDS.map((field, index) => (
             <Animated.View key={field.key} entering={FadeInDown.delay(150 + index * 50).springify()} style={styles.gridItem}>
-              <Text style={styles.fieldLabel}>{field.label}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={field.placeholder}
+              <AppField label={field.label} placeholder={field.placeholder}
+                error={field.key === 'license' && licenseInvalid ? 'Use 5 a 9 letras, números ou hífen' : undefined}
                 placeholderTextColor={colors.textMuted}
                 value={currentVehicle[field.key]}
                 onChangeText={(text) => updateCurrentVehicle(field.key, text)}
@@ -122,26 +115,13 @@ const VehicleForm = ({ state, updateCurrentVehicle, saveVehicle, deleteVehicle, 
         {currentVehicle.isDefault && (
           <Text style={styles.switchHint}>Este veículo será pré-preenchido automaticamente ao solicitar um reboque.</Text>
         )}
-        {licenseInvalid ? (
-          <Text style={styles.formError}>
-            A matrícula deve ter entre 5 e 9 caracteres (letras, números e hífen)
-          </Text>
-        ) : null}
         {hasStarted && missingFields.length > 0 ? (
           <Text style={styles.formError}>{`Preencha ${missingFields.join(', ')} para guardar`}</Text>
         ) : null}
       </ScrollView>
 
       <Animated.View entering={FadeInUp.delay(400).springify()} style={styles.footer}>
-        <ScalePressable
-          style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={state.isLoading || !canSave}
-        >
-          <Text style={styles.saveButtonText}>
-            {state.isLoading ? 'A GUARDAR...' : 'GUARDAR'}
-          </Text>
-        </ScalePressable>
+        <AppButton onPress={handleSave} loading={state.isLoading} disabled={!canSave}>GUARDAR</AppButton>
       </Animated.View>
     </View>
   );
@@ -149,49 +129,10 @@ const VehicleForm = ({ state, updateCurrentVehicle, saveVehicle, deleteVehicle, 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing.modalSafeTop,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  closeButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.sm,
-  },
-  deleteButton: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
-  deleteText: { fontWeight: '600', color: colors.error, fontSize: scale(14) },
   scroll: { flex: 1, paddingHorizontal: spacing.xl },
-  title: {
-    fontSize: scale(18),
-    fontWeight: '700',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: spacing.xxl,
-    letterSpacing: 0.5,
-  },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  gridItem: { width: '48%' },
-  formError: { color: colors.error, fontSize: scale(13), marginTop: scale(6), marginLeft: scale(4) },
-  fieldLabel: { fontSize: scale(13), fontWeight: '600', color: colors.textSecondary, marginBottom: spacing.xs },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: scale(15),
-    color: colors.textPrimary,
-    ...shadows.sm,
-  },
+  grid: { gap: spacing.lg },
+  gridItem: { width: '100%' },
+  formError: { color: colors.error, fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight, marginTop: spacing.xs, marginLeft: spacing.xs },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -202,18 +143,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     ...shadows.sm,
   },
-  switchLabel: { fontSize: scale(15), fontWeight: '600', color: colors.textPrimary },
-  switchHint: { fontSize: scale(12), color: colors.textMuted, marginTop: spacing.sm, marginHorizontal: spacing.xs },
+  switchLabel: { fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight, fontWeight: '600', color: colors.textPrimary },
+  switchHint: { fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight, color: colors.textMuted, marginTop: spacing.sm, marginHorizontal: spacing.xs },
   footer: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl, paddingTop: spacing.md },
-  saveButton: {
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.xl,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-    ...shadows.primaryGlow,
-  },
-  saveButtonDisabled: { backgroundColor: colors.textDisabled, shadowOpacity: 0, elevation: 0 },
-  saveButtonText: { color: colors.surface, fontWeight: '700', fontSize: scale(15), letterSpacing: 0.5 },
 });
 
 export default VehicleForm;

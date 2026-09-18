@@ -1,10 +1,13 @@
 import React from "react";
-import { View, StyleSheet, Text, TouchableOpacity, FlatList } from "react-native";
+import { View, StyleSheet, FlatList } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
 import CardSpots from "../cards/cardSpots";
-import { colors, spacing, borderRadius, shadows } from "../../theme";
+import { colors, spacing, borderRadius, borderWidths, shadows, typography, sizes } from "../../theme";
 
 import { getPlaceIcon } from "../../assets/icons";
 
@@ -52,7 +55,7 @@ const PlaceSearch = ({ favPlaces, handleMapSearchBarPress, handleAddFavouriteBut
         activeOpacity={0.8}
       >
         <View style={styles.searchLeft}>
-          <Icon name="search" size={scale(18)} color={colors.primary} />
+          <Icon name="search" size={sizes.icon} color={colors.primary} />
           <Text style={styles.searchText}>Para onde está indo?</Text>
         </View>
         <View style={styles.pillDivider} />
@@ -74,12 +77,12 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   headerTitle: {
-    fontSize: scale(16),
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
     fontWeight: "700",
     color: colors.textPrimary,
   },
   seeAll: {
-    fontSize: scale(14),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.primary,
     fontWeight: "600",
   },
@@ -93,18 +96,14 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
-    height: scale(52),
+    minHeight: sizes.control,
     borderRadius: borderRadius.full,
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: borderWidths.thin,
     borderColor: colors.borderLight,
     paddingLeft: spacing.lg,
     paddingRight: spacing.sm,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
-    elevation: 10,
+    ...shadows.md,
   },
   searchLeft: {
     flex: 1,
@@ -113,11 +112,11 @@ const styles = StyleSheet.create({
   },
   searchText: {
     marginLeft: spacing.sm,
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     color: colors.textMuted,
   },
   pillDivider: {
-    width: 1,
+    width: borderWidths.thin,
     height: scale(24),
     backgroundColor: colors.borderLight,
     marginHorizontal: spacing.sm,
@@ -125,7 +124,7 @@ const styles = StyleSheet.create({
   searchArrow: {
     width: scale(34),
     height: scale(34),
-    borderRadius: scale(17),
+    borderRadius: borderRadius.lg,
     backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",

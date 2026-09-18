@@ -1,19 +1,17 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Linking,
-} from "react-native";
+import { View, StyleSheet, ScrollView, Linking } from 'react-native';
+import { AppText as Text } from '../components/common/AppText';
+import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
+import { AppHeader } from '../components/common/AppHeader';
+
 import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useAlert } from "../context/AlertContext";
-import { colors, spacing, borderRadius, shadows, typography } from "../theme";
+import { colors, spacing, borderRadius, borderWidths, shadows, typography, sizes, layout } from "../theme";
 
 const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL || "suporte@ureboque.com";
 const SUPPORT_PHONE = process.env.EXPO_PUBLIC_SUPPORT_PHONE || "";
@@ -45,7 +43,7 @@ const ContactOption = ({ icon, title, subtitle, label, onPress, disabled }) => (
     activeOpacity={0.75}
   >
     <View style={[styles.contactIcon, disabled && styles.contactIconDisabled]}>
-      <Icon name={icon} size={scale(21)} color={disabled ? colors.textMuted : colors.primary} />
+      <Icon name={icon} size={sizes.icon} color={disabled ? colors.textMuted : colors.primary} />
     </View>
     <View style={styles.contactCopy}>
       <Text style={[styles.contactTitle, disabled && styles.mutedText]}>{title}</Text>
@@ -56,6 +54,7 @@ const ContactOption = ({ icon, title, subtitle, label, onPress, disabled }) => (
 );
 
 const ComplaintsScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { showAlert } = useAlert();
 
@@ -121,21 +120,9 @@ const ComplaintsScreen = () => {
   const hasPhone = isConfiguredPhone(SUPPORT_PHONE || SUPPORT_WHATSAPP_PHONE);
 
   return (
-    <View style={styles.container}>
-      <Animated.View
-        style={styles.header}
-        entering={FadeInDown.delay(0).springify().damping(28).stiffness(180)}
-      >
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => navigation.openDrawer()}
-          activeOpacity={0.7}
-        >
-          <Icon name="menu" size={scale(22)} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>RECLAMAÇÕES</Text>
-        <View style={styles.headerSpacer} />
-      </Animated.View>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <AppHeader title="RECLAMAÇÕES" leftIcon="menu" leftLabel="Abrir menu"
+        onLeftPress={() => navigation.openDrawer()} style={styles.header} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -146,7 +133,7 @@ const ComplaintsScreen = () => {
           entering={FadeInDown.delay(60).springify().damping(28).stiffness(180)}
         >
           <View style={styles.summaryIcon}>
-            <Icon name="support-agent" size={scale(28)} color={colors.primary} />
+            <Icon name="support-agent" size={sizes.iconLarge} color={colors.primary} />
           </View>
           <Text style={styles.summaryTitle}>Fale com a equipa Ureboque</Text>
           <Text style={styles.summaryText}>
@@ -208,34 +195,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: spacing.headerHeight,
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.xxl,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  menuButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: borderRadius.xxl,
-    backgroundColor: colors.surface,
-    justifyContent: "center",
-    alignItems: "center",
-    ...shadows.sm,
-  },
-  headerSpacer: {
-    width: scale(40),
-    height: scale(40),
-  },
-  headerTitle: {
-    fontSize: scale(17),
-    fontWeight: "800",
-    color: colors.textPrimary,
-    letterSpacing: 0.5,
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
   },
   scrollContent: {
-    paddingHorizontal: spacing.xxl,
+    width: "100%",
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: "center",
+    paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xxxl,
   },
@@ -259,17 +226,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   summaryTitle: {
-    fontSize: scale(18),
-    fontWeight: "800",
+    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
+    fontWeight: "700",
     color: colors.textPrimary,
     textAlign: "center",
     marginBottom: spacing.sm,
   },
   summaryText: {
-    fontSize: scale(13),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
     textAlign: "center",
-    lineHeight: scale(19),
+    lineHeight: 20,
   },
   section: {
     marginBottom: spacing.xxl,
@@ -312,17 +279,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contactTitle: {
-    fontSize: scale(15),
+    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: "700",
     color: colors.textPrimary,
   },
   contactSubtitle: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textMuted,
-    marginTop: scale(2),
+    marginTop: spacing.xs,
   },
   contactLabel: {
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     fontWeight: "700",
     color: colors.primary,
   },
@@ -330,7 +297,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   divider: {
-    height: 1,
+    height: borderWidths.thin,
     backgroundColor: colors.borderLight,
     marginLeft: scale(68),
   },
@@ -344,9 +311,9 @@ const styles = StyleSheet.create({
   },
   noteText: {
     flex: 1,
-    fontSize: scale(12),
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
-    lineHeight: scale(18),
+    lineHeight: 20,
   },
 });
 

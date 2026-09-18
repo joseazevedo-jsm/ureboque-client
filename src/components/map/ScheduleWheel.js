@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from 'react-native';
+import { AppText as Text } from '../common/AppText';
+
 // Gesture-handler ScrollView: inside a bottom sheet a core ScrollView never
 // receives vertical drags, the sheet's pan gesture takes them first.
 import { ScrollView } from "react-native-gesture-handler";
 import { LinearGradient } from "expo-linear-gradient";
 import { scale } from "react-native-size-matters";
-import { colors, borderRadius } from "../../theme";
+import { spacing, colors, borderRadius, typography } from "../../theme";
 import { MINUTE_STEP, earliestSlot, isBookable, scheduleDays } from "../../utils/scheduling";
 
 const ROW = scale(34);
@@ -72,8 +74,8 @@ const ScheduleWheel = ({ value, onChange }) => {
       <Column flex={1} items={HOURS} index={hourIndex} onSelect={(i) => select(dayIndex, i, minuteIndex)} />
       <Text style={styles.colon}>:</Text>
       <Column flex={1} items={MINUTES} index={minuteIndex} onSelect={(i) => select(dayIndex, hourIndex, i)} />
-      <LinearGradient pointerEvents="none" colors={["#FFFFFF", "rgba(255,255,255,0)"]} style={[styles.fade, { top: 0 }]} />
-      <LinearGradient pointerEvents="none" colors={["rgba(255,255,255,0)", "#FFFFFF"]} style={[styles.fade, { bottom: 0 }]} />
+      <LinearGradient pointerEvents="none" colors={[colors.surface, colors.transparent]} style={[styles.fade, { top: 0 }]} />
+      <LinearGradient pointerEvents="none" colors={[colors.transparent, colors.surface]} style={[styles.fade, { bottom: 0 }]} />
     </View>
   );
 };
@@ -83,8 +85,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     height: ROW * VISIBLE,
-    marginHorizontal: scale(10),
-    marginBottom: scale(10),
+    marginHorizontal: spacing.sm,
+    marginBottom: spacing.sm,
   },
   band: {
     position: "absolute",
@@ -96,9 +98,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
   },
   row: { height: ROW, alignItems: "center", justifyContent: "center" },
-  item: { fontSize: scale(14), color: colors.textSecondary, fontVariant: ["tabular-nums"] },
-  itemSelected: { fontSize: scale(17), fontWeight: "700", color: colors.primary },
-  colon: { width: scale(10), textAlign: "center", fontSize: scale(17), fontWeight: "700", color: colors.primary },
+  item: { fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight, color: colors.textSecondary, fontVariant: ["tabular-nums"] },
+  itemSelected: { fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight, fontWeight: "700", color: colors.primary },
+  colon: { width: scale(10), textAlign: "center", fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight, fontWeight: "700", color: colors.primary },
   fade: { position: "absolute", left: 0, right: 0, height: ROW * 0.8 },
 });
 
