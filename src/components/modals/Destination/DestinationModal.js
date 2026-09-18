@@ -178,30 +178,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop: spacing.modalSafeTop,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  closeButton: {
-    width: scale(36),
-    height: scale(36),
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
-    ...shadows.sm,
-  },
-  headerTitle: {
-    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    letterSpacing: 0.5,
   },
   inputsGroup: {
     backgroundColor: colors.surface,
