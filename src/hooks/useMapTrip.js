@@ -850,10 +850,30 @@ export const useMapTrip = ({
   useEffect(() => { handleSearchTimeoutRef.current = handleSearchTimeout; });
   useEffect(() => { timerRef.current = timer; }, [timer]);
 
+  // Reads the time left from the server's searchDeadline on every tick rather
+  // than subtracting a second per tick: Android pauses JS timers while the app
+  // is in the background, so a per-tick countdown came back from another app
+  // minutes behind (showing 04:47 left of a search that had one minute left).
+  // The deadline is only trusted inside the window it describes, the same
+  // clock-skew guard the snapshot handler uses; otherwise, and for the short
+  // re-check after the search window, it counts toward a local end time.
   useEffect(() => {
     if (!isActive) return;
+    let endAt = Date.now() + timerRef.current * 1000;
+    let lastWritten = timerRef.current;
     const interval = setInterval(() => {
-      const next = Math.max(timerRef.current - 1, 0);
+      // Set from outside since the last tick (a server snapshot, a retry):
+      // count from the new value.
+      if (timerRef.current !== lastWritten) endAt = Date.now() + timerRef.current * 1000;
+      const service = tripDataRef.current.service;
+      const maximum = service?.scheduledFor ? SCHEDULED_SEARCH_MAX_S : DEFAULT_TIMER_DURATION;
+      const fromServer = service?.searchDeadline
+        ? Math.ceil((new Date(service.searchDeadline).getTime() - Date.now()) / 1000)
+        : null;
+      const next = fromServer != null && fromServer > 0 && fromServer <= maximum
+        ? fromServer
+        : Math.max(Math.ceil((endAt - Date.now()) / 1000), 0);
+      lastWritten = next;
       timerRef.current = next;
       setTimer(next);
       if (next === 0) {
