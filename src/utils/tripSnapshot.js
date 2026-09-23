@@ -15,7 +15,7 @@ export const reduceTripSnapshot = (current, service) => {
     photo: service.driver?.user_photo_url,
     phone: service.driver?.phone,
     car: {
-      name: [service.car.brand, service.car.model, service.car.color].filter(Boolean).join(' '),
+      name: [service.car.brand, service.car.model].filter(Boolean).join(' '),
       ...service.car,
     },
   } : null);
