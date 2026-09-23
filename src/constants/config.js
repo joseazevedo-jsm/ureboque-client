@@ -9,7 +9,9 @@ export const DRIVER_ARRIVAL_THRESHOLD_KM = 0.3;
 export const DRIVER_MOVE_THRESHOLD_M = 10;
 
 // Timers
-export const SEARCH_TIMER_DURATION_S = 180;
+// How long a tow requested now searches for a driver. Matches the API's
+// service.searchWindowMs (5 min).
+export const SEARCH_TIMER_DURATION_S = 300;
 
 // Caches
 export const GEOCODE_CACHE_MAX = 50;

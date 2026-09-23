@@ -207,7 +207,7 @@ export const useMapTrip = ({
     }));
   }, [showAlert, presentBottomSheet, resetTimer, onResetRef, setOriginCity, setDestinationCity, setMapMarkers, tripData.service?._id, tripData.driverConnected, tripData.status]);
 
-  // The 180s countdown is only a local estimate — its expiry must reconcile
+  // The search countdown is only a local estimate — its expiry must reconcile
   // with the server before declaring "no driver" (fixing: a slow-but-alive
   // match, or a driver that connected right as the timer hit zero, must not
   // be reported to the user as a failed search).
@@ -555,7 +555,7 @@ export const useMapTrip = ({
       // searchDeadline is the window this countdown represents — how long we
       // keep looking for *a* driver. offerDeadline is how long one particular
       // driver has to answer their offer (tens of seconds), and preferring it
-      // made "Procurando um reboque" count down from ~00:33 instead of 03:00,
+      // made "Procurando um reboque" count down from ~00:33 instead of the full window,
       // then hit zero while matching was still healthily working through other
       // drivers.
       const deadline = service.searchDeadline || service.offerDeadline;

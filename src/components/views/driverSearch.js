@@ -11,6 +11,7 @@ import ConnectionBanner from "./ConnectionBanner";
 import { colors, spacing, borderRadius, typography } from "../../theme";
 import { formatScheduledFor } from '../../utils/scheduling';
 import { SheetFold } from '../map/useMeasuredSheet';
+import { SEARCH_TIMER_DURATION_S } from '../../constants/config';
 
 // What a dispatched scheduled tow is waiting on: its own driver answering, or
 // a search because nobody took it or that driver was not available.
@@ -46,7 +47,7 @@ const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCanc
         </View>
 
         <ProgressBar
-          progress={calculateProgress ? calculateProgress() : (1 - timer / 180)}
+          progress={calculateProgress ? calculateProgress() : (1 - timer / SEARCH_TIMER_DURATION_S)}
           borderWidth={0}
           fillColor={colors.primary}
           unfilledColor={colors.border}
