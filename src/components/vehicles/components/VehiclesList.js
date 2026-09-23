@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
+import { View, FlatList, StyleSheet, Image } from 'react-native';
 import { AppText as Text } from '../../common/AppText';
 import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
 import { AppHeader } from '../../common/AppHeader';
@@ -11,11 +11,13 @@ const Icon = MaterialIcons;
 import { ScalePressable } from '../../common/ScalePressable';
 import { componentStyles, sizes, typography, colors, spacing, borderRadius } from "../../../theme";
 
+const vehicleIcon = require('../../../../resources/icons/UREB_TUR.png');
+
 const VehicleCard = ({ vehicle, isEditMode, onPress, onDelete, onSetDefault }) => (
   <ScalePressable onPress={onPress}>
     <View style={styles.card}>
       <View style={styles.cardIcon}>
-        <Icon name="directions-car" size={sizes.iconLarge} color={colors.primary} />
+        <Image source={vehicleIcon} style={styles.cardVehicleIcon} resizeMode="contain" />
       </View>
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle} numberOfLines={1}>
@@ -110,6 +112,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   cardContent: { flex: 1 },
+  cardVehicleIcon: { width: scale(42), height: scale(28) },
   cardTitle: { fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight, fontWeight: '700', color: colors.textPrimary },
   cardMeta: { fontWeight: '400', color: colors.textSecondary },
   cardSubtitle: { fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight, color: colors.textSecondary, marginTop: spacing.xs },

@@ -47,6 +47,7 @@ export const ScalePressable = ({
             onPressOut={handlePressOut}
             onPress={onPress}
             disabled={disabled}
+            suppressDisabledOpacity
         >
             <Animated.View style={[style, animatedStyle]}>
                 {children}

@@ -5,8 +5,7 @@ import { AppText as Text } from '../common/AppText';
 import { scale } from "react-native-size-matters";
 import { useLogger } from "../../hooks/useLogger";
 import { ScalePressable } from "../common/ScalePressable";
-import { LinearGradient } from "expo-linear-gradient";
-import { colors, shadows, spacing, borderRadius, typography } from "../../theme";
+import { colors, shadows, spacing, borderRadius, typography, sizes } from "../../theme";
 
 // Memoized image sources for performance
 const imageMap = {
@@ -22,12 +21,7 @@ const CarTypes = memo(({ typeCar, descr, descr2, price, route, onPress }) => {
 
   return (
     <ScalePressable onPress={onPress} style={styles.container}>
-      <LinearGradient
-        colors={[colors.surfaceTint90, colors.surfaceTint60]}
-        style={styles.cardGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
+      <View style={styles.cardGradient}>
         <View style={styles.contentRow}>
           <Image
             source={carImage}
@@ -50,21 +44,22 @@ const CarTypes = memo(({ typeCar, descr, descr2, price, route, onPress }) => {
             <Text style={styles.price}>{formattedPrice}</Text>
           </View>
         </View>
-      </LinearGradient>
+      </View>
     </ScalePressable>
   );
 });
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     marginHorizontal: spacing.xl,
   },
   cardGradient: {
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.xxl,
-    padding: spacing.lg,
+    padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.surfaceTint60,
+    borderColor: colors.borderLight,
     ...shadows.sm,
   },
   contentRow: {
@@ -72,9 +67,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   image: {
-    width: scale(80),
-    height: scale(50),
-    marginRight: spacing.lg,
+    width: scale(72),
+    height: sizes.control,
+    marginRight: spacing.md,
   },
   infoContainer: {
     flex: 1,

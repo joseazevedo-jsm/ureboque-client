@@ -1,6 +1,6 @@
 // Map defaults
-export const MAP_LATITUDE_DELTA = 0.0022;
-export const MAP_LONGITUDE_DELTA = 0.005;
+export const MAP_LATITUDE_DELTA = 0.006;
+export const MAP_LONGITUDE_DELTA = 0.013;
 
 // Driver search
 export const DRIVER_SEARCH_RADIUS_M = 5000;

@@ -2,12 +2,11 @@ import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Image, Pressable } from 'react-native';
 import { AppText as Text } from '../common/AppText';
 
-import Animated, { FadeInDown, FadeOutUp, useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
+import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
 import Icon from "@expo/vector-icons/MaterialIcons";
 import ScheduleWheel from "./ScheduleWheel";
 import { SCHEDULE_DISPATCH_LEAD_MIN, earliestSlot } from "../../utils/scheduling";
 import { scale } from "react-native-size-matters";
-import { LinearGradient } from "expo-linear-gradient";
 import CarTypes from "../cards/carTypes";
 import { ScalePressable } from "../common/ScalePressable";
 import { colors, spacing, borderRadius, shadows, typography, sizes } from "../../theme";
@@ -44,14 +43,8 @@ const PaymentOptions = ({ handleConfirmPaymentPress, onScheduleChange, models })
       <ScalePressable
         onPress={handleConfirmPaymentPress(paymentType)}
         disabled={isSubmitting}
-        style={isSubmitting ? styles.paymentOptionDisabled : null}
       >
-        <LinearGradient
-          colors={[colors.surfaceTint90, colors.surfaceTint60]}
-          style={styles.paymentOption}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
+        <View style={[styles.paymentOption, isSubmitting && styles.paymentOptionDisabled]}>
           {iconName === "money" ? (
             <Image
               source={require("../../../resources/icons/payment/CASH.png")}
@@ -66,7 +59,7 @@ const PaymentOptions = ({ handleConfirmPaymentPress, onScheduleChange, models })
             />
           )}
           <Text style={styles.paymentOptionText}>{label}</Text>
-        </LinearGradient>
+        </View>
       </ScalePressable>
     </View>
   );
@@ -87,7 +80,7 @@ const PaymentOptions = ({ handleConfirmPaymentPress, onScheduleChange, models })
           onChange={(later) => onScheduleChange(later ? earliestSlot().toISOString() : null)}
         />
         {scheduledFor && (
-          <Animated.View entering={FadeInDown.duration(240)} exiting={FadeOutUp.duration(160)}>
+          <Animated.View entering={FadeIn.duration(160)}>
             <View style={styles.scheduleHint}>
               <Icon name="auto-awesome" size={scale(16)} color={colors.primary} />
               <Text style={styles.scheduleHintText}>Um motorista reserva o seu reboque e sai {SCHEDULE_DISPATCH_LEAD_MIN} min antes para chegar a horas.</Text>
@@ -157,13 +150,14 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   paymentOption: {
+    backgroundColor: colors.surface,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
     borderRadius: borderRadius.xxl,
     borderWidth: 1,
-    borderColor: colors.surfaceTint60,
+    borderColor: colors.borderLight,
     ...shadows.sm
   },
   paymentImageConfig: {

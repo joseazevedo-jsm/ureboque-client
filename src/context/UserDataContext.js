@@ -308,7 +308,10 @@ export const UserDataProvider = ({ children }) => {
         if (page === 1 || refreshing) setServicesLoadedUserId(userId);
       } else if (response.data) {
         const servicesData = Array.isArray(response.data) ? response.data : response.data.services ?? [];
-        const hasMore = servicesData.length >= SERVICES_PAGE_LIMIT;
+        // This endpoint returns the complete current-month collection and does
+        // not paginate. Treating a long month as another page duplicated the
+        // same services whenever a list reached its end.
+        const hasMore = false;
 
         setServices((prev) => (page === 1 || refreshing ? servicesData : [...prev, ...servicesData]));
         setServicesPage(page);

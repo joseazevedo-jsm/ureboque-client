@@ -28,12 +28,19 @@ const isValidCoordinate = (point) => (
   Number.isFinite(Number(point?.latitude)) && Number.isFinite(Number(point?.longitude))
 );
 
+const ROUTE_EDGE_PADDING = {
+  bottom: scale(440),
+  top: scale(128),
+  left: scale(72),
+  right: scale(72),
+};
+
 export const useMapScreen = () => {
   const logger = useLogger('useMapScreen');
 
   // ── Context ─────────────────────────────────────────────────────────────
   const { socket } = useSocket();
-  const { user, setUser, serviceStatus, setServiceStatus, prices, pricesError, fetchPrices, fetchCurrentTrip, unreadNotificationsCount, saveUserVehicle, removeDiscount } = useUserData();
+  const { user, setUser, setServices, serviceStatus, setServiceStatus, prices, pricesError, fetchPrices, fetchCurrentTrip, unreadNotificationsCount, saveUserVehicle, removeDiscount } = useUserData();
   const { userLocation, setUserLocation } = useUserLocationStateContext();
   const hasUserLocation = !!userLocation;
   const { setTripActive, setTripStatus } = useTripState();
@@ -322,7 +329,32 @@ export const useMapScreen = () => {
   const onScheduledActiveRef = useRef(null);
   const [scheduledDetailsVisible, setScheduledDetailsVisible] = useState(false);
   const { scheduledTow, refreshScheduledTow, cancelScheduledTow } = useScheduledTow({ enabled: user?.id, socket, onActivatedRef: onScheduledActiveRef });
-  onScheduledRef.current = refreshScheduledTow;
+  const handleScheduledCreated = useCallback((scheduledService) => {
+    if (scheduledService?._id) {
+      setServices((previous) => {
+        const serviceId = String(scheduledService._id);
+        const existingIndex = previous.findIndex(
+          (item) => String((item?.service || item)?._id) === serviceId,
+        );
+
+        if (existingIndex >= 0) {
+          return previous.map((item, index) => {
+            if (index !== existingIndex) return item;
+            return item?.service
+              ? { ...item, service: { ...item.service, ...scheduledService } }
+              : { ...item, ...scheduledService };
+          });
+        }
+
+        // History API entries are wrapped as { service, car }. Add the new
+        // booking immediately so an already-loaded History screen is not left
+        // with a stale cache until the user manually pulls to refresh.
+        return [{ service: scheduledService, car: null }, ...previous];
+      });
+    }
+    refreshScheduledTow();
+  }, [refreshScheduledTow, setServices]);
+  onScheduledRef.current = handleScheduledCreated;
 
   const trip = useMapTrip({
     socket,
@@ -543,14 +575,28 @@ export const useMapScreen = () => {
     }
     if (service._id !== tripServiceRef.current._id) return;
 
-    const currentVersion = trip.tripData._version;
+    // Read from the ref, not the render closure: a snapshot applied between
+    // this request's launch and its resolution lives in the ref only.
+    const currentVersion = trip.tripDataRef.current._version;
+    // A REST response older than a live socket event is never authoritative,
+    // whatever its status says — otherwise an in-flight GET launched before a
+    // driver's acceptance could roll the trip back to an earlier stage.
+    if (currentVersion != null && Number.isFinite(service.version) && service.version < currentVersion) {
+      logger.info('Ignoring stale reconcile response', {
+        serviceId: service._id,
+        incomingVersion: service.version,
+        localVersion: currentVersion,
+      });
+      return;
+    }
     // A recovery response may have the same version as local storage while
     // the UI is showing the wrong sheet after a cold launch/background return.
     // Re-apply it when the local status disagrees; identical snapshots remain
     // no-ops to avoid replaying animations every 15 seconds.
-    if (currentVersion != null && (service.version ?? 0) <= currentVersion && service.status === trip.tripData.status) return;
+    if (currentVersion != null && (service.version ?? 0) <= currentVersion &&
+        service.status === trip.tripDataRef.current.status) return;
     applyRecoveredSnapshot(service);
-  }, [user?.id, socket, fetchCurrentTrip, applyRecoveredSnapshot, trip.tripData._version]);
+  }, [user?.id, socket, fetchCurrentTrip, applyRecoveredSnapshot, trip.tripDataRef, logger]);
 
   const reconcileTrip = useCallback(() => {
     if (reconcileInFlightRef.current) return reconcileInFlightRef.current;
@@ -617,7 +663,7 @@ export const useMapScreen = () => {
   useEffect(() => {
     if (routing.directions?.coordinates) {
       mapRef.current?.fitToCoordinates(routing.directions.coordinates, {
-        edgePadding: { bottom: scale(250), top: scale(50), left: scale(20), right: scale(20) },
+        edgePadding: ROUTE_EDGE_PADDING,
       });
       setMapMovedOnSheet(null);
     }
@@ -646,17 +692,23 @@ export const useMapScreen = () => {
 
   // Keep handler references current without re-registering socket listeners.
   useEffect(() => {
+    // Lifecycle events are applied immediately by useMapTrip's version-gated
+    // handlers. Routing them through a REST refetch instead added a network
+    // round-trip to every transition and silently dropped the event when REST
+    // was the failing half of a flaky link — the pushed payload is fresher than
+    // anything a GET could return at that moment. reconcileTrip still runs on
+    // boot/foreground/reconnect/15s-tick as the safety net for missed events.
     socketHandlersRef.current = {
       bestDriver: trip.handleBestDriver,
       serviceSnapshot: trip.handleServiceSnapshot,
-      driverConnected: reconcileTrip,
+      driverConnected: trip.handleDriverConnected,
       driverLocation: trip.handleDriverLocation,
-      serviceAccepted: reconcileTrip,
-      serviceDeclined: reconcileTrip,
-      serviceStarted: reconcileTrip,
-      serviceEnded: reconcileTrip,
-      serviceCancelled: reconcileTrip,
-      driverTimeout: reconcileTrip,
+      serviceAccepted: trip.handleServiceAccepted,
+      serviceDeclined: trip.handleDriverDeclined,
+      serviceStarted: trip.handleServiceStarted,
+      serviceEnded: trip.handleServiceEnded,
+      serviceCancelled: trip.handleServiceCancelled,
+      driverTimeout: trip.handleDriverTimeout,
       noDriver: trip.handleNoDriver,
       message: trip.handleMessage,
     };
@@ -794,14 +846,35 @@ export const useMapScreen = () => {
   const handleMapSearchBarPress = useCallback(async () => {
     // GPS is optional: the user can choose both points manually when the
     // permission is denied, revoked, or unavailable in a poor-signal area.
-    const hasLocation = isValidCoordinate(userLocation);
+    // A stale or imprecise fix is worse than none when it seeds the pickup
+    // silently (driver sent to where the phone last saw signal, not where the
+    // car is), so only a fresh, reasonably precise fix auto-fills the origin.
+    const fixAgeMs = userLocation?.receivedAt ? Date.now() - userLocation.receivedAt : Infinity;
+    const fixAccuracy = Number(userLocation?.accuracy);
+    const hasLocation = isValidCoordinate(userLocation) &&
+      fixAgeMs <= 60000 &&
+      (!Number.isFinite(fixAccuracy) || fixAccuracy <= 100);
+    if (isValidCoordinate(userLocation) && !hasLocation) {
+      logger.info('Ignoring stale/imprecise GPS fix for pickup origin', {
+        age: Math.round(fixAgeMs / 1000),
+        accuracy: fixAccuracy,
+      });
+    }
+
+    // The strict freshness check above decides whether the GPS fix may seed the
+    // origin; but the origin may already be set by an earlier interaction (or a
+    // previous fresh fix). Either way the modal must open on DESTINATION focus —
+    // otherwise the next suggestion tap silently REPLACES the origin, and the
+    // subsequent destination pick then equals the origin, producing a zero-length
+    // route and a permanently empty car-type sheet.
+    const hasOrigin = hasLocation || isValidCoordinate(originCoords);
 
     // Open the destination flow immediately. Reverse geocoding is only used
     // to label the origin and must never block the user's first interaction.
     modalReturnSheetRef.current = activeBottomSheetRef.current || 'initial';
     dismissAllBottomSheets();
     updateModal('destination', true);
-    trip.updateTripData({ inputLocationObject: hasLocation ? 1 : 0 });
+    trip.updateTripData({ inputLocationObject: hasOrigin ? 1 : 0 });
 
     if (hasLocation) {
       const coordinates = { latitude: userLocation.latitude, longitude: userLocation.longitude };
@@ -820,7 +893,7 @@ export const useMapScreen = () => {
         origin: { address: address || 'Localização atual', coords: coordinates, isCurrentLocation: true },
       }));
     }
-  }, [userLocation, geocoding, dismissAllBottomSheets, updateModal, trip]);
+  }, [userLocation, geocoding, dismissAllBottomSheets, updateModal, trip, originCoords]);
 
   const handlePressItemPress = useCallback((item, activeInput) => {
     let coords = item?.geometry?.location
@@ -1279,7 +1352,7 @@ export const useMapScreen = () => {
     setMapMovedOnSheet(null);
     if (routing.directions?.coordinates?.length > 0) {
       mapRef.current?.fitToCoordinates(routing.directions.coordinates, {
-        edgePadding: { bottom: scale(250), top: scale(50), left: scale(50), right: scale(50) },
+        edgePadding: ROUTE_EDGE_PADDING,
         animated: true,
       });
     } else if (userLocation) {

@@ -113,11 +113,11 @@ const styles = StyleSheet.create({
   },
   container: {
     borderRadius: borderRadius.xl,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.xs,
-    marginHorizontal: spacing.md,
-    maxWidth: "78%",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    marginHorizontal: spacing.lg,
+    maxWidth: "82%",
   },
   senderContainer: {
     alignSelf: "flex-end",
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     lineHeight: 20,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xxs,
   },
   senderMessageText: {
     color: colors.surface,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   timestampText: {
     fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
-    marginTop: spacing.xs,
+    marginTop: spacing.xxs,
     fontWeight: "500",
   },
   senderTimestampText: {

@@ -31,11 +31,14 @@ class SocketService {
 
     Logger.info('SocketService', 'Attempting socket connection', { socketUrl });
 
+    // No `transports` override on purpose: forcing websocket-only made the
+    // socket unreachable on networks/operators that block or kill WSS, and the
+    // booking flow refuses to proceed without a live socket. Default
+    // polling→websocket upgrade keeps a degraded but working path.
     this.socket = io(socketUrl, {
       auth: {
         token: userToken
-      },
-      transports: ['websocket']
+      }
     });
 
     this.socket.on('connect', () => {

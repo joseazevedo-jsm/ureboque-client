@@ -1,11 +1,11 @@
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState } from "react";
-import { ActivityIndicator, View, Image, StyleSheet, ScrollView } from 'react-native';
+import { View, Image, StyleSheet, ScrollView } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../components/common/AppText';
 import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
 import { AppHeader } from '../components/common/AppHeader';
+import { AppButton } from '../components/common/AppButton';
 
-import { scale } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
@@ -14,19 +14,13 @@ import { useLogger } from "../hooks/useLogger";
 import { extractCountryCode, extractPhoneNumber } from "../utils/phoneUtils";
 import OTPModal from "../components/modals/OTP/OTPModal";
 import KeyboardAvoidingWrapper from "../components/common/KeyboardAvoidingWrapper";
-import { colors, spacing, shadows, borderRadius, sizes, layout, typography } from "../theme";
+import { colors, spacing, shadows, borderRadius, borderWidths, sizes, layout, typography, fonts } from "../theme";
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAlert } from "../context/AlertContext";
 import VehiclesModal from "../components/vehicles/VehiclesModal";
 import EmergencyContactsModal from "../components/emergencyContacts/EmergencyContactsModal";
 import InsuranceModal from "../components/insurance/InsuranceModal";
 import AccessibilityModal from "../components/accessibility/AccessibilityModal";
-
-// Import your images
-import phoneIcon from "../../resources/icons/profile_settings/phone.png";
-import emailIcon from "../../resources/icons/profile_settings/email.png";
-import leaveIcon from "../../resources/icons/profile_settings/leave.png";
-import optionsIcon from "../../resources/icons/profile_settings/options.png";
 
 const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
@@ -59,137 +53,107 @@ const ProfileScreen = () => {
         }} style={styles.headerContainer} />
 
       <ScrollView style={styles.contentContainer} contentContainerStyle={styles.contentContainerInner} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {/* Profile Image Section */}
-        <Animated.View style={styles.profileSection} entering={FadeInDown.delay(80).springify().damping(28).stiffness(180)}>
-          <View style={styles.profileImageContainer}>
-            <TouchableOpacity onPress={() => {
+        <Animated.View style={styles.identitySection} entering={FadeInDown.delay(80).springify().damping(28).stiffness(180)}>
+          <TouchableOpacity
+            accessibilityLabel="Alterar fotografia de perfil"
+            onPress={() => {
               logger.logUserInteraction('profile_image_picker_opened', { hasCurrentImage: !!models?.image || !!models?.user?.photo });
               operations.handleOpenImagePicker();
-            }}>
-              <Image
-                source={{
-                  uri: models?.image || models?.user?.photo || 'https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png',
-                }}
-                style={styles.profileImage}
-              />
-              <View style={styles.editIconContainer}>
-                <Icon name="edit" size={scale(16)} color={colors.surface} />
-              </View>
-            </TouchableOpacity>
-          </View>
+            }}
+            style={styles.profileImageContainer}
+          >
+            <Image
+              source={{ uri: models?.image || models?.user?.photo || 'https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png' }}
+              style={styles.profileImage}
+            />
+            <View style={styles.editIconContainer}>
+              <Icon name="photo-camera" size={sizes.icon} color={colors.surface} />
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.profileName} numberOfLines={2}>
+            {[models?.name ?? models?.user?.name?.split(" ", 2)[0], models?.surname ?? models?.user?.name?.split(" ", 2)[1]].filter(Boolean).join(' ') || 'Perfil'}
+          </Text>
         </Animated.View>
 
-        {/* Personal Information Section */}
-        <Animated.View style={styles.formSection} entering={FadeInDown.delay(160).springify().damping(28).stiffness(180)}>
-          <Text style={styles.sectionTitle}>Informações Pessoais</Text>
+        <Animated.View style={styles.personalCard} entering={FadeInDown.delay(140).springify().damping(28).stiffness(180)}>
+          <Text style={styles.sectionTitle}>Informações pessoais</Text>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Nome</Text>
-            <TextInput
-              style={styles.textInput}
-              value={models?.name ?? models?.user?.name?.split(" ", 2)[0] ?? ''}
-              placeholderTextColor={colors.textMuted}
-              onChangeText={operations.handleNameChange}
-            />
+          <View style={styles.fieldRow}>
+            <View style={styles.fieldContent}>
+              <Text style={styles.inputLabel}>Nome</Text>
+              <TextInput accessibilityLabel="Nome" style={styles.inlineInput}
+                value={models?.name ?? models?.user?.name?.split(" ", 2)[0] ?? ''}
+                onChangeText={operations.handleNameChange} />
+            </View>
+            <Icon name="edit" size={sizes.icon} color={colors.primary} />
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Sobrenome</Text>
-            <TextInput
-              style={styles.textInput}
-              value={models?.surname ?? models?.user?.name?.split(" ", 2)[1] ?? ''}
-              placeholderTextColor={colors.textMuted}
-              onChangeText={operations.handleSurnameChange}
-            />
+          <View style={styles.fieldRow}>
+            <View style={styles.fieldContent}>
+              <Text style={styles.inputLabel}>Sobrenome</Text>
+              <TextInput accessibilityLabel="Sobrenome" style={styles.inlineInput}
+                value={models?.surname ?? models?.user?.name?.split(" ", 2)[1] ?? ''}
+                onChangeText={operations.handleSurnameChange} />
+            </View>
+            <Icon name="edit" size={sizes.icon} color={colors.primary} />
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Telefone</Text>
-            <View style={styles.phoneRow}>
-              <View style={styles.shortInputContainer}>
-                <TextInput
-                  style={styles.textInput}
-                  value={`+${extractCountryCode(models?.user?.phone)}`}
-                  placeholderTextColor={colors.textMuted}
-                  editable={false}
-                />
-              </View>
-              <View style={styles.longInputContainer}>
-                <View style={styles.inputWithIcon}>
-                  <Image
-                    source={phoneIcon}
-                    style={styles.icon_small}
-                    resizeMode="contain"
-                  />
-                  <TextInput
-                    style={styles.textInputInContainer}
-                    placeholder={extractPhoneNumber(models?.user?.phone)}
-                    placeholderTextColor={colors.textMuted}
-                    value={models?.phoneNumberInput}
-                    onChangeText={operations.handlePhoneNumberChange}
-                    keyboardType="numeric"
-                  />
-                </View>
+          <View style={styles.fieldRow}>
+            <View style={styles.fieldContent}>
+              <Text style={styles.inputLabel}>Telefone</Text>
+              <View style={styles.phoneInlineRow}>
+                <Text style={styles.countryCode}>+{extractCountryCode(models?.user?.phone)}</Text>
+                <TextInput accessibilityLabel="Telefone" style={[styles.inlineInput, styles.phoneInput]}
+                  placeholder={extractPhoneNumber(models?.user?.phone)} value={models?.phoneNumberInput}
+                  onChangeText={operations.handlePhoneNumberChange} keyboardType="numeric" />
               </View>
             </View>
+            <Icon name="edit" size={sizes.icon} color={colors.primary} />
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Email</Text>
-            <View style={styles.inputWithIcon}>
-              <Image source={emailIcon} style={styles.icon_small} resizeMode="contain" />
-              <TextInput
-                style={styles.textInputInContainer}
-                value={models?.email}
-                placeholderTextColor={colors.textMuted}
-                onChangeText={operations.handleEmailChange}
-              />
+          <View style={[styles.fieldRow, styles.fieldRowLast]}>
+            <View style={styles.fieldContent}>
+              <Text style={styles.inputLabel}>Email</Text>
+              <TextInput accessibilityLabel="Email" style={styles.inlineInput}
+                value={models?.email} onChangeText={operations.handleEmailChange}
+                keyboardType="email-address" autoCapitalize="none" />
             </View>
+            <Icon name="edit" size={sizes.icon} color={colors.primary} />
           </View>
 
-          <TouchableOpacity
-            style={[styles.saveButton, (models?.isSaving || !models?.hasChanges) && styles.saveButtonDisabled]}
+          <AppButton
+            style={styles.saveButton}
             onPress={() => operations.handleSaveChanges(navigation)}
             disabled={models?.isSaving || !models?.hasChanges}
+            loading={models?.isSaving}
           >
-            {models?.isSaving ? (
-              <ActivityIndicator size="small" color={colors.surface} />
-            ) : (
-              <Text style={styles.saveButtonText}>Salvar alterações</Text>
-            )}
-          </TouchableOpacity>
+            Guardar alterações
+          </AppButton>
         </Animated.View>
 
-        {/* My Data Section */}
-        <Animated.View style={styles.actionSection} entering={FadeInDown.delay(220).springify().damping(28).stiffness(180)}>
-          <Text style={styles.sectionTitle}>Meus Dados</Text>
+        <Animated.View style={styles.actionGrid} entering={FadeInDown.delay(220).springify().damping(28).stiffness(180)}>
           {[
-            { icon: 'directions-car', label: 'Meus Veículos', onPress: () => setVehiclesModalVisible(true) },
-            { icon: 'contact-emergency', label: 'Contactos de Emergência', onPress: () => setEmergencyContactsModalVisible(true) },
+            { icon: 'directions-car', label: 'Veículos', onPress: () => setVehiclesModalVisible(true) },
+            { icon: 'contact-emergency', label: 'Contactos', onPress: () => setEmergencyContactsModalVisible(true) },
             { icon: 'verified-user', label: 'Seguros', onPress: () => setInsuranceModalVisible(true) },
             { icon: 'accessibility', label: 'Acessibilidade', onPress: () => setAccessibilityModalVisible(true) },
           ].map((item) => (
-            <TouchableOpacity key={item.label} style={[styles.actionItem, styles.actionItemSpaced]} onPress={item.onPress} activeOpacity={0.7}>
-              <Icon name={item.icon} size={sizes.icon} color={colors.primary} style={styles.actionIconMaterial} />
-              <Text style={styles.actionText}>{item.label}</Text>
-              <Icon name="arrow-forward-ios" size={scale(16)} style={styles.actionArrow} />
+            <TouchableOpacity key={item.label} style={styles.actionTile} onPress={item.onPress}>
+              <View style={styles.actionIconBubble}><Icon name={item.icon} size={sizes.iconLarge} color={colors.primary} /></View>
+              <Text style={styles.actionText} numberOfLines={2}>{item.label}</Text>
             </TouchableOpacity>
           ))}
         </Animated.View>
 
-        {/* Settings Section */}
-        <Animated.View style={styles.actionSection} entering={FadeInDown.delay(280).springify().damping(28).stiffness(180)}>
-          <TouchableOpacity
-            style={styles.actionItem}
-            onPress={() => {
-              logger.logUserInteraction('settings_button_pressed', { from: 'ProfileScreen' });
-              logger.logNavigation('ProfileScreen', 'SettingsScreen', { action: 'navigate' });
-              navigation.navigate('SettingsScreen');
-            }}
-          >
-            <Image source={optionsIcon} style={styles.actionIcon} resizeMode="contain" />
+        <Animated.View entering={FadeInDown.delay(280).springify().damping(28).stiffness(180)}>
+          <TouchableOpacity style={styles.settingsItem} onPress={() => {
+            logger.logUserInteraction('settings_button_pressed', { from: 'ProfileScreen' });
+            logger.logNavigation('ProfileScreen', 'SettingsScreen', { action: 'navigate' });
+            navigation.navigate('SettingsScreen');
+          }}>
+            <View style={styles.actionIconBubble}><Icon name="settings" size={sizes.iconLarge} color={colors.primary} /></View>
             <Text style={styles.actionText}>Definições</Text>
-            <Icon name="arrow-forward-ios" size={scale(16)} style={styles.actionArrow} />
+            <Icon name="chevron-right" size={sizes.iconLarge} color={colors.textDisabled} />
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
@@ -224,23 +188,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainerInner: {
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.xxl,
     width: "100%",
     maxWidth: layout.formMaxWidth,
     alignSelf: "center",
     paddingBottom: spacing.xxxl,
   },
-  profileSection: {
+  identitySection: {
     alignItems: 'center',
-    marginVertical: spacing.xl,
+    paddingBottom: spacing.md,
   },
   profileImageContainer: {
-    width: scale(100),
-    height: scale(100),
+    width: sizes.avatar + spacing.sm,
+    height: sizes.avatar + spacing.sm,
     borderRadius: borderRadius.full,
     padding: spacing.xs,
     backgroundColor: colors.surface,
-    ...shadows.primaryGlow,
+    ...shadows.sm,
   },
   profileImage: {
     width: "100%",
@@ -256,131 +220,120 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     backgroundColor: colors.primary,
-    borderRadius: borderRadius.xxl,
-    borderWidth: 3,
+    borderRadius: borderRadius.full,
+    borderWidth: borderWidths.focus,
     borderColor: colors.surface,
-    ...shadows.md,
+    ...shadows.sm,
   },
-  formSection: {
-    marginBottom: spacing.xxl,
+  profileName: {
+    ...typography.h3,
+    fontFamily: fonts.semiBold,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  personalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: borderWidths.thin,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    ...shadows.sm,
   },
   sectionTitle: {
-    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
-    letterSpacing: 1,
+    ...typography.label,
+    fontFamily: fonts.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
-  inputContainer: {
-    marginBottom: spacing.lg,
+  fieldRow: {
+    minHeight: sizes.control,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+    borderBottomWidth: borderWidths.thin,
+    borderBottomColor: colors.borderLight,
+  },
+  fieldRowLast: {
+    borderBottomWidth: borderWidths.none,
+  },
+  fieldContent: {
+    flex: 1,
   },
   inputLabel: {
-    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
-    fontWeight: '600',
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  inlineInput: {
+    ...typography.body,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
+    minHeight: sizes.iconLarge + spacing.sm,
+    paddingVertical: spacing.none,
+    paddingHorizontal: spacing.none,
+    borderWidth: borderWidths.none,
   },
-  textInput: {
-    minHeight: sizes.control,
-    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
-    color: colors.textPrimary,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.sm,
-  },
-  phoneRow: {
-    flexDirection: "row",
-    gap: spacing.md,
-  },
-  shortInputContainer: {
-    width: scale(80),
-  },
-  longInputContainer: {
-    flex: 1,
-  },
-  inputWithIcon: {
-    minHeight: sizes.control,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs,
-    ...shadows.sm,
-  },
-  icon_small: {
-    width: scale(20),
-    height: scale(20),
-    marginRight: spacing.md,
-    tintColor: colors.textMuted,
-  },
-  textInputInContainer: {
-    flex: 1,
-    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
-    color: colors.textPrimary,
-    paddingVertical: spacing.md,
-  },
-  saveButton: {
-    minHeight: sizes.control,
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.lg,
-    borderRadius: borderRadius.xl,
+  phoneInlineRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.xxl,
-    ...shadows.primaryGlow,
+    gap: spacing.sm,
   },
-  saveButtonDisabled: {
-    backgroundColor: colors.textDisabled,
-    shadowOpacity: 0,
-    elevation: 0,
+  countryCode: {
+    ...typography.body,
+    color: colors.textPrimary,
   },
-  saveButtonText: {
-    color: colors.surface,
-    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
-    fontWeight: "700",
-    letterSpacing: 0.5,
+  phoneInput: { flex: 1 },
+  saveButton: {
+    marginTop: spacing.lg,
   },
-  actionSection: {
-    marginBottom: spacing.jumbo,
+  actionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    marginBottom: spacing.md,
   },
-  actionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
+  actionTile: {
+    flexGrow: 1,
+    flexBasis: '46%',
+    minWidth: '46%',
+    minHeight: sizes.controlLarge + spacing.xxl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
+    borderRadius: borderRadius.lg,
+    borderWidth: borderWidths.thin,
     borderColor: colors.border,
+    padding: spacing.md,
     ...shadows.sm,
   },
-  actionIcon: {
-    width: scale(24),
-    height: scale(24),
-    marginRight: spacing.lg,
-    tintColor: colors.primary,
+  actionIconBubble: {
+    width: sizes.handleWidth,
+    height: sizes.handleWidth,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionText: {
     flex: 1,
-    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
-    fontWeight: '600',
+    ...typography.bodySmall,
+    fontFamily: fonts.semiBold,
     color: colors.textPrimary,
   },
-  actionArrow: {
-    color: colors.textDisabled,
-  },
-  actionItemSpaced: {
-    marginBottom: spacing.sm,
-  },
-  actionIconMaterial: {
-    marginRight: spacing.lg,
+  settingsItem: {
+    minHeight: sizes.controlLarge + spacing.xxl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: borderWidths.thin,
+    borderColor: colors.border,
+    padding: spacing.md,
+    ...shadows.sm,
   },
 });
 

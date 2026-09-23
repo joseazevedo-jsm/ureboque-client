@@ -7,7 +7,7 @@ import { useContext, useRef } from "react";
 import HomeMenu from "./HomeMenu";
 import Logger from '../utils/Logger';
 import sentryService from '../services/SentryService';
-import { navigationRef } from '../services/NavigationService';
+import { navigationRef, flushPendingNavigation } from '../services/NavigationService';
 import { animations, colors } from '../theme';
 
 // Registration screens
@@ -148,6 +148,7 @@ const AppNav = () => {
           initialScreen: initialRouteName,
           isAuthenticated: !!userToken
         });
+        flushPendingNavigation();
       }}
     >
       <Stack.Navigator screenOptions={{ headerShown: false, ...horizontalSpring }}>

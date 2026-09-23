@@ -11,6 +11,7 @@ import ConnectionBanner from "./ConnectionBanner";
 import { useDriverLocationStale } from "../../hooks/useMapDrivers";
 import { colors, spacing, borderRadius, borderWidths, typography, sizes, layout } from "../../theme";
 import { TRIP_STATUS } from "../../constants/tripStatus";
+import { SheetFold } from "../map/useMeasuredSheet";
 
 // A driver marker that stops moving is ambiguous: parked, or no longer
 // reporting at all. Dimming the map pin was the previous signal, but it never
@@ -42,6 +43,7 @@ const DriverStatus = memo(({
   onCallDriver,
   bttmSheetRef,
   unreadMessageCount = 0,
+  onFoldLayout,
 }) => {
   if (!driver) return null;
 
@@ -64,7 +66,9 @@ const DriverStatus = memo(({
         <RouteItem origin={origin} destination={destination} />
       </View>
 
-      <View style={styles.divider} />
+      {/* The fold. The sheet rests on this line, so the actions below it are
+          exactly what a drag up reveals. */}
+      <SheetFold onLayout={onFoldLayout} />
 
       <View style={styles.actions}>
         <AppButton variant="secondary" onPress={onShareLocation}
@@ -112,13 +116,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
   },
-  divider: {
-    height: borderWidths.thin,
-    backgroundColor: colors.borderLight,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  actions: { paddingHorizontal: spacing.lg, gap: spacing.md },
+  actions: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, gap: spacing.md },
 });
 
 export default DriverStatus;

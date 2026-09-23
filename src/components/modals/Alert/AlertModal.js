@@ -20,6 +20,7 @@ const TYPE_CONFIG = {
 
 const AlertModal = ({ visible, type = 'info', title, message, buttons = [], onDismiss }) => {
   const config = TYPE_CONFIG[type] || TYPE_CONFIG.info;
+  const stackButtons = buttons.length > 2 || buttons.some((button) => (button.text || 'OK').length > 18);
 
   const renderButton = (button, index) => {
     const style = button.style || 'default';
@@ -35,6 +36,7 @@ const AlertModal = ({ visible, type = 'info', title, message, buttons = [], onDi
           isDestructive && styles.buttonDestructive,
           !isCancel && !isDestructive && styles.buttonPrimary,
           buttons.length === 1 && styles.buttonFull,
+          stackButtons && styles.buttonStacked,
         ]}
         onPress={() => onDismiss(button.onPress)}
         activeOpacity={0.8}
@@ -44,6 +46,9 @@ const AlertModal = ({ visible, type = 'info', title, message, buttons = [], onDi
             styles.buttonText,
             isCancel && styles.buttonTextCancel,
           ]}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
         >
           {button.text || 'OK'}
         </Text>
@@ -69,7 +74,7 @@ const AlertModal = ({ visible, type = 'info', title, message, buttons = [], onDi
           {title ? <Text style={styles.title}>{title}</Text> : null}
           {message ? <Text style={styles.message}>{message}</Text> : null}
 
-          <View style={[styles.buttonRow, buttons.length === 1 && styles.buttonRowSingle]}>
+          <View style={[styles.buttonRow, buttons.length === 1 && styles.buttonRowSingle, stackButtons && styles.buttonColumn]}>
             {buttons.map(renderButton)}
           </View>
         </Animated.View>
@@ -123,9 +128,14 @@ const styles = StyleSheet.create({
   buttonRowSingle: {
     justifyContent: 'center',
   },
+  buttonColumn: {
+    flexDirection: 'column',
+  },
   button: {
     flex: 1,
+    minHeight: 48,
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -133,6 +143,10 @@ const styles = StyleSheet.create({
   buttonFull: {
     flex: 0,
     paddingHorizontal: spacing.xxxl,
+  },
+  buttonStacked: {
+    flex: 0,
+    width: '100%',
   },
   buttonPrimary: {
     backgroundColor: colors.primary,
@@ -150,6 +164,8 @@ const styles = StyleSheet.create({
     color: colors.surface,
     fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     fontWeight: '600',
+    flexShrink: 1,
+    textAlign: 'center',
   },
   buttonTextCancel: {
     color: colors.textSecondary,

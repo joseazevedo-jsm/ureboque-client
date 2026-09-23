@@ -52,8 +52,11 @@ const DetailsItem = memo(({ origin, destination, driver, clientCar, paymentMetho
 
   return (
     <View style={styles.container}>
+      {/* AppHeader carries its own horizontal padding, which stacked on this
+          card's and pushed the close button 40dp in — twice as far as the
+          section labels below it. Drop it so the × lines up with them. */}
       <AppHeader title="Detalhes da Viagem" leftIcon="close" leftLabel="Fechar detalhes da viagem"
-        onLeftPress={onBackPress} safeArea={false} />
+        onLeftPress={onBackPress} safeArea={false} style={{ paddingHorizontal: 0 }} />
 
       <View style={styles.content}>
 
@@ -135,7 +138,8 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xxl,
-    flex: 1,
+    // No flex: the sheet is sized from what this measures, so it hugs its
+    // content instead of stretching and leaving blank space underneath.
   },
   header: {
     flexDirection: "row",

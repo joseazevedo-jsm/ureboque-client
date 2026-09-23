@@ -160,14 +160,14 @@ class ErrorBoundary extends React.Component {
       
       return (
         <View style={styles.container}>
-          <Text style={styles.title}>Oops! Something went wrong</Text>
+          <Text style={styles.title}>Algo correu mal</Text>
           <Text style={styles.message}>
-            We encountered an unexpected error. Please try again.
+            Ocorreu um erro inesperado. Por favor, tente novamente.
           </Text>
           {__DEV__ && (
             <Text style={styles.errorId}>Error ID: {errorId}</Text>
           )}
-          <Button title="Try Again" onPress={this.handleRetry} />
+          <Button title="Tentar novamente" onPress={this.handleRetry} />
         </View>
       );
     }

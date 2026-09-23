@@ -1,12 +1,23 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { UserContext } from "../../context/UserContext";
 import { useForm } from "../../hooks/useForm";
-import { Alert } from "react-native";
 
 export const usePromotionScreen = () => {
 
-  const { socket, user, fetchUserById, activateDiscount } = useContext(UserContext);
+  const { user, fetchUserById, activateDiscount } = useContext(UserContext);
   const [activationError, setActivationError] = useState(null);
+
+  // A promotion can be consumed while this screen is not mounted (for
+  // example, when a driver completes the trip while the client is in the
+  // background). Refresh on focus so the active-promotion card always reflects
+  // the server instead of a stale UserContext snapshot.
+  useFocusEffect(
+    useCallback(() => {
+      const userId = user?.id || user?._id;
+      if (userId) fetchUserById(userId);
+    }, [fetchUserById, user?.id, user?._id])
+  );
   
   // Form validation for promotion code
   const promoForm = useForm(

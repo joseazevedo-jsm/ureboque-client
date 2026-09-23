@@ -14,8 +14,10 @@ const useHistoryScreen = () => {
 
   // Get count of services by status
   const getStatusCounts = (services) => {
-    return services.reduce((acc, service) => {
-      acc[service.status] = (acc[service.status] || 0) + 1;
+    return services.reduce((acc, serviceItem) => {
+      const status = (serviceItem.service || serviceItem).status;
+      if (!status) return acc;
+      acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {});
   };

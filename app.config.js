@@ -43,7 +43,8 @@ export default {
                 "android.permission.ACCESS_COARSE_LOCATION",
                 "android.permission.ACCESS_BACKGROUND_LOCATION"
             ],
-            package: "com.ureboque.client"
+            package: "com.ureboque.client",
+            googleServicesFile: "./google-services.json"
         },
         ios: {
             bundleIdentifier: "com.ureboque.client",

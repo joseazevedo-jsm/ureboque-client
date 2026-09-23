@@ -10,6 +10,7 @@ const Icon = MaterialIcons;
 import ConnectionBanner from "./ConnectionBanner";
 import { colors, spacing, borderRadius, typography } from "../../theme";
 import { formatScheduledFor } from '../../utils/scheduling';
+import { SheetFold } from '../map/useMeasuredSheet';
 
 // What a dispatched scheduled tow is waiting on: its own driver answering, or
 // a search because nobody took it or that driver was not available.
@@ -27,7 +28,7 @@ const scheduledCopy = (service, scheduledFor) => {
   return { title: 'A procurar motorista', text: `${when} Nenhum motorista reservou este reboque. Estamos a procurar um motorista disponível.` };
 };
 
-const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCancelSearch, calculateProgress, scheduledFor, scheduledService }) => {
+const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCancelSearch, calculateProgress, scheduledFor, scheduledService, onFoldLayout }) => {
   const scheduled = scheduledFor ? scheduledCopy(scheduledService, scheduledFor) : null;
   return (
     <View style={styles.container}>
@@ -79,8 +80,9 @@ const DriverSearch = ({ origin, destination, timer, formatTime, accepted, onCanc
         <RouteItem origin={origin} destination={destination} />
       </View>
 
-      <View style={styles.spacer} />
-
+      {/* The fold. The sheet rests on this line, so "Cancelar Viagem" below
+          it is exactly what a drag up reveals. */}
+      <SheetFold onLayout={onFoldLayout} />
       <TouchableOpacity onPress={() => onCancelSearch()} style={styles.cancelButton}>
         <View style={styles.cancelIconContainer}>
           <Icon name="close" size={scale(16)} color={colors.error} />
@@ -98,7 +100,7 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   row: {
     flexDirection: "row",
@@ -119,7 +121,7 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   descriptionContainer: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
   },
   descriptionText: {
     fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
@@ -128,14 +130,11 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   routeContainer: {
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: colors.border,
-    marginVertical: spacing.sm,
-  },
-  spacer: {
-    height: spacing.xl,
+    marginVertical: spacing.xs,
   },
   cancelButton: {
     flexDirection: 'row',

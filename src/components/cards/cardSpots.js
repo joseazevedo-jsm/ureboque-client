@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
     flexDirection: "column",
     alignItems: "flex-start",
-    padding: spacing.md,
+    padding: spacing.sm,
     ...shadows.sm,
   },
   addCardContainer: {
@@ -121,9 +121,9 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
   },
   icon: {
-    width: sizes.illustration,
-    height: sizes.illustration,
-    marginBottom: spacing.sm,
+    width: sizes.control,
+    height: sizes.control,
+    marginBottom: spacing.xs,
   },
   textContainer: {
     width: "100%",

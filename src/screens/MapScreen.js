@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, memo, useMemo, useCallback, useRef, useState } from "react";
-import { Image, Modal, PixelRatio, useWindowDimensions, Share, StyleSheet, View } from 'react-native';
+import { Dimensions, Image, Modal, PixelRatio, useWindowDimensions, Share, StyleSheet, View } from 'react-native';
 import { AppText as Text } from '../components/common/AppText';
 import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
 
 import MapView, { Circle, Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
-import { LinearGradient } from "expo-linear-gradient";
 import { ScalePressable } from "../components/common/ScalePressable";
 import { BlurView } from "expo-blur";
 import Animated, { FadeIn, FadeInDown, FadeInRight, FadeInUp, useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
@@ -18,7 +17,6 @@ const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
 import BottomSheet, {
   BottomSheetView,
-  BottomSheetScrollView,
   BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
 import { Platform } from "react-native";
@@ -47,6 +45,7 @@ import { useLogger } from "../hooks/useLogger";
 import { TRIP_STATUS } from "../constants/tripStatus";
 import { useDriverLocation, useDriverLocationStale } from "../hooks/useMapDrivers";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useMeasuredSheet, useNavBarPad } from "../components/map/useMeasuredSheet";
 
 // The modal/portal variant can preserve a closed internal index across Fast
 // Refresh even after present() is called. Flow sheets are already mutually
@@ -62,8 +61,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // still covers the bottom of an edge-to-edge view. Shared so anything placed
 // above a sheet uses the same height the sheet really has.
 const useSheetHeight = () => {
-  const { bottom: bottomInset } = useSafeAreaInsets();
-  const inset = Platform.OS === 'android' ? Math.max(bottomInset, scale(32)) : bottomInset;
+  const inset = useNavBarPad();
   // Keep the map sheet proportional on large-display accessibility settings;
   // text itself still scales, while the sheet avoids swallowing the map.
   const fontScale = Math.min(Math.max(PixelRatio.getFontScale(), 1), 1.15);
@@ -79,6 +77,10 @@ const FlowBottomSheet = React.forwardRef(({
   stackBehavior: _stackBehavior,
   onChange,
   snapPoints,
+  // Heights that came from useMeasuredSheet are already the real content
+  // height, so they take the nav-bar allowance but not the font-scale multiply
+  // (the measured content has scaled with the font already).
+  measured = false,
   isActive = true,
   index = 0,
   children,
@@ -88,9 +90,14 @@ const FlowBottomSheet = React.forwardRef(({
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const { top: topInset } = useSafeAreaInsets();
   const sheetHeight = useSheetHeight();
+  const navBarPad = useNavBarPad();
   const safeSnapPoints = useMemo(
-    () => snapPoints?.map((point) => typeof point === 'number' ? Math.min(sheetHeight(point), viewportHeight - topInset - spacing.lg) : point),
-    [snapPoints, sheetHeight, viewportHeight, topInset],
+    () => snapPoints?.map((point) => {
+      if (typeof point !== 'number') return point;
+      const height = measured ? point + navBarPad : sheetHeight(point);
+      return Math.min(height, viewportHeight - topInset - spacing.lg);
+    }),
+    [snapPoints, measured, navBarPad, sheetHeight, viewportHeight, topInset],
   );
 
   React.useImperativeHandle(forwardedRef, () => ({
@@ -156,26 +163,34 @@ const DRIVER_MARKER_FRAME_MS = 120;
 // new value on every render — during a trip, where driver-location updates
 // re-render this screen continuously, the sheet was re-initialising faster than
 // it could settle and so never opened at all. Declared once, here.
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SHEET_SNAP_POINTS = {
-  driverStatusExpanded: scale(500),
-  driverStatusExpandedNoCancel: scale(435),
-  driverStatusCollapsed: scale(310),
-  details: scale(520),
+  driverStatusExpanded: Math.round(SCREEN_HEIGHT * 0.72),
+  driverStatusExpandedNoCancel: Math.round(SCREEN_HEIGHT * 0.64),
+  driverStatusCollapsed: Math.round(SCREEN_HEIGHT * 0.42),
+  details: Math.round(SCREEN_HEIGHT * 0.9),
 };
 
+const PAYMENT_SNAP = [Math.round(SCREEN_HEIGHT * 0.49), Math.round(SCREEN_HEIGHT * 0.76)];
+
 const BOOKING_SNAP = {
-  initial:     ['50%'],
+  initial:     ['45%'],
   initialWithScheduled: ['50%'],
-  carType:     [scale(270)],
-  userCarInfo: [scale(380), scale(500)],
-  payment:     [scale(380)],
-  paymentScheduled: [scale(500)],
-  rideSearch:  [scale(270), scale(350)],
-  // The booking-for-later search explains its state in three lines; the taller
-  // rest height keeps "Cancelar Viagem" on screen.
-  rideSearchScheduled: [scale(370), scale(430)],
+  carType:     [Math.round(SCREEN_HEIGHT * 0.34)],
+  userCarInfo: [Math.round(SCREEN_HEIGHT * 0.50), Math.round(SCREEN_HEIGHT * 0.76)],
+  payment:     PAYMENT_SNAP,
+  paymentScheduled: PAYMENT_SNAP,
+  // rideSearch stops just below the route card's divider at rest ("Cancelar
+  // Viagem" stays off-screen) and drags up only far enough to reveal that
+  // button — anything taller leaves dead space under it. Height budget (dp):
+  // handle 21 + header 104 + routeCard 118 | + spacer 20 + button 44 + nav bar
+  // pad 43 (the transparent gesture bar lets the surface run to the physical
+  // screen bottom; the pad keeps the button above it).
+  rideSearch:  [244, 351],
+  // Scheduled search adds one description line ("Recolha ...") to both stops.
+  rideSearchScheduled: [264, 371],
   details:     [SHEET_SNAP_POINTS.details],
-  dragMarker:  [scale(250)],
+  dragMarker:  [Math.round(SCREEN_HEIGHT * 0.34)],
 };
 
 const DRIVER_STATUS_SNAP = [
@@ -372,17 +387,21 @@ const SHEET_REST_HEIGHT = {
   tripEnding: SHEET_SNAP_POINTS.driverStatusCollapsed,
 };
 
-const MapControls = memo(({ models, operations, navigation, openDrawer }) => {
+const MapControls = memo(({ models, operations, navigation, openDrawer, measuredRestHeight }) => {
   const insets = useSafeAreaInsets();
   const controlTop = insets.top + spacing.lg;
   const rideActive = !!models.driver || ['assigned', 'in-progress', 'completed'].includes(models.tripState);
   const sheetHeight = useSheetHeight();
+  // Sheets that size themselves from their content report their real resting
+  // height; the rest still come from the hand-tuned table below. Keeping the
+  // measured ones out of that table is what stops the two drifting apart.
   const restHeight =
-    models.activeBottomSheet === 'initial' && models.scheduledTow ? BOOKING_SNAP.initialWithScheduled[0]
-      : models.activeBottomSheet === 'payment' && models.scheduledFor ? BOOKING_SNAP.paymentScheduled[0]
-      : models.activeBottomSheet === 'rideSearch' && models.service?.scheduledFor ? BOOKING_SNAP.rideSearchScheduled[0]
-        : SHEET_REST_HEIGHT[models.activeBottomSheet];
-  const showRecenter = models.mapMovedByUser && restHeight != null;
+    models.activeBottomSheet === 'rideSearch' && models.service?.scheduledFor ? BOOKING_SNAP.rideSearchScheduled[0]
+      : SHEET_REST_HEIGHT[models.activeBottomSheet];
+  const sheetBottom = measuredRestHeight != null
+    ? measuredRestHeight
+    : restHeight != null ? sheetHeight(restHeight) : null;
+  const showRecenter = models.mapMovedByUser && sheetBottom != null;
   return (
   <>
     {(models.isRouteVisible || models.canGoBackBottomSheet) && !models.service ? (
@@ -393,7 +412,7 @@ const MapControls = memo(({ models, operations, navigation, openDrawer }) => {
     {!models.isRouteVisible && !models.service && <View style={[styles.bellWrapper, { top: controlTop }]}><TouchableOpacity accessibilityLabel="Notificações" style={styles.bellButton} onPress={() => navigation.navigate('Notificacoes')} activeOpacity={0.8}><Icon name="notifications-none" size={scale(24)} color={colors.primary} /></TouchableOpacity>{models.unreadNotificationsCount > 0 && <View style={styles.bellBadge}><Text style={styles.bellBadgeText}>{models.unreadNotificationsCount > 99 ? '99+' : models.unreadNotificationsCount}</Text></View>}</View>}
     {!rideActive && !models.markerVisible && <Animated.View entering={FadeIn.duration(300)} style={[styles.locationChipWrapper, { top: controlTop }]}><ScalePressable onPress={operations.handleRecenterMap} style={styles.locationChip}><Icon name="my-location" size={sizes.iconSmall} color={colors.primary} style={{ marginRight: spacing.xs }} /><View><Text style={styles.locationChipLabel}>Sua Localização</Text><Text style={styles.locationChipAddress} numberOfLines={1}>{models.currentLocationLabel || 'Obtendo localização...'}</Text></View></ScalePressable></Animated.View>}
     {models.markerVisible && models.activeBottomSheet === 'dragMarker' && <View style={styles.markerOverlay} pointerEvents="none"><CustomMarker title={models.markerCity || 'Carregando...'} color={models.inputLocationObject === 0 ? colors.primary : colors.destinationPin} /></View>}
-    {showRecenter && <Animated.View entering={FadeIn.duration(200)} style={[styles.recenterButtonWrapper, { bottom: sheetHeight(restHeight) + RECENTER_GAP }]}><ScalePressable accessibilityLabel="Centrar mapa na minha localização" onPress={operations.handleRecenterMap} style={styles.recenterButton}><Icon name="my-location" size={scale(24)} color={colors.primary} /></ScalePressable></Animated.View>}
+    {showRecenter && <Animated.View entering={FadeIn.duration(200)} style={[styles.recenterButtonWrapper, { bottom: sheetBottom + RECENTER_GAP }]}><ScalePressable accessibilityLabel="Centrar mapa na minha localização" onPress={operations.handleRecenterMap} style={styles.recenterButton}><Icon name="my-location" size={scale(24)} color={colors.primary} /></ScalePressable></Animated.View>}
   </>
   );
 });
@@ -403,6 +422,8 @@ const DriverStatusSheet = memo(({
   sheetName,
   activeBottomSheet,
   snapPoints,
+  onContentLayout,
+  onFoldLayout,
   status,
   models,
   operations,
@@ -416,7 +437,11 @@ const DriverStatusSheet = memo(({
     isActive={isActive}
     ref={sheetRef}
     index={0}
+    // Measured: rest lands on the divider above the actions, expanded ends
+    // just past "Cancelar viagem". The old flat 72% ran the last button's
+    // bottom edge under the system nav bar.
     snapPoints={snapPoints}
+    measured
     enablePanDownToClose={false}
     enableDynamicSizing={false}
     stackBehavior="replace"
@@ -426,10 +451,11 @@ const DriverStatusSheet = memo(({
   >
     <Animated.View
       key={activeBottomSheet}
-      style={{ flex: 1 }}
+      onLayout={onContentLayout}
       entering={FadeIn.duration(240)}
     >
       <DriverStatus
+        onFoldLayout={onFoldLayout}
         status={status}
         driver={models?.driver}
         origin={models.originCity}
@@ -448,13 +474,15 @@ const DriverStatusSheet = memo(({
   );
 });
 
-const TripStatusSheets = memo(({ models, operations, onShareLocation }) => (
+const TripStatusSheets = memo(({ models, operations, onShareLocation, sheets }) => (
   <>
     <DriverStatusSheet
       sheetRef={models.tripStartedSheetRef}
       sheetName="tripStarted"
       activeBottomSheet={models.activeBottomSheet}
-      snapPoints={DRIVER_STATUS_SNAP}
+      snapPoints={sheets.tripStarted.snapPoints}
+      onContentLayout={sheets.tripStarted.onContentLayout}
+      onFoldLayout={sheets.tripStarted.onFoldLayout}
       status={TRIP_STATUS.DRIVER_EN_ROUTE}
       models={models}
       operations={operations}
@@ -466,7 +494,9 @@ const TripStatusSheets = memo(({ models, operations, onShareLocation }) => (
       sheetRef={models.driverArrivingSheetRef}
       sheetName="driverArriving"
       activeBottomSheet={models.activeBottomSheet}
-      snapPoints={DRIVER_STATUS_SNAP}
+      snapPoints={sheets.driverArriving.snapPoints}
+      onContentLayout={sheets.driverArriving.onContentLayout}
+      onFoldLayout={sheets.driverArriving.onFoldLayout}
       status={TRIP_STATUS.DRIVER_ARRIVED}
       models={models}
       operations={operations}
@@ -478,7 +508,9 @@ const TripStatusSheets = memo(({ models, operations, onShareLocation }) => (
       sheetRef={models.tripEndingSheetRef}
       sheetName="tripEnding"
       activeBottomSheet={models.activeBottomSheet}
-      snapPoints={DRIVER_STATUS_SNAP_NO_CANCEL}
+      snapPoints={sheets.tripEnding.snapPoints}
+      onContentLayout={sheets.tripEnding.onContentLayout}
+      onFoldLayout={sheets.tripEnding.onFoldLayout}
       status={TRIP_STATUS.IN_PROGRESS}
       models={models}
       operations={operations}
@@ -547,8 +579,61 @@ const MapModalHost = memo(({ models, operations }) => (
 
 const MapScreen = memo(() => {
   const homeInsets = useSafeAreaInsets();
+  // Transparent gesture nav bar: surfaces run to the physical screen bottom;
+  // this pad keeps sheet content above the bar. FlowBottomSheet already adds it
+  // to every numeric snap point, so snap points must not add it a second time —
+  // doing so was why the payment sheet sat ~30dp taller than its content.
+  const navBarPad = useNavBarPad();
+  const {
+    snapPoints: paymentSnapPoints,
+    onContentLayout: onPaymentLayout,
+  } = useMeasuredSheet(PAYMENT_SNAP);
+  const {
+    snapPoints: initialSnapPoints,
+    onContentLayout: onInitialLayout,
+  } = useMeasuredSheet(BOOKING_SNAP.initial);
+  const {
+    snapPoints: carInfoSnapPoints,
+    onContentLayout: onCarInfoLayout,
+  } = useMeasuredSheet(BOOKING_SNAP.userCarInfo);
+  const {
+    snapPoints: rideSearchSnapPoints,
+    onContentLayout: onRideSearchLayout,
+    onFoldLayout: onRideSearchFold,
+  } = useMeasuredSheet(BOOKING_SNAP.rideSearch);
+  const {
+    snapPoints: detailsSnapPoints,
+    onContentLayout: onDetailsLayout,
+  } = useMeasuredSheet(BOOKING_SNAP.details);
+  // The three trip sheets share one layout, but each measures itself: the
+  // in-progress one has no "Cancelar viagem" row and so is genuinely shorter.
+  const tripStartedSheet = useMeasuredSheet(DRIVER_STATUS_SNAP);
+  const driverArrivingSheet = useMeasuredSheet(DRIVER_STATUS_SNAP);
+  const tripEndingSheet = useMeasuredSheet(DRIVER_STATUS_SNAP_NO_CANCEL);
+  const tripSheets = useMemo(() => ({
+    tripStarted: tripStartedSheet,
+    driverArriving: driverArrivingSheet,
+    tripEnding: tripEndingSheet,
+  }), [tripStartedSheet, driverArrivingSheet, tripEndingSheet]);
   const logger = useLogger('MapScreen');
   const { models, operations } = useMapScreen();
+
+  // The resting height of whichever measured sheet is on, so the recenter
+  // button can sit above it without a second copy of the snap-point table.
+  const measuredRestHeight = useMemo(() => {
+    const points = {
+      initial: initialSnapPoints,
+      payment: paymentSnapPoints,
+      userCarInfo: carInfoSnapPoints,
+      rideSearch: rideSearchSnapPoints,
+      details: detailsSnapPoints,
+      tripStarted: tripSheets.tripStarted.snapPoints,
+      driverArriving: tripSheets.driverArriving.snapPoints,
+      tripEnding: tripSheets.tripEnding.snapPoints,
+    }[models.activeBottomSheet];
+    const rest = points?.[0];
+    return typeof rest === 'number' ? rest + navBarPad : null;
+  }, [models.activeBottomSheet, initialSnapPoints, paymentSnapPoints, carInfoSnapPoints, rideSearchSnapPoints, detailsSnapPoints, tripSheets, navBarPad]);
 
   logger.debug('MapScreen rendered', {
     activeBottomSheet: models.activeBottomSheet,
@@ -561,12 +646,6 @@ const MapScreen = memo(() => {
     tripStatus: models.tripData?.status,
     hasDriver: !!models.driver,
   });
-
-  const snapPoints = useMemo(
-    () => [scale(230), scale(250), scale(260), scale(520)],
-    []
-  );
-
 
   // Memoized map markers for performance
   const memoizedMapMarkers = useMemo(() => {
@@ -665,11 +744,16 @@ const MapScreen = memo(() => {
   // price, no car types, no way to retry. Say what happened and offer the
   // retry instead.
   const priceFetchFailed = models.pricesError && !models.prices;
+  // Prices loaded but the list is empty (nothing configured on the server):
+  // not a loading state, so don't say "a calcular" forever.
+  const noCarTypes = Array.isArray(models.prices) && models.prices.length === 0;
   const carTypesEmptyMessage = sameOriginAndDestination
     ? 'O destino é praticamente o mesmo que o local de recolha. Escolha um destino diferente.'
     : priceFetchFailed
       ? 'Não foi possível calcular o preço. Verifique a sua ligação à internet.'
-      : 'A calcular percurso...';
+      : noCarTypes
+        ? 'De momento não há reboques disponíveis. Tente novamente mais tarde.'
+        : 'A calcular percurso...';
 
   // Memoized car types item renderer
   const renderCarTypesItem = useCallback(({ item }) => {
@@ -754,7 +838,7 @@ const MapScreen = memo(() => {
         confirmLabel="Sim, cancelar"
         onDestructive={operations.handleCancelScheduledTow}
       />
-      <MapControls models={models} operations={operations} navigation={navigation} openDrawer={openDrawer} />
+      <MapControls models={models} operations={operations} navigation={navigation} openDrawer={openDrawer} measuredRestHeight={measuredRestHeight} />
 
         <FlowBottomSheet
           isActive={models.activeBottomSheet === 'initial'}
@@ -762,16 +846,20 @@ const MapScreen = memo(() => {
           // alert's Modal measured a zero-height container and renders nothing.
           ref={models.bottomSheetModalRef}
           index={0}
-          // Fit destinations and the search action; a fixed half-screen sheet
-          // clips the action when Poppins or long addresses increase content.
-          enableDynamicSizing={true}
+          // One stop at the measured content height: the search pill is the
+          // primary action and has to be fully visible at rest. The old '45%'
+          // /'50%' strings bypassed the nav-bar allowance entirely, which left
+          // most of the pill behind the system bar.
+          snapPoints={initialSnapPoints}
+          measured
+          enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
           backgroundStyle={{ backgroundColor: colors.transparent }}
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <BottomSheetScrollView style={styles.sheetContainerGlass} contentContainerStyle={{ paddingBottom: homeInsets.bottom + spacing.xxxl }}>
+          <BottomSheetView onLayout={onInitialLayout} style={styles.sheetContainerGlass}>
             {/* Tow booked for later: only present while one exists */}
             {models.scheduledTow && (
               <Animated.View entering={FadeInDown.springify()}>
@@ -784,7 +872,9 @@ const MapScreen = memo(() => {
                     <View style={styles.scheduledStatusRow}>
                       <View style={[styles.scheduledDot, models.scheduledTow.claimedBy && styles.scheduledDotClaimed]} />
                       <Text style={styles.scheduledStatus} numberOfLines={1}>
-                        {models.scheduledTow.claimedBy
+                        {models.scheduledTow.claimedBy && models.scheduledTow.confirmRequestedAt && !models.scheduledTow.confirmedAt
+                          ? 'Reservado · a aguardar confirmação'
+                          : models.scheduledTow.claimedBy
                           ? `Confirmado${models.scheduledTow.claimedBy.details?.name ? ` · ${models.scheduledTow.claimedBy.details.name}` : ''}`
                           : 'À procura de motorista'}
                       </Text>
@@ -832,7 +922,7 @@ const MapScreen = memo(() => {
                 </View>
               </ScalePressable>
             </Animated.View>
-          </BottomSheetScrollView>
+          </BottomSheetView>
         </FlowBottomSheet>
 
         <FlowBottomSheet
@@ -873,7 +963,7 @@ const MapScreen = memo(() => {
                   <Text style={styles.carTypesEmptyText}>
                     {carTypesEmptyMessage}
                   </Text>
-                  {priceFetchFailed && (
+                  {(priceFetchFailed || noCarTypes) && (
                     <TouchableOpacity
                       style={styles.carTypesRetryButton}
                       onPress={operations.fetchPrices}
@@ -892,7 +982,10 @@ const MapScreen = memo(() => {
           isActive={models.activeBottomSheet === 'userCarInfo'}
           ref={models.userCarInfoSheetRef}
           index={0}
-          snapPoints={BOOKING_SNAP.userCarInfo}
+          // Measured: the old second stop was a flat 76% of the screen, which
+          // sat ~235dp below the Confirmar button.
+          snapPoints={carInfoSnapPoints}
+          measured
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
@@ -900,12 +993,13 @@ const MapScreen = memo(() => {
           // to the keyboard: the next sheet mounts while the keyboard is still
           // closing and would be lifted, then slide down after it.
           keyboardBehavior="interactive"
-          android_keyboardInputMode="adjustResize"
+          keyboardBlurBehavior="restore"
+          android_keyboardInputMode="adjustPan"
           backgroundStyle={{ backgroundColor: 'transparent' }}
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
+          <Animated.View onLayout={onCarInfoLayout} entering={FadeIn.duration(240)}>
             <UserCarInfo
               handleBrandInputValueChange={operations.handleBrandInputValueChange}
               handleColorInputValueChange={operations.handleColorInputValueChange}
@@ -927,10 +1021,13 @@ const MapScreen = memo(() => {
           isActive={models.activeBottomSheet === 'payment'}
           ref={models.paymentOptionsSheetRef}
           index={0}
-          snapPoints={models.scheduledFor ? BOOKING_SNAP.paymentScheduled : BOOKING_SNAP.payment}
-          // The time wheel scrolls vertically; the sheet has a single height, so
-          // letting its content drag the sheet would only steal the wheel's gestures.
-          enableContentPanningGesture={!models.scheduledFor}
+          // Picking a payment method *is* the action here — there is no button
+          // below a divider — so the sheet has a single stop at exactly the
+          // content height. It regrows on its own when "Agendar" adds the time
+          // wheel, which is what used to leave ~80dp of blank under the options.
+          snapPoints={paymentSnapPoints}
+          measured
+          enableContentPanningGesture={false}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -938,7 +1035,7 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
+          <Animated.View onLayout={onPaymentLayout} entering={FadeIn.duration(160)}>
             <PaymentOptions
               handleConfirmPaymentPress={operations.handleConfirmPaymentPress}
               onScheduleChange={operations.handleScheduleChange}
@@ -950,7 +1047,11 @@ const MapScreen = memo(() => {
           isActive={models.activeBottomSheet === 'rideSearch'}
           ref={models.rideSearchSheetRef}
           index={0}
-          snapPoints={models.service?.scheduledFor ? BOOKING_SNAP.rideSearchScheduled : BOOKING_SNAP.rideSearch}
+          // Measured: rest lands on the divider under the route card and the
+          // drag up reveals "Cancelar Viagem" with nothing below it. The two
+          // hand-tuned pairs this replaced only held for one text size.
+          snapPoints={rideSearchSnapPoints}
+          measured
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -960,10 +1061,11 @@ const MapScreen = memo(() => {
         >
           <Animated.View
             key={models.activeBottomSheet}
-            style={{ flex: 1 }}
+            onLayout={onRideSearchLayout}
             entering={FadeIn.duration(240)}
           >
             <DriverSearch
+              onFoldLayout={onRideSearchFold}
               scheduledFor={models.service?.scheduledFor}
               scheduledService={models.service}
               destination={models.destinationCity}
@@ -981,13 +1083,17 @@ const MapScreen = memo(() => {
           models={models}
           operations={operations}
           onShareLocation={handleShareLocation}
+          sheets={tripSheets}
         />
 
         <FlowBottomSheet
           isActive={models.activeBottomSheet === 'details'}
           ref={models.bottomSheetModalRefDetails}
           index={0}
-          snapPoints={BOOKING_SNAP.details}
+          // Measured: this was a flat 90% of the screen regardless of content,
+          // which left ~130dp of blank under the payment row.
+          snapPoints={detailsSnapPoints}
+          measured
           enableDynamicSizing={false}
           enablePanDownToClose={false}
           stackBehavior="replace"
@@ -995,7 +1101,7 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
+          <Animated.View onLayout={onDetailsLayout} entering={FadeIn.duration(240)}>
             {models.driver && models.service && (
               <DetailsItem
                 origin={models.originCity}
@@ -1016,7 +1122,7 @@ const MapScreen = memo(() => {
           isActive={models.activeBottomSheet === 'dragMarker'}
           ref={models.bottomSheetModalDragMarker}
           index={0}
-          snapPoints={snapPoints}
+          snapPoints={BOOKING_SNAP.dragMarker}
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -1393,9 +1499,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
   },
+  // No flex: the sheet is sized from what this measures, so it has to hug its
+  // content rather than stretch to whatever height it was given.
   sheetContainerGlass: {
-    flex: 1,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
   },
   capsuleHandleContainer: {
     alignItems: 'center',
@@ -1438,7 +1545,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xxs,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
   },
   sectionHeaderTitle: {
     flex: 1,
@@ -1456,7 +1563,7 @@ const styles = StyleSheet.create({
   floatingPillContainer: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.xs,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     elevation: 10,
   },
   floatingPill: {
@@ -1464,7 +1571,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: borderRadius.xxl,
-    minHeight: sizes.controlLarge,
+    minHeight: sizes.control,
     paddingVertical: spacing.sm,
     paddingLeft: spacing.lg,
     paddingRight: spacing.sm,
@@ -1531,7 +1638,7 @@ const styles = StyleSheet.create({
   },
   glassHandleContainer: {
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   glassHandleIndicator: {
     width: scale(40),

@@ -1,161 +1,63 @@
-import React from "react";
-import { View, StyleSheet, Image } from 'react-native';
-import { AppText as Text } from '../common/AppText';
+import React from 'react';
+import { Image, StyleSheet, View } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { AppPressable as TouchableOpacity } from '../common/AppPressable';
+import { AppText as Text } from '../common/AppText';
+import { colors, shadows, spacing, borderRadius, borderWidths, typography, sizes, fonts } from '../../theme';
+import { TRIP_STATUS } from '../../constants/tripStatus';
 
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
-import { scale } from "react-native-size-matters";
-import { colors, shadows, spacing, borderRadius, typography, sizes } from "../../theme";
-import { TRIP_STATUS } from "../../constants/tripStatus";
+const defaultPhoto = 'https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png';
 
-const imgDef =
-  "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
+const DriverItem = ({ driver, tripDuration, onCallDriver, onMessageDriver, status, unreadMessageCount = 0 }) => {
+  const car = driver?.car || driver?.details?.car || driver?.vehicle || {};
+  const carName = car.name || [car.brand, car.model, car.color].filter(Boolean).join(' ');
+  const licensePlate = car.licensePlate || car.license || car.plate || driver?.licensePlate;
+  const duration = Number.isFinite(Number(tripDuration)) ? Math.max(0, Math.floor(Number(tripDuration))) : null;
+  const statusText = status === TRIP_STATUS.DRIVER_EN_ROUTE
+    ? duration != null ? `Chegando em ~${duration} minutos` : 'Reboque a caminho'
+    : status === TRIP_STATUS.DRIVER_ARRIVED
+      ? 'Reboque esperando por você'
+      : duration != null ? `A ~${duration} minutos do destino` : 'Viagem em andamento';
 
-const DriverItem = ({
-  driver,
-  tripDuration,
-  onCallDriver,
-  onMessageDriver,
-  status,
-  unreadMessageCount = 0,
-}) => {
   return (
-    <View>
-      <View style={styles.infoCenter}>
-        <View style={styles.infoCenter}>
-          {status === TRIP_STATUS.DRIVER_EN_ROUTE ? (
-            <Text style={styles.mainText}>
-              Chegando em ~{`${Math.floor(tripDuration)} minutos`}
-            </Text>
-          ) : status === TRIP_STATUS.DRIVER_ARRIVED ? (
-            <Text style={styles.mainText}>
-              Seu reboque está esperando por você
-            </Text>
-          ) : (
-            <Text style={styles.mainText}>
-              A ~{Math.floor(tripDuration)} minutos do destino
-            </Text>
-          )}
-        </View>
-        <View style={styles.carInfoRow}>
-          <Text style={styles.carName}>{driver?.car?.name ?? ''}</Text>
-          <View style={styles.plateBadge}>
-            <Text style={styles.plateText}>{driver?.car?.licensePlate ?? ''}</Text>
-          </View>
-        </View>
+    <View style={styles.container}>
+      <Text style={styles.mainText}>{statusText}</Text>
+      <View style={styles.carInfoRow}>
+        {carName ? <Text style={styles.carName} numberOfLines={1}>{carName}</Text> : null}
+        {licensePlate ? <View style={styles.plateBadge}><Text style={styles.plateText}>{licensePlate}</Text></View> : null}
       </View>
-      <View>
-        <View style={styles.actionsRow}>
-          <TouchableOpacity onPress={onCallDriver}>
-            <View style={styles.circle}>
-              <Icon name="add-call" size={sizes.iconSmall} color={colors.surface} />
-            </View>
-          </TouchableOpacity>
-          <View style={styles.driverAvatarContainer}>
-            <Image
-              source={{ uri: driver?.photo || imgDef }}
-              style={styles.driverPhoto}
-            />
-            <Text style={styles.driverName}>{driver.name}</Text>
-          </View>
-          <TouchableOpacity onPress={onMessageDriver}>
-            <View style={styles.circle}>
-              <Icon name="message" size={sizes.iconSmall} color={colors.surface} />
-              {unreadMessageCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{unreadMessageCount}</Text>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
+      <View style={styles.actionsRow}>
+        <TouchableOpacity accessibilityLabel="Ligar ao motorista" onPress={onCallDriver} style={styles.circle}>
+          <Icon name="call" size={sizes.icon} color={colors.surface} />
+        </TouchableOpacity>
+        <View style={styles.driverAvatarContainer}>
+          <Image source={{ uri: driver?.photo || defaultPhoto }} style={styles.driverPhoto} />
+          <Text style={styles.driverName} numberOfLines={1}>{driver?.name || 'Motorista'}</Text>
         </View>
+        <TouchableOpacity accessibilityLabel="Enviar mensagem ao motorista" onPress={onMessageDriver} style={styles.circle}>
+          <Icon name="near-me" size={sizes.icon} color={colors.surface} />
+          {unreadMessageCount > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unreadMessageCount > 9 ? '9+' : unreadMessageCount}</Text></View>}
+        </TouchableOpacity>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  infoCenter: {
-    alignItems: "center",
-  },
-  carInfoRow: {
-    flexDirection: "row",
-  },
-  carName: {
-    color: colors.textPrimary,
-    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
-    fontWeight: "bold",
-  },
-  plateBadge: {
-    marginLeft: spacing.xs,
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  plateText: {
-    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
-    color: colors.surface,
-    fontWeight: "bold",
-  },
-  actionsRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    paddingTop: spacing.xl,
-  },
-  driverAvatarContainer: {
-    alignItems: "center",
-  },
-  driverPhoto: {
-    width: scale(75),
-    height: scale(75),
-    borderRadius: borderRadius.full,
-    borderWidth: 3,
-    borderColor: colors.primary,
-  },
-  driverName: {
-    fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
-    marginTop: spacing.xs,
-    color: colors.textMuted,
-  },
-  mainText: {
-    color: colors.textPrimary,
-    fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
-    fontWeight: "700",
-    marginBottom: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  circle: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: borderRadius.xxl,
-    backgroundColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    alignSelf: "center",
-    marginHorizontal: spacing.xl,
-    marginTop: spacing.md,
-    ...shadows.primaryGlow,
-  },
-  badge: {
-    position: "absolute",
-    top: scale(-2),
-    right: scale(-2),
-    backgroundColor: colors.error,
-    borderRadius: borderRadius.md,
-    minWidth: scale(18),
-    height: scale(18),
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: colors.surface,
-  },
-  badgeText: {
-    color: colors.surface,
-    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
+  container: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
+  mainText: { ...typography.h3, fontFamily: fonts.semiBold, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.md },
+  carInfoRow: { minHeight: sizes.iconLarge, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
+  carName: { ...typography.bodySmall, fontFamily: fonts.semiBold, color: colors.textPrimary },
+  plateBadge: { backgroundColor: colors.disabledSurface, borderRadius: borderRadius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  plateText: { ...typography.caption, fontFamily: fonts.bold, color: colors.textPrimary },
+  actionsRow: { minHeight: sizes.avatar + spacing.xxl, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingTop: spacing.md },
+  driverAvatarContainer: { width: 136, alignItems: 'center' },
+  driverPhoto: { width: sizes.avatar, height: sizes.avatar, borderRadius: borderRadius.full, borderWidth: borderWidths.focus, borderColor: colors.border },
+  driverName: { ...typography.bodySmall, fontFamily: fonts.medium, color: colors.textSecondary, marginTop: spacing.xs },
+  circle: { width: sizes.control, height: sizes.control, borderRadius: borderRadius.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', ...shadows.sm },
+  badge: { position: 'absolute', top: -spacing.xs, right: -spacing.xs, minWidth: sizes.icon, height: sizes.icon, borderRadius: borderRadius.full, backgroundColor: colors.error, borderWidth: borderWidths.focus, borderColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { ...typography.caption, fontFamily: fonts.bold, color: colors.surface, textAlign: 'center' },
 });
+
 export default DriverItem;

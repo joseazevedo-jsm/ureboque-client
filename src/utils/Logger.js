@@ -27,17 +27,17 @@ const LOG_COLORS = {
 
 const REMOTE_LOG_LEVELS = ['WARN', 'ERROR', 'CRITICAL'];
 const REDACTED = '[REDACTED]';
-const SENSITIVE_KEY_PATTERN = /(password|pass|token|authorization|jwt|secret|otp|code|phone|email|mail|latitude|longitude|location|coordinates|address|card|payment|message|chat|name|surname|photo|image|document|license)/i;
+const SENSITIVE_KEY_PATTERN = /(password|pass|token|authorization|jwt|secret|otp|code|phone|email|mail|latitude|longitude|location|coordinates|address|card|payment|message|chat|name|surname|photo|image|document|license|\blat\b|\blng\b)/i;
 const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 const BEARER_PATTERN = /Bearer\s+[A-Za-z0-9._~+/=-]+/gi;
 const LONG_TOKEN_PATTERN = /\b[A-Za-z0-9_-]{24,}\b/g;
 const PHONE_PATTERN = /(\+?\d[\d\s().-]{7,}\d)/g;
 
 const shouldSendRemoteLogs = () => {
-  const flag = process.env.EXPO_PUBLIC_REMOTE_LOGS_ENABLED;
-  if (flag === 'true') return true;
-  if (flag === 'false') return false;
-  return !__DEV__;
+  // Opt-in, never opt-out: the endpoint takes unauthenticated writes and the
+  // payload, even sanitized, is still operational telemetry. It only flows
+  // when a build deliberately enables it.
+  return process.env.EXPO_PUBLIC_REMOTE_LOGS_ENABLED === 'true';
 };
 
 const redactString = (value) => (

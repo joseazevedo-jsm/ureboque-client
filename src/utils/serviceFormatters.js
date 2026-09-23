@@ -2,15 +2,35 @@ import { colors } from '../theme';
 
 export const getStatusInfo = (status) => {
   switch (status) {
+    case 'scheduled':
+      return { text: 'Agendado', color: colors.primaryDark, bgColor: colors.primaryLight, icon: 'event' };
     case 'completed':
       return { text: 'Concluído', color: colors.success, bgColor: colors.successLight, icon: 'check-circle' };
     case 'cancelled':
       return { text: 'Cancelado', color: colors.error, bgColor: colors.errorLight, icon: 'cancel' };
     case 'requested':
-      return { text: 'Solicitado', color: colors.warning, bgColor: colors.warningLight, icon: 'schedule' };
+    case 'flagged':
+    case 'connecting':
+      return { text: 'À procura', color: colors.warning, bgColor: colors.warningLight, icon: 'search' };
+    case 'assigned':
+      return { text: 'Motorista a caminho', color: colors.primaryDark, bgColor: colors.primaryLight, icon: 'local-shipping' };
+    case 'in-progress':
+      return { text: 'Em viagem', color: colors.primaryDark, bgColor: colors.primaryLight, icon: 'route' };
     default:
       return { text: status ?? '', color: colors.textSecondary, bgColor: colors.background, icon: 'help' };
   }
+};
+
+export const formatScheduledDate = (dateString) => {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    day: String(date.getDate()).padStart(2, '0'),
+    month: date.toLocaleDateString('pt-AO', { month: 'short' }).replace('.', '').toUpperCase(),
+    date: date.toLocaleDateString('pt-AO', { weekday: 'short', day: 'numeric', month: 'long' }),
+    time: date.toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' }),
+  };
 };
 
 export const formatServiceDate = (dateString) => {

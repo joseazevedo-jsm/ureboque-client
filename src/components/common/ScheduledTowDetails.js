@@ -5,6 +5,7 @@ import { AppPressable as TouchableOpacity } from './AppPressable';
 
 import Icon from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavBarPad } from '../map/useMeasuredSheet';
 import { typography, colors, spacing, borderRadius } from '../../theme';
 
 const money = value => Number(value || 0).toLocaleString('pt-AO') + ' Kz';
@@ -15,6 +16,7 @@ export default function ScheduledTowDetails({ job, visible, onClose, statusLabel
   actionLabel, onAction, destructiveLabel, onDestructive, busy = false,
   confirmText = 'Esta acção retira a sua reserva deste agendamento.', keepLabel = 'Manter reserva', confirmLabel }) {
   const insets = useSafeAreaInsets();
+  const navBarPad = useNavBarPad();
   const [pending, setPending] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -28,8 +30,10 @@ export default function ScheduledTowDetails({ job, visible, onClose, statusLabel
   const dateLabel = sentenceCase(date.toLocaleDateString('pt-AO', { weekday: 'long', day: 'numeric', month: 'long' }));
   const calendarDay = String(date.getDate()).padStart(2, '0');
   const calendarMonth = date.toLocaleDateString('pt-AO', { month: 'short' }).replace('.', '').toUpperCase();
-  const resolvedStatusLabel = statusLabel || (overdue ? 'A aguardar actualização' : job.claimedBy ? 'Confirmado por um motorista' : 'À procura de motorista');
-  const resolvedStatusHint = statusHint || (overdue ? 'A hora prevista já passou. Estamos a verificar o estado do seu reboque.' : job.claimedBy ? 'O motorista recebe o pedido 45 minutos antes e sai para chegar a horas.' : 'Está tudo guardado. Assim que um motorista reservar, o estado muda para confirmado.');
+  // The driver was asked to confirm and hasn't yet (released 2h before if not).
+  const awaitingConfirmation = job.claimedBy && job.confirmRequestedAt && !job.confirmedAt;
+  const resolvedStatusLabel = statusLabel || (overdue ? 'A aguardar actualização' : awaitingConfirmation ? 'A aguardar confirmação do motorista' : job.claimedBy ? 'Confirmado por um motorista' : 'À procura de motorista');
+  const resolvedStatusHint = statusHint || (overdue ? 'A hora prevista já passou. Estamos a verificar o estado do seu reboque.' : awaitingConfirmation ? 'Pedimos ao motorista que confirme. Se não confirmar até 2 horas antes, procuramos outro motorista.' : job.claimedBy ? 'O motorista recebe o pedido 45 minutos antes e sai para chegar a horas.' : 'Está tudo guardado. Assim que um motorista reservar, o estado muda para confirmado.');
   const run = async action => {
     if (pendingRef.current || busy) return;
     pendingRef.current = true;
@@ -45,7 +49,11 @@ export default function ScheduledTowDetails({ job, visible, onClose, statusLabel
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.overlay}>
         <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Fechar detalhes" />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg), marginTop: insets.top + spacing.lg }]} accessibilityViewIsModal>
+        {/* The bar is 43dp and EMUI reports a zero inset, so the old
+            Math.max(insets.bottom, spacing.lg) left 16dp and the cancel action
+            sat flush against it. useNavBarPad clears the bar, then spacing.lg
+            is the breathing room. */}
+        <View style={[styles.sheet, { paddingBottom: navBarPad + spacing.lg, marginTop: insets.top + spacing.lg }]} accessibilityViewIsModal>
           <View style={styles.handle} />
           <View style={styles.header}>
             <View>

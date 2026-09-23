@@ -69,13 +69,14 @@ const DestinationModal = ({
                     }}
                     selectTextOnFocus={true}
                     clearButtonMode="while-editing"
-                    // Focus follows whichever field still needs an answer.
-                    // Basing this on coordinates alone was not enough: a cached
-                    // fix can exist while reverse geocoding never produces a
-                    // label, leaving the origin visibly blank. Asking for the
-                    // destination while "De onde?" is empty puts the questions
-                    // in the wrong order, so an empty origin always wins focus.
-                    autoFocus={models.activeInput === 'origin' || !hasOriginValue}
+                    // Focus follows the parent's decision (inputLocationObject),
+                    // which already knows when the origin is effectively set
+                    // (fresh fix OR previously chosen coords). The origin label
+                    // may still be geocoding when the modal mounts — falling back
+                    // to "no visible value" here stole focus to origin and made
+                    // the first suggestion tap silently REPLACE the origin, then
+                    // the real destination pick yielded a zero-length route.
+                    autoFocus={models.activeInput === 'origin'}
                   />
                 </View>
               </TouchableOpacity>

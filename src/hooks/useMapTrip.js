@@ -498,13 +498,28 @@ export const useMapTrip = ({
   }, [showAlert, onResetRef, tripData.service?._id, tripData._version]);
 
   const handleServiceSnapshot = useCallback((payload, options = {}) => {
-    const service = payload?.service;
+    const service = payload?.driverDetails
+      ? { ...payload.service, driverDetails: payload.driverDetails }
+      : payload?.service;
     const current = tripDataRef.current;
     const currentForSnapshot = options.hydrate
       ? { ...current, service: current.service || { _id: service?._id }, _version: null }
       : current;
     if (!options.hydrate && !acceptsTripSnapshot(currentForSnapshot, service)) return false;
     if (options.hydrate && (!service?._id || (current.service?._id && current.service._id !== service._id))) return false;
+    // Hydrate deliberately re-applies server truth, but REST truth can still
+    // be stale: a GET launched before a newer socket snapshot must not roll
+    // the trip back to an older version once it's in flight. Read the version
+    // from `current` (not currentForSnapshot, whose _version is nulled above).
+    if (options.hydrate && current.service?._id && Number.isFinite(service?.version) &&
+        current._version != null && service.version < current._version) {
+      logger.info('Ignoring stale hydrate snapshot', {
+        serviceId: service._id,
+        incomingVersion: service.version,
+        localVersion: current._version,
+      });
+      return false;
+    }
     if (service.status === 'completed') {
       setTripData({ ...currentForSnapshot, service, status: 'completed', _version: service.version, detailsInfo: null });
       resetTimer();
@@ -518,7 +533,21 @@ export const useMapTrip = ({
       if (['no_drivers', 'search_timeout', 'invalid_location'].includes(service.terminalReason)) {
         presentBottomSheet('payment');
         showNoDriverAlert(service.terminalReason, service);
-      } else onResetRef.current?.();
+      } else {
+        // A trip must never vanish without a word: any cancellation that is not
+        // a known search-exhaustion case gets an explicit message before the
+        // reset, otherwise a driver-cancel would leave a stranded user staring
+        // at an idle map with no idea their assist request is gone.
+        const byDriver = service.terminalReason === 'driver_cancelled' || service.cancelledBy === 'driver';
+        showAlert({
+          type: 'error',
+          title: 'Serviço cancelado',
+          message: byDriver
+            ? 'O motorista cancelou o serviço. Pode pedir outro reboque.'
+            : 'O pedido foi cancelado. Se não foi cancelado por si, verifique o estado antes de pedir novamente.',
+          buttons: [{ text: 'OK', onPress: () => onResetRef.current?.() }],
+        });
+      }
       return true;
     }
     noDriverAlertShownRef.current = false;
@@ -665,7 +694,7 @@ export const useMapTrip = ({
 
       if (resp.data?.status === 'scheduled') {
         onResetRef?.current?.();
-        onScheduledRef?.current?.();
+        onScheduledRef?.current?.(resp.data);
         showAlert({
           type: 'success',
           title: 'Reboque agendado',

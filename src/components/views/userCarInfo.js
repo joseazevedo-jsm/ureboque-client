@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { AppText as Text } from '../common/AppText';
 import { AppPressable as TouchableOpacity } from '../common/AppPressable';
 
@@ -15,6 +15,8 @@ const FIELDS = [
   { key: "license", label: "Matrícula",  placeholder: "LD-00-00",    autoCapitalize: "characters", returnKeyType: "next" },
   { key: "color",   label: "Cor",        placeholder: "Ex: Branco",  autoCapitalize: "words",      returnKeyType: "done" },
 ];
+
+const vehicleIcon = require('../../../resources/icons/UREB_TUR.png');
 
 const HANDLERS = {
   brand:   (ops) => ops.handleBrandInputValueChange,
@@ -81,7 +83,7 @@ const UserCarInfo = ({
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerIcon}>
-          <Icon name="directions-car" size={sizes.iconLarge} color={colors.primary} />
+          <Image source={vehicleIcon} style={styles.headerVehicleIcon} resizeMode="contain" />
         </View>
         <View>
           <Text style={styles.title}>Qual carro vai rebocar?</Text>
@@ -147,9 +149,10 @@ const UserCarInfo = ({
 };
 
 const styles = StyleSheet.create({
+  // No flex: the sheet measures this to size itself, so it must hug its
+  // content instead of stretching to fill whatever height it was handed.
   container: {
     paddingHorizontal: spacing.xl,
-    flex: 1,
   },
 
   // Header
@@ -167,6 +170,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: spacing.md,
+  },
+  headerVehicleIcon: {
+    width: scale(46),
+    height: scale(32),
   },
   title: {
     fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,

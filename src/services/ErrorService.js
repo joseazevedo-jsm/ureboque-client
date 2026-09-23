@@ -104,14 +104,26 @@ class ErrorService {
         case 500:
           return 'Erro no servidor. Tente novamente mais tarde.';
         default:
-          return error.response.data?.message || 'Ocorreu um erro inesperado.';
+          // Backend messages are written for operators, not riders: they show
+          // up in English in a Portuguese UI. Keep them in the logs; the user
+          // gets a stable Portuguese message. Endpoints with user-facing copy
+          // must be handled explicitly by their callers (as the booking flow
+          // already does for 400/409).
+          Logger.warn('ErrorService', 'Unmapped API error shown as generic message', {
+            status: error.response.status,
+            backendMessage: error.response.data?.message,
+          });
+          return 'Ocorreu um erro inesperado. Tente novamente.';
       }
     } else if (error.request) {
       // Network error
       return 'Erro de ligação. Verifique a sua internet.';
     } else {
       // Other error
-      return error.message || 'Ocorreu um erro inesperado.';
+      Logger.warn('ErrorService', 'Client-side error shown as generic message', {
+        clientMessage: error.message,
+      });
+      return 'Ocorreu um erro inesperado. Tente novamente.';
     }
   }
 

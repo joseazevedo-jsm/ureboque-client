@@ -40,6 +40,12 @@ class NotificationService {
       this.permissionGranted = finalStatus === 'granted';
       
       if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'Trip updates',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: colors.primary,
+        });
         await Notifications.setNotificationChannelAsync('driver-messages', {
           name: 'Driver Messages',
           importance: Notifications.AndroidImportance.HIGH,

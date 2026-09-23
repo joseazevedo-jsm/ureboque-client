@@ -10,11 +10,13 @@ const Icon = MaterialIcons;
 import { scale } from "react-native-size-matters";
 import ChatItem from "../../cards/chatItem";
 import { colors, shadows, borderRadius, spacing, typography, sizes } from "../../../theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const imgDef =
   "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
 
 const ChatModal = ({ visible, closeModal, idService, driver, setUnreadMessageCount, onCallDriver }) => {
+  const insets = useSafeAreaInsets();
   const { models, operations } = useChatModal(idService, setUnreadMessageCount);
 
   const extractTimestampFromObjectId = (objectId) => {
@@ -45,13 +47,13 @@ const ChatModal = ({ visible, closeModal, idService, driver, setUnreadMessageCou
   };
 
   return (
-    <Modal onRequestClose={closeModal} visible={visible} animationType="slide">
+    <Modal onRequestClose={closeModal} visible={visible} animationType="slide" statusBarTranslucent navigationBarTranslucent>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {/* Header */}
-        <View style={styles.topBar}>
+        <View style={[styles.topBar, { paddingTop: insets.top + spacing.sm }]}>
           <TouchableOpacity style={styles.iconButton} onPress={closeModal}>
             <Icon name="arrow-back" size={sizes.iconLarge} color={colors.primary} />
           </TouchableOpacity>
@@ -77,6 +79,7 @@ const ChatModal = ({ visible, closeModal, idService, driver, setUnreadMessageCou
 
         {/* Messages */}
         <FlatList
+          style={styles.messages}
           data={models.messages}
           keyExtractor={(item, index) => String(
             item?._id ||
@@ -84,11 +87,12 @@ const ChatModal = ({ visible, closeModal, idService, driver, setUnreadMessageCou
           )}
           renderItem={renderItem}
           contentContainerStyle={styles.messageList}
+          keyboardShouldPersistTaps="handled"
           ListFooterComponent={<View style={{ height: scale(8) }} />}
         />
 
         {/* Input */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
           <TextInput
             style={styles.input}
             value={models.newMessage}
@@ -121,7 +125,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: spacing.modalSafeTop,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
     backgroundColor: colors.surface,
@@ -141,7 +144,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start",
     marginHorizontal: spacing.md,
   },
   avatarWrapper: {
@@ -168,6 +171,7 @@ const styles = StyleSheet.create({
   },
   driverTextGroup: {
     justifyContent: "center",
+    flex: 1,
   },
   driverName: {
     fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
@@ -179,31 +183,37 @@ const styles = StyleSheet.create({
     color: colors.success,
     fontWeight: "600",
   },
+  messages: {
+    flex: 1,
+  },
   messageList: {
-    paddingTop: spacing.md,
+    flexGrow: 1,
+    justifyContent: 'flex-end',
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.md,
   },
   inputContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xxl,
+    alignItems: "flex-end",
+    paddingTop: spacing.md,
+    paddingHorizontal: spacing.lg,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.borderLight,
   },
   input: {
     flex: 1,
+    minHeight: sizes.control,
     fontSize: typography.bodySmall.fontSize, lineHeight: typography.bodySmall.lineHeight,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     backgroundColor: colors.background,
     borderRadius: borderRadius.xxl,
     borderWidth: 1,
     borderColor: colors.borderLight,
     marginRight: spacing.sm,
     color: colors.textPrimary,
-    maxHeight: scale(100),
+    maxHeight: scale(120),
   },
   sendButton: {
     width: scale(44),

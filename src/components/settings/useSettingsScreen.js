@@ -124,32 +124,24 @@ const useSettingsScreen = () => {
           text: "Eliminar",
           style: "destructive",
           onPress: () => {
-            // Second confirmation via native prompt (requires text input)
-            Alert.prompt(
-              "Confirmar Eliminação",
-              "Digite 'ELIMINAR' para confirmar:",
-              [
+            // Second confirmation via the in-app dialog (Alert.prompt is
+            // iOS-only and silently does nothing on Android)
+            showAlert({
+              type: 'warning',
+              title: "Confirmar Eliminação",
+              message: "Última etapa: a sua conta e todos os dados associados serão eliminados permanentemente.",
+              buttons: [
                 {
                   text: "Cancelar",
                   style: "cancel",
                 },
                 {
-                  text: "Eliminar",
+                  text: "Eliminar definitivamente",
                   style: "destructive",
-                  onPress: (text) => {
-                    if (text === "ELIMINAR") {
-                      deleteAccount();
-                    } else {
-                      showAlert({
-                        type: 'error',
-                        title: "Erro",
-                        message: "Confirmação incorreta",
-                      });
-                    }
-                  },
+                  onPress: () => deleteAccount(),
                 },
-              ]
-            );
+              ],
+            });
           },
         },
       ],

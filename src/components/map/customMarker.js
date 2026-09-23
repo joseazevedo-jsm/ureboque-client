@@ -5,7 +5,7 @@ import { AppText as Text } from '../common/AppText';
 import { scale } from 'react-native-size-matters';
 import { spacing, colors, borderRadius, typography } from '../../theme';
 
-const CustomMarker = ({ title, time, color }) => {
+const CustomMarker = ({ title, time, color = colors.primary }) => {
   return (
     <View style={styles.wrapper}>
       {/* Info Bubble */}

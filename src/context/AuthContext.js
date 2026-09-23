@@ -29,6 +29,8 @@ export const AuthProvider = ({ children }) => {
     const operationId = ++authOperationRef.current;
     const timer = logger.startTimer('login_operation');
     logger.info('Login attempt started', { userId });
+    // A fresh session never inherits a previous session's deferred logout.
+    AuthEventService.clearDeferredLogout();
     
     // Add Sentry breadcrumb for login attempt
     sentryService.addUserAction('login_attempt', { userId });
@@ -84,6 +86,8 @@ export const AuthProvider = ({ children }) => {
     const operationId = ++authOperationRef.current;
     const timer = logger.startTimer('logout_operation');
     logger.info('Logout started');
+    // Explicit logout satisfies any deferral; don't let it fire again later.
+    AuthEventService.clearDeferredLogout();
     
     // Add Sentry breadcrumb for logout attempt
     sentryService.addUserAction('logout_attempt');
@@ -207,11 +211,29 @@ export const AuthProvider = ({ children }) => {
       }
       rejectedBearerRef.current = rejectedBearer;
 
+      // A hard logout mid-trip unmounts the map and silently discards the
+      // assist request's UI. Keep the dead session visible until the trip
+      // reaches a terminal state, then complete the logout.
+      if (AuthEventService.isTripActive()) {
+        logger.warn('Invalid token during active trip; deferring logout until trip ends');
+        AuthEventService.deferLogout(rejectedBearer);
+        return;
+      }
+
       logger.info('Invalid token event received, logging out');
       logoutRef.current();
     });
 
-    return unsubscribe;
+    // Trip reached a terminal state with a logout on hold: finish it now.
+    const unsubscribeDeferred = AuthEventService.subscribeDeferredLogout((rejectedBearer) => {
+      logger.info('Completing deferred logout after trip ended', { hadBearer: !!rejectedBearer });
+      logoutRef.current();
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeDeferred();
+    };
   }, []);
 
   const value = useMemo(() => ({

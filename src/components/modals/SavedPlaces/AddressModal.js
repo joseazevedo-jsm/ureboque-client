@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { FlatList, Modal, StyleSheet, View } from 'react-native';
+import { Dimensions, FlatList, Modal, StyleSheet, View } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../common/AppText';
 import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
 
@@ -155,8 +155,11 @@ const AddressModal = ({
           <BottomSheetModal
             ref={models.bottomSheetModalAddAddress}
             index={0}
-            snapPoints={[scale(575)]}
+            snapPoints={[Math.round(Dimensions.get('window').height * 0.68)]}
             enableDynamicSizing={false}
+            keyboardBehavior="interactive"
+            keyboardBlurBehavior="restore"
+            android_keyboardInputMode="adjustResize"
           >
             <View style={styles.modalContainer}>
               <View style={styles.searchContainer}>

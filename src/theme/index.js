@@ -21,7 +21,7 @@ export const colors = {
   primaryTint12: 'rgba(0,109,219,0.12)',
   mapAccuracyStroke: 'rgba(0,109,219,0.50)', mapAccuracyFill: 'rgba(0,109,219,0.20)',
   mapNeutralHue: '#E7ECF0',
-  originBubble: '#E8F3FF', destinationBubble: '#E8F3FF', destinationPin: '#006DDB',
+  originBubble: '#E8F3FF', destinationBubble: '#FFF0F5', destinationPin: '#F5427D',
   mapOptionBubble: '#EAF6EE', mapOptionIcon: '#237A47',
   errorSurface: '#FFF1F1', errorBorder: '#C62828', disabledSurface: '#E5ECF3', focus: '#0056AD',
 };
@@ -43,9 +43,11 @@ const type = (fontSize, lineHeight, fontFamily = fonts.regular, color = colors.t
   ({ fontSize, lineHeight, fontFamily, fontWeight: 'normal', color });
 export const typography = {
   h1: type(28, 36, fonts.semiBold), h2: type(24, 32, fonts.semiBold), h3: type(20, 28, fonts.semiBold),
+  h4: type(18, 24, fonts.semiBold),
   hero: type(32, 40, fonts.semiBold),
   body: type(16, 24), bodySmall: type(14, 20, fonts.regular, colors.textSecondary),
   caption: type(12, 16, fonts.regular, colors.textSecondary), label: type(14, 20, fonts.semiBold),
+  buttonLabel: type(16, 24, fonts.semiBold),
   sectionTitle: type(14, 20, fonts.semiBold, colors.textSecondary),
 };
 const shadow = (y, blur, opacity, elevation) => Platform.select({

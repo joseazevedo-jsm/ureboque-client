@@ -10,15 +10,23 @@
       },
       "ios": {
         "buildConfiguration": "Debug"
+      },
+      "env": {
+        "EXPO_PUBLIC_ALLOW_DEV_OTP": "true",
+        "EXPO_PUBLIC_OTP_DEFAULT": "1234"
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ALLOW_DEV_OTP": "true",
+        "EXPO_PUBLIC_OTP_DEFAULT": "1234"
+      }
     },
     "production": {
       "distribution": "store",
       "android": {
-        "buildType": "aab"
+        "buildType": "app-bundle"
       },
       "ios": {
         "buildConfiguration": "Release"

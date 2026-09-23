@@ -11,6 +11,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 const Icon = MaterialIcons;
 import ServiceHistoryItem from "../components/cards/serviceHistoryItem";
 import ServiceDetailModal from "../components/modals/serviceDetailModal";
+import ScheduledTowDetails from "../components/common/ScheduledTowDetails";
 import useHistoryScreen from "../components/history/useHistoryScreen";
 import { useLogger } from "../hooks/useLogger";
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -29,6 +30,14 @@ const HistoryScreen = () => {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
+  const activeStatuses = ['requested', 'flagged', 'connecting', 'assigned', 'in-progress'];
+  const filterOptions = [
+    { key: 'all', label: 'Todos' },
+    { key: 'scheduled', label: 'Agendados' },
+    { key: 'active', label: 'Em curso' },
+    { key: 'completed', label: 'Concluídos' },
+    { key: 'cancelled', label: 'Cancelados' },
+  ];
 
   logger.debug('HistoryScreen rendered', {
     servicesCount: models?.services?.length || 0,
@@ -64,7 +73,9 @@ const HistoryScreen = () => {
       const beforeFilter = filtered.length;
       filtered = filtered.filter(serviceItem => {
         const serviceData = serviceItem.service || serviceItem;
-        return serviceData.status === activeFilter;
+        return activeFilter === 'active'
+          ? activeStatuses.includes(serviceData.status)
+          : serviceData.status === activeFilter;
       });
       logger.debug('Status filter applied', { filter: activeFilter, before: beforeFilter, after: filtered.length });
     }
@@ -121,6 +132,12 @@ const HistoryScreen = () => {
     return filtered;
   };
 
+  const countForFilter = (filter) => (models.services || []).filter((item) => {
+    const status = (item.service || item).status;
+    if (filter === 'all') return true;
+    return filter === 'active' ? activeStatuses.includes(status) : status === filter;
+  }).length;
+
   const renderFilterButton = (filter, label) => (
     <TouchableOpacity
       style={[
@@ -138,6 +155,11 @@ const HistoryScreen = () => {
       ]}>
         {label}
       </Text>
+      {countForFilter(filter) > 0 && (
+        <View style={[styles.filterCount, activeFilter === filter && styles.activeFilterCount]}>
+          <Text style={[styles.filterCountText, activeFilter === filter && styles.activeFilterCountText]}>{countForFilter(filter)}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 
@@ -157,8 +179,9 @@ const HistoryScreen = () => {
       <Text style={styles.emptySubtitle}>
         {activeFilter === 'all'
           ? "Seus serviços de reboque aparecerão aqui"
-          : `Nenhum serviço ${activeFilter === 'completed' ? 'concluído' :
-            activeFilter === 'cancelled' ? 'cancelado' : 'solicitado'} encontrado`
+          : activeFilter === 'scheduled' ? 'Não tem nenhum reboque agendado'
+          : activeFilter === 'active' ? 'Não tem nenhum reboque em curso'
+          : `Nenhum serviço ${activeFilter === 'completed' ? 'concluído' : 'cancelado'} encontrado`
         }
       </Text>
     </View>
@@ -212,22 +235,10 @@ const HistoryScreen = () => {
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
-          data={['all', 'completed', 'cancelled', 'requested']}
-          keyExtractor={(item) => item}
+          data={filterOptions}
+          keyExtractor={(item) => item.key}
           contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.sm, gap: spacing.xs }}
-          renderItem={({ item }) => {
-            const labelMap = {
-              all: 'Todos',
-              completed: 'Concluídos',
-              cancelled: 'Cancelados',
-              requested: 'Solicitados'
-            };
-            return (
-              <View style={{ marginRight: spacing.sm }}>
-                {renderFilterButton(item, labelMap[item])}
-              </View>
-            );
-          }}
+          renderItem={({ item }) => <View style={{ marginRight: spacing.sm }}>{renderFilterButton(item.key, item.label)}</View>}
           style={{ maxHeight: scale(50) }}
         />
       </Animated.View>
@@ -273,7 +284,7 @@ const HistoryScreen = () => {
 
       {/* Service Detail Modal */}
       <ServiceDetailModal
-        visible={detailModalVisible}
+        visible={detailModalVisible && (selectedService?.service || selectedService)?.status !== 'scheduled'}
         service={selectedService}
         onClose={() => {
           logger.logUserInteraction('service_detail_modal_closed', {
@@ -282,6 +293,12 @@ const HistoryScreen = () => {
           setDetailModalVisible(false);
           setSelectedService(null);
         }}
+      />
+      <ScheduledTowDetails
+        visible={detailModalVisible && (selectedService?.service || selectedService)?.status === 'scheduled'}
+        job={selectedService?.service || selectedService}
+        onClose={() => { setDetailModalVisible(false); setSelectedService(null); }}
+        actionLabel="Fechar"
       />
     </View>
   );
@@ -340,6 +357,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderLight,
     alignItems: "center",
+    flexDirection: 'row',
+    gap: spacing.sm,
     ...shadows.sm,
   },
   activeFilterButton: {
@@ -356,6 +375,10 @@ const styles = StyleSheet.create({
     color: colors.surface,
     fontWeight: "700",
   },
+  filterCount: { minWidth: 22, height: 22, paddingHorizontal: spacing.xs, borderRadius: borderRadius.full, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
+  activeFilterCount: { backgroundColor: colors.surfaceTint20 },
+  filterCountText: { ...typography.caption, color: colors.textSecondary, fontVariant: ['tabular-nums'] },
+  activeFilterCountText: { color: colors.surface, fontFamily: typography.label.fontFamily },
   listContainer: {
     width: "100%",
     maxWidth: layout.contentMaxWidth,

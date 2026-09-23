@@ -13,6 +13,7 @@ import { useConfirmationModal } from "./components/useConfirmationModal";
 import { useAlert } from "../../../context/AlertContext";
 import StarRating from "../../cards/starRating";
 import { colors, shadows, borderRadius, borderWidths, spacing, typography, sizes } from "../../../theme";
+import { useNavBarPad } from "../../map/useMeasuredSheet";
 
 const imgDef =
   "https://w7.pngwing.com/pngs/178/595/png-transparent-user-profile-computer-icons-login-user-avatars-thumbnail.png";
@@ -28,6 +29,9 @@ const PAYMENT_LABELS = {
 };
 
 const ConfirmationModal = ({ visible, closeModal, payment_total, payment_type, service }) => {
+  // This modal is edge-to-edge, so a fixed bottom pad put "Confirmar" under
+  // the system nav bar. Clear the bar, then add the visual breathing room.
+  const navBarPad = useNavBarPad();
   const { models, operations } = useConfirmationModal(service, closeModal);
   const { showAlert } = useAlert();
 
@@ -105,7 +109,7 @@ const ConfirmationModal = ({ visible, closeModal, payment_total, payment_type, s
         {/* ── Push actions to the bottom ────────────────────── */}
         <View style={styles.spacer} />
 
-        <View style={styles.actions}>
+        <View style={[styles.actions, { paddingBottom: navBarPad + spacing.xl }]}>
           <TouchableOpacity
             style={styles.problemButton}
             onPress={handleProblemPress}
@@ -265,7 +269,6 @@ const styles = StyleSheet.create({
   },
   actions: {
     paddingHorizontal: spacing.xxl,
-    paddingBottom: spacing.xxxl,
     alignItems: "center",
   },
   problemButton: {

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import NotificationService from '../services/NotificationService';
 import { useLogger } from '../hooks/useLogger';
-import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { navigate } from '../services/NavigationService';
 import api from '../services/APIService';
@@ -24,6 +23,17 @@ export const NotificationProvider = ({ children }) => {
   const [notificationPermissions, setNotificationPermissions] = useState(false);
   const { isAuthenticated } = useAuth();
   const mountedRef = useRef(true);
+
+  const handleNotificationResponse = useCallback((response) => {
+    const data = response?.notification?.request?.content?.data;
+    if (data?.type === 'scheduled' || data?.type === 'trip_update' || data?.type === 'driver_message') {
+      logger.info('User tapped trip notification', { data });
+      navigate('HomeMenu', { screen: 'Map' });
+      return;
+    }
+    logger.info('User tapped notification, navigating to Notifications screen', { data });
+    navigate('HomeMenu', { screen: 'Notificacoes' });
+  }, [logger]);
 
   // Let the API reach this phone while the app is closed.
   useEffect(() => {
@@ -50,18 +60,14 @@ export const NotificationProvider = ({ children }) => {
         });
 
       // Handle notification responses (when user taps notification)
-      subscription = Notifications.addNotificationResponseReceivedListener(response => {
-        const data = response.notification.request.content.data;
-        if (data?.type === 'scheduled') {
-          // The map screen picks up the booking's state when the app opens.
-          logger.info('User tapped scheduled tow notification', { data });
-        } else if (data?.type === 'driver_message') {
-          logger.info('User tapped driver message notification', { data });
-        } else {
-          logger.info('User tapped notification, navigating to Notifications screen', { data });
-          navigate('Notificacoes');
-        }
-      });
+      subscription = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
+      Notifications.getLastNotificationResponseAsync?.()
+        .then(async (response) => {
+          if (!response || !mountedRef.current) return;
+          handleNotificationResponse(response);
+          await Notifications.clearLastNotificationResponseAsync?.();
+        })
+        .catch((error) => logger.warn('Could not read launch notification', error));
     } catch (error) {
       logger.error('Failed to initialize notifications', error);
       // Graceful degradation - disable notifications but keep app working
@@ -74,7 +80,7 @@ export const NotificationProvider = ({ children }) => {
         subscription.remove();
       }
     };
-  }, [logger]);
+  }, [logger, handleNotificationResponse]);
 
   // Handle incoming messages for notifications
   const handleIncomingMessages = useCallback((messages, user, chatModalOpen = false) => {
@@ -95,14 +101,10 @@ export const NotificationProvider = ({ children }) => {
       // Update unread count
       setUnreadMessageCount(prev => prev + driverMessages.length);
 
-      // The in-app unread badge handles foreground messages. Only show a
-      // system notification while the app is backgrounded.
-      if (notificationPermissions && AppState.currentState !== 'active') {
-        NotificationService.showDriverMessageNotification(driverMessages.length)
-          .catch(error => logger.error('Failed to show notification', error));
-      }
+      // Push delivery comes from the API so it still works after the OS
+      // suspends this app. The socket path only maintains the in-app badge.
     }
-  }, [notificationPermissions, logger]);
+  }, [logger]);
 
   // Reset unread count (when chat opens)
   const resetUnreadCount = useCallback(() => {
