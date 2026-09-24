@@ -48,6 +48,14 @@ const useProfileScreen = (showAlert) => {
     setEmail(text);
   };
 
+  // The API explains a refused number change in Portuguese (invalid, already
+  // on another account, not verified); show that instead of a generic error.
+  const saveErrorMessage = (error, fallback) => {
+    const status = error?.response?.status;
+    const message = error?.response?.data?.message;
+    return [400, 403, 409].includes(status) && typeof message === 'string' ? message : fallback;
+  };
+
   const performSave = async (phoneToSave, navigation) => {
     let new_photo_url = photo;
 
@@ -137,7 +145,7 @@ const useProfileScreen = (showAlert) => {
       showAlert?.({
         type: 'error',
         title: 'Erro',
-        message: 'Erro ao atualizar perfil. Por favor verifique os dados.',
+        message: saveErrorMessage(error, 'Erro ao atualizar perfil. Por favor verifique os dados.'),
         buttons: [{ text: 'OK' }]
       });
     } finally {
@@ -252,7 +260,7 @@ const useProfileScreen = (showAlert) => {
       showAlert?.({
         type: 'error',
         title: 'Erro',
-        message: 'Erro ao atualizar perfil. Tente novamente.',
+        message: saveErrorMessage(error, 'Erro ao atualizar perfil. Tente novamente.'),
         buttons: [{ text: 'OK' }]
       });
     }

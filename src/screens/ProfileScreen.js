@@ -166,7 +166,9 @@ const ProfileScreen = () => {
       {/* OTP Modal for Phone Number Verification */}
       <OTPModal
         visible={models?.showOTPModal}
-        OTPChange={(otp) => operations.handleOTPVerification(otp)}
+        // The modal reports every keystroke (and "" when it resets); verify only
+        // once the code is complete, or the first digit fails as "incomplete".
+        OTPChange={(otp) => { if (otp?.length === 4) operations.handleOTPVerification(otp); }}
         number={models?.pendingPhoneNumber}
         isLoading={models?.isVerifyingOTP}
         onClose={() => operations.handleOTPModalClose()}
