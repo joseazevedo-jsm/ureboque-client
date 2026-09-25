@@ -67,7 +67,7 @@ const ProfileScreen = () => {
               style={styles.profileImage}
             />
             <View style={styles.editIconContainer}>
-              <Icon name="photo-camera" size={sizes.icon} color={colors.surface} />
+              <Icon name="photo-camera" size={14} color={colors.surface} />
             </View>
           </TouchableOpacity>
           <Text style={styles.profileName} numberOfLines={2}>
@@ -214,8 +214,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
   },
   editIconContainer: {
-    width: sizes.control,
-    height: sizes.control,
+    width: 26,
+    height: 26,
     justifyContent: "center",
     alignItems: "center",
     position: "absolute",
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: colors.primary,
     borderRadius: borderRadius.full,
-    borderWidth: borderWidths.focus,
+    borderWidth: 2,
     borderColor: colors.surface,
     ...shadows.sm,
   },
