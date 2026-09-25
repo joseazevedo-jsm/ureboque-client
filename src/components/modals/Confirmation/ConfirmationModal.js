@@ -68,8 +68,7 @@ const ConfirmationModal = ({ visible, closeModal, payment_total, payment_type, s
           <Text style={styles.successTitle}>Viagem Concluída!</Text>
         </View>
 
-        {/* ── Receipt card, centred in the space left ─────── */}
-        <View style={styles.body}>
+        {/* ── Receipt card — pulls up over header ───────────── */}
         <Animated.View
           entering={FadeInUp.delay(150).springify().damping(28).stiffness(180)}
           style={styles.card}
@@ -106,7 +105,9 @@ const ConfirmationModal = ({ visible, closeModal, payment_total, payment_type, s
             />
           </View>
         </Animated.View>
-        </View>
+
+        {/* ── Push actions to the bottom ────────────────────── */}
+        <View style={styles.spacer} />
 
         <View style={[styles.actions, { paddingBottom: navBarPad + spacing.xl }]}>
           <TouchableOpacity
@@ -140,12 +141,10 @@ const styles = StyleSheet.create({
   // ── Header ────────────────────────────────────────────────
   header: {
     backgroundColor: colors.primary,
-    // A full radius on a full-width box drew a semicircle that ran off both
-    // screen edges; a card-sized radius keeps it a band.
-    borderBottomLeftRadius: borderRadius.xxl,
-    borderBottomRightRadius: borderRadius.xxl,
+    borderBottomLeftRadius: borderRadius.full,
+    borderBottomRightRadius: borderRadius.full,
     paddingTop: spacing.modalSafeTop,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.massive,           // breathing room for the card pull-up
     alignItems: "center",
     justifyContent: "flex-end",
   },
@@ -178,16 +177,9 @@ const styles = StyleSheet.create({
   },
 
   // ── Receipt card ──────────────────────────────────────────
-  // The card sits centred between the header and the actions, so the spare
-  // height on tall screens is shared above and below it instead of piling
-  // up as one empty gap over the buttons.
-  body: {
-    flex: 1,
-    justifyContent: "center",
-    paddingVertical: spacing.xl,
-  },
   card: {
     marginHorizontal: spacing.xl,
+    marginTop: -scale(44),             // pull up over the header
     backgroundColor: colors.surface,
     borderRadius: borderRadius.xxl,
     paddingHorizontal: spacing.xl,
@@ -272,6 +264,9 @@ const styles = StyleSheet.create({
   },
 
   // ── Bottom actions ────────────────────────────────────────
+  spacer: {
+    flex: 1,
+  },
   actions: {
     paddingHorizontal: spacing.xxl,
     alignItems: "center",
