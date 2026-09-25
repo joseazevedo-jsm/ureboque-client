@@ -1,5 +1,5 @@
 import React from "react";
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../../common/AppText';
 
 import { scale } from "react-native-size-matters";
@@ -22,12 +22,13 @@ const FlatListHeader = ({
   inputCurr,
   onInputIndex,
 }) => {
+  const { width: windowWidth } = useWindowDimensions();
   const logger = useLogger('FlatListHeader');
   logger.debug("Destination value", { inputDestination });
 
   return (
     <View style={styles.header}>
-      <View style={styles.container}>
+      <View style={[styles.container, { width: windowWidth - scale(50) }]}>
         <View style={styles.inputBox}>
           <View style={{ width: "100%" }}>
             <View>
@@ -87,7 +88,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flexDirection: "row",
-    width: Dimensions.get("window").width - scale(50),
     alignContent: "center",
   },
   inputBox: {
@@ -123,7 +123,6 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     borderColor: colors.primary,
     borderWidth: scale(4),
-    width: Dimensions.get("window").width - scale(50),
     padding: spacing.sm,
   },
   icon: {

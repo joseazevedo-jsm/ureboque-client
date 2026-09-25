@@ -6,6 +6,9 @@ export default {
         slug: "ureboque-client",
         scheme: "ureboque-client",
         version: "1.0.0",
+        // Phones only: Android 16+ ignores this on large screens (sw >= 600dp),
+        // where the layout has to handle any window shape anyway.
+        orientation: "portrait",
         newArchEnabled: true,
         assetBundlePatterns: [
             "**/*"

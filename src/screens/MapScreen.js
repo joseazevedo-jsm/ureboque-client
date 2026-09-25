@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, memo, useMemo, useCallback, useRef, useState } from "react";
-import { Dimensions, Image, Modal, PixelRatio, useWindowDimensions, Share, StyleSheet, View } from 'react-native';
+import { Image, Modal, PixelRatio, useWindowDimensions, Share, StyleSheet, View } from 'react-native';
 import { AppText as Text } from '../components/common/AppText';
 import { AppPressable as TouchableOpacity } from '../components/common/AppPressable';
 
@@ -162,45 +162,70 @@ const DRIVER_MARKER_FRAME_MS = 120;
 // layout whenever the snapPoints prop changes, and an inline array literal is a
 // new value on every render — during a trip, where driver-location updates
 // re-render this screen continuously, the sheet was re-initialising faster than
-// it could settle and so never opened at all. Declared once, here.
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SHEET_SNAP_POINTS = {
-  driverStatusExpanded: Math.round(SCREEN_HEIGHT * 0.72),
-  driverStatusExpandedNoCancel: Math.round(SCREEN_HEIGHT * 0.64),
-  driverStatusCollapsed: Math.round(SCREEN_HEIGHT * 0.42),
-  details: Math.round(SCREEN_HEIGHT * 0.9),
+// it could settle and so never opened at all. Built once per window height and
+// cached, so identity only changes when the window really does (rotation,
+// foldable unfold, split-screen) — never on an ordinary re-render.
+const buildSheetSnaps = (screenHeight) => {
+  const SHEET_SNAP_POINTS = {
+    driverStatusExpanded: Math.round(screenHeight * 0.72),
+    driverStatusExpandedNoCancel: Math.round(screenHeight * 0.64),
+    driverStatusCollapsed: Math.round(screenHeight * 0.42),
+    details: Math.round(screenHeight * 0.9),
+  };
+
+  const PAYMENT_SNAP = [Math.round(screenHeight * 0.49), Math.round(screenHeight * 0.76)];
+
+  const BOOKING_SNAP = {
+    initial:     ['45%'],
+    initialWithScheduled: ['50%'],
+    carType:     [Math.round(screenHeight * 0.34)],
+    userCarInfo: [Math.round(screenHeight * 0.50), Math.round(screenHeight * 0.76)],
+    payment:     PAYMENT_SNAP,
+    paymentScheduled: PAYMENT_SNAP,
+    // rideSearch stops just below the route card's divider at rest ("Cancelar
+    // Viagem" stays off-screen) and drags up only far enough to reveal that
+    // button — anything taller leaves dead space under it. Height budget (dp):
+    // handle 21 + header 104 + routeCard 118 | + spacer 20 + button 44 + nav bar
+    // pad 43 (the transparent gesture bar lets the surface run to the physical
+    // screen bottom; the pad keeps the button above it).
+    rideSearch:  [244, 351],
+    // Scheduled search adds one description line ("Recolha ...") to both stops.
+    rideSearchScheduled: [264, 371],
+    details:     [SHEET_SNAP_POINTS.details],
+    dragMarker:  [Math.round(screenHeight * 0.34)],
+  };
+
+  const DRIVER_STATUS_SNAP = [
+    SHEET_SNAP_POINTS.driverStatusCollapsed,
+    SHEET_SNAP_POINTS.driverStatusExpanded,
+  ];
+  const DRIVER_STATUS_SNAP_NO_CANCEL = [
+    SHEET_SNAP_POINTS.driverStatusCollapsed,
+    SHEET_SNAP_POINTS.driverStatusExpandedNoCancel,
+  ];
+
+  // Resting heights for the recenter button (see MapControls).
+  const SHEET_REST_HEIGHT = {
+    initial: 300,
+    carType: BOOKING_SNAP.carType[0],
+    userCarInfo: BOOKING_SNAP.userCarInfo[0],
+    payment: BOOKING_SNAP.payment[0],
+    rideSearch: BOOKING_SNAP.rideSearch[0],
+    details: BOOKING_SNAP.details[0],
+    driverArriving: SHEET_SNAP_POINTS.driverStatusCollapsed,
+    tripStarted: SHEET_SNAP_POINTS.driverStatusCollapsed,
+    tripEnding: SHEET_SNAP_POINTS.driverStatusCollapsed,
+  };
+
+  return { PAYMENT_SNAP, BOOKING_SNAP, DRIVER_STATUS_SNAP, DRIVER_STATUS_SNAP_NO_CANCEL, SHEET_REST_HEIGHT };
 };
 
-const PAYMENT_SNAP = [Math.round(SCREEN_HEIGHT * 0.49), Math.round(SCREEN_HEIGHT * 0.76)];
-
-const BOOKING_SNAP = {
-  initial:     ['45%'],
-  initialWithScheduled: ['50%'],
-  carType:     [Math.round(SCREEN_HEIGHT * 0.34)],
-  userCarInfo: [Math.round(SCREEN_HEIGHT * 0.50), Math.round(SCREEN_HEIGHT * 0.76)],
-  payment:     PAYMENT_SNAP,
-  paymentScheduled: PAYMENT_SNAP,
-  // rideSearch stops just below the route card's divider at rest ("Cancelar
-  // Viagem" stays off-screen) and drags up only far enough to reveal that
-  // button — anything taller leaves dead space under it. Height budget (dp):
-  // handle 21 + header 104 + routeCard 118 | + spacer 20 + button 44 + nav bar
-  // pad 43 (the transparent gesture bar lets the surface run to the physical
-  // screen bottom; the pad keeps the button above it).
-  rideSearch:  [244, 351],
-  // Scheduled search adds one description line ("Recolha ...") to both stops.
-  rideSearchScheduled: [264, 371],
-  details:     [SHEET_SNAP_POINTS.details],
-  dragMarker:  [Math.round(SCREEN_HEIGHT * 0.34)],
+const sheetSnapsCache = new Map();
+const useSheetSnaps = () => {
+  const height = Math.round(useWindowDimensions().height);
+  if (!sheetSnapsCache.has(height)) sheetSnapsCache.set(height, buildSheetSnaps(height));
+  return sheetSnapsCache.get(height);
 };
-
-const DRIVER_STATUS_SNAP = [
-  SHEET_SNAP_POINTS.driverStatusCollapsed,
-  SHEET_SNAP_POINTS.driverStatusExpanded,
-];
-const DRIVER_STATUS_SNAP_NO_CANCEL = [
-  SHEET_SNAP_POINTS.driverStatusCollapsed,
-  SHEET_SNAP_POINTS.driverStatusExpandedNoCancel,
-];
 
 const getCarIconByColor = (color) => {
   try {
@@ -375,23 +400,13 @@ const MapViewport = memo(({ models, operations, mapMarkers, carsAround }) => (
 // only ever visible while the sheet is still, and can sit at that sheet's
 // resting height instead of chasing a sheet that is resizing.
 const RECENTER_GAP = scale(16);
-const SHEET_REST_HEIGHT = {
-  initial: 300,
-  carType: BOOKING_SNAP.carType[0],
-  userCarInfo: BOOKING_SNAP.userCarInfo[0],
-  payment: BOOKING_SNAP.payment[0],
-  rideSearch: BOOKING_SNAP.rideSearch[0],
-  details: BOOKING_SNAP.details[0],
-  driverArriving: SHEET_SNAP_POINTS.driverStatusCollapsed,
-  tripStarted: SHEET_SNAP_POINTS.driverStatusCollapsed,
-  tripEnding: SHEET_SNAP_POINTS.driverStatusCollapsed,
-};
 
 const MapControls = memo(({ models, operations, navigation, openDrawer, measuredRestHeight }) => {
   const insets = useSafeAreaInsets();
   const controlTop = insets.top + spacing.lg;
   const rideActive = !!models.driver || ['assigned', 'in-progress', 'completed'].includes(models.tripState);
   const sheetHeight = useSheetHeight();
+  const { BOOKING_SNAP, SHEET_REST_HEIGHT } = useSheetSnaps();
   // Sheets that size themselves from their content report their real resting
   // height; the rest still come from the hand-tuned table below. Keeping the
   // measured ones out of that table is what stops the two drifting apart.
@@ -584,6 +599,7 @@ const MapScreen = memo(() => {
   // to every numeric snap point, so snap points must not add it a second time —
   // doing so was why the payment sheet sat ~30dp taller than its content.
   const navBarPad = useNavBarPad();
+  const { PAYMENT_SNAP, BOOKING_SNAP, DRIVER_STATUS_SNAP, DRIVER_STATUS_SNAP_NO_CANCEL } = useSheetSnaps();
   const {
     snapPoints: paymentSnapPoints,
     onContentLayout: onPaymentLayout,

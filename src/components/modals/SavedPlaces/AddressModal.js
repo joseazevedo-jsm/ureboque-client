@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Dimensions, FlatList, Modal, StyleSheet, View } from 'react-native';
+import { FlatList, Modal, StyleSheet, View } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../common/AppText';
 import { AppPressable as TouchableOpacity } from '../../common/AppPressable';
 
@@ -16,6 +16,10 @@ import { useDestinationModal } from "../Destination/components/useDestinationMod
 import PlaceItem from "../../cards/placeItem";
 import { spacing, typography, colors, borderRadius, borderWidths, shadows, sizes } from "../../../theme";
 import { useAlert } from "../../../context/AlertContext";
+
+// Percentage so the sheet follows the window (rotation, foldables); module
+// level so the array identity is stable across re-renders.
+const ADDRESS_SHEET_SNAP = ['68%'];
 
 const AddressModal = ({
   visible,
@@ -155,7 +159,7 @@ const AddressModal = ({
           <BottomSheetModal
             ref={models.bottomSheetModalAddAddress}
             index={0}
-            snapPoints={[Math.round(Dimensions.get('window').height * 0.68)]}
+            snapPoints={ADDRESS_SHEET_SNAP}
             enableDynamicSizing={false}
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
