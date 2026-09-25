@@ -1,13 +1,16 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { BottomSheetFooter } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scale } from 'react-native-size-matters';
 import { colors, spacing } from '../../theme';
 
 // Measured on the test device (1080x2244 @480dpi, EMUI): the three-button bar
 // surface is 128px = 43dp. Some EMUI builds report a zero bottom inset while
-// that bar still covers an edge-to-edge view, so the reported inset is only
-// ever treated as a floor — never as the whole truth.
+// that bar still covers an edge-to-edge view, so a zero on Android falls back
+// to that height. A non-zero inset is the real bar and is used as is: flooring
+// it at 43dp lifted every sheet ~20dp on gesture-navigation phones (whose bar
+// is shorter) and exposed the actions meant to stay below the fold.
 export const ANDROID_NAV_BAR_MIN = 43;
 
 // One source of truth for the nav-bar allowance. Every sheet height and every
@@ -15,7 +18,24 @@ export const ANDROID_NAV_BAR_MIN = 43;
 // applied exactly once instead of the three different ways it used to be.
 export const useNavBarPad = () => {
   const { bottom } = useSafeAreaInsets();
-  return Platform.OS === 'android' ? Math.max(bottom, ANDROID_NAV_BAR_MIN) : bottom;
+  return Platform.OS === 'android' && bottom === 0 ? ANDROID_NAV_BAR_MIN : bottom;
+};
+
+/**
+ * Covers the nav-bar strip at the bottom of a sheet with the sheet's own
+ * surface. Every snap point carries the nav-bar allowance, so at rest the
+ * content just below the fold would otherwise show through that strip: on
+ * gesture-navigation phones the bar is transparent and the first action under
+ * the divider peeked out (and faintly behind EMUI's translucent buttons too).
+ * Pass it as a sheet's footerComponent.
+ */
+export const NavBarShield = (props) => {
+  const height = useNavBarPad();
+  return (
+    <BottomSheetFooter {...props}>
+      <View style={[styles.navBarShield, { height }]} />
+    </BottomSheetFooter>
+  );
 };
 
 // Gorhom draws the handle above the content and a snap point is the height of
@@ -78,6 +98,9 @@ export const SheetFold = ({ onLayout }) => (
 );
 
 const styles = StyleSheet.create({
+  navBarShield: {
+    backgroundColor: colors.surface,
+  },
   fold: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.borderLight,

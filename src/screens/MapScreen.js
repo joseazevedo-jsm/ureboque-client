@@ -45,7 +45,7 @@ import { useLogger } from "../hooks/useLogger";
 import { TRIP_STATUS } from "../constants/tripStatus";
 import { useDriverLocation, useDriverLocationStale } from "../hooks/useMapDrivers";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useMeasuredSheet, useNavBarPad } from "../components/map/useMeasuredSheet";
+import { NavBarShield, useMeasuredSheet, useNavBarPad } from "../components/map/useMeasuredSheet";
 
 // The modal/portal variant can preserve a closed internal index across Fast
 // Refresh even after present() is called. Flow sheets are already mutually
@@ -130,6 +130,7 @@ const FlowBottomSheet = React.forwardRef(({
       // handle sat at y=1.02 instead of 0.54. Starting at the snap point
       // outright removes the animation, so there is nothing left to drop.
       animateOnMount={false}
+      footerComponent={NavBarShield}
       {...props}
     >
       {children}
@@ -609,6 +610,14 @@ const MapScreen = memo(() => {
     onContentLayout: onInitialLayout,
   } = useMeasuredSheet(BOOKING_SNAP.initial);
   const {
+    snapPoints: carTypeSnapPoints,
+    onContentLayout: onCarTypeLayout,
+  } = useMeasuredSheet(BOOKING_SNAP.carType);
+  const {
+    snapPoints: dragMarkerSnapPoints,
+    onContentLayout: onDragMarkerLayout,
+  } = useMeasuredSheet(BOOKING_SNAP.dragMarker);
+  const {
     snapPoints: carInfoSnapPoints,
     onContentLayout: onCarInfoLayout,
   } = useMeasuredSheet(BOOKING_SNAP.userCarInfo);
@@ -640,6 +649,8 @@ const MapScreen = memo(() => {
     const points = {
       initial: initialSnapPoints,
       payment: paymentSnapPoints,
+      carType: carTypeSnapPoints,
+      dragMarker: dragMarkerSnapPoints,
       userCarInfo: carInfoSnapPoints,
       rideSearch: rideSearchSnapPoints,
       details: detailsSnapPoints,
@@ -649,7 +660,7 @@ const MapScreen = memo(() => {
     }[models.activeBottomSheet];
     const rest = points?.[0];
     return typeof rest === 'number' ? rest + navBarPad : null;
-  }, [models.activeBottomSheet, initialSnapPoints, paymentSnapPoints, carInfoSnapPoints, rideSearchSnapPoints, detailsSnapPoints, tripSheets, navBarPad]);
+  }, [models.activeBottomSheet, initialSnapPoints, paymentSnapPoints, carTypeSnapPoints, dragMarkerSnapPoints, carInfoSnapPoints, rideSearchSnapPoints, detailsSnapPoints, tripSheets, navBarPad]);
 
   logger.debug('MapScreen rendered', {
     activeBottomSheet: models.activeBottomSheet,
@@ -674,8 +685,13 @@ const MapScreen = memo(() => {
       return (
         <Marker coordinate={item} key={`marker-${index}-${item.latitude}-${item.longitude}`}>
           <CustomMarker
+            // With a driver on the way the first pin is hidden and the one
+            // left is the current target (pickup, then destination). Before
+            // that, during the search, both pins show and keep their own
+            // names; labelling by trip state then put the destination's name
+            // on the pickup pin.
             title={
-              models?.tripState
+              models.driver && models?.tripState
                 ? models?.tripState === "assigned"
                   ? models.originCity
                   : models.destinationCity
@@ -945,7 +961,8 @@ const MapScreen = memo(() => {
           isActive={models.activeBottomSheet === 'carType'}
           ref={models.carTypeSelectionSheetRef}
           index={0}
-          snapPoints={BOOKING_SNAP.carType}
+          snapPoints={carTypeSnapPoints}
+          measured
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -953,7 +970,7 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
+          <Animated.View onLayout={onCarTypeLayout} entering={FadeIn.duration(240)}>
             <Text
               style={{
                 fontSize: typography.body.fontSize, lineHeight: typography.body.lineHeight,
@@ -973,6 +990,9 @@ const MapScreen = memo(() => {
             <FlatList
               data={models.mapDirections && models.prices ? models.prices : []}
               renderItem={renderCarTypesItem}
+              // The sheet is sized from this list's full height, so it lays
+              // every row out instead of scrolling inside a fixed box.
+              scrollEnabled={false}
               keyExtractor={(item, index) => String(item?._id ?? `price-${index}`)}
               ListEmptyComponent={
                 <View>
@@ -1138,7 +1158,8 @@ const MapScreen = memo(() => {
           isActive={models.activeBottomSheet === 'dragMarker'}
           ref={models.bottomSheetModalDragMarker}
           index={0}
-          snapPoints={BOOKING_SNAP.dragMarker}
+          snapPoints={dragMarkerSnapPoints}
+          measured
           enablePanDownToClose={false}
           enableDynamicSizing={false}
           stackBehavior="replace"
@@ -1146,7 +1167,7 @@ const MapScreen = memo(() => {
           backgroundComponent={GlassBackground}
           handleComponent={GlassHandle}
         >
-          <View style={styles.modalContent}>
+          <View onLayout={onDragMarkerLayout} style={styles.modalContent}>
             <Text style={styles.modalTitle}>
               {models.inputLocationObject === 0
                 ? "DE ONDE VAI PARTIR?"
