@@ -795,8 +795,8 @@ const MapScreen = memo(() => {
       ? item.price - item.price * (models.user?.discount?.percentage / 100)
       : item.price;
     const note = item.kind === 'interprovincial'
-      ? `Entre províncias · ${item.province} · agendado`
-      : item.kind === 'long' ? 'Longa distância · agendado' : null;
+      ? `Entre províncias · ${item.province}`
+      : item.kind === 'long' ? 'Longa distância' : null;
 
     return (
       <CarTypes
