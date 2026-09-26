@@ -5,7 +5,7 @@ import ErrorService from '../services/ErrorService';
 import { SEARCH_TIMER_DURATION_S, DRIVER_ARRIVAL_THRESHOLD_KM, DRIVER_MOVE_THRESHOLD_M } from '../constants/config';
 import { getTripStatusFromDriverLeg } from '../utils/serviceState';
 import { acceptsTripSnapshot, reduceTripSnapshot } from '../utils/tripSnapshot';
-import { SCHEDULED_SEARCH_MAX_S, formatScheduledFor } from '../utils/scheduling';
+import { SCHEDULED_SEARCH_MAX_S, earliestSlot, formatScheduledFor } from '../utils/scheduling';
 
 const DEFAULT_TIMER_DURATION = SEARCH_TIMER_DURATION_S;
 const CANCEL_ACK_TIMEOUT_MS = 8000;
@@ -27,7 +27,11 @@ function isSnapshotAccepted(currentServiceId, currentVersion, snapshot) {
 const tripFromBooking = (service) => {
   const [vehicle = '', color = '', license = ''] = String(service.user_car_details || '').split(', ');
   const [brand = '', ...model] = vehicle.split(' ');
-  return { carType: service.type_car, price: Number(service.payment?.value), brand, model: model.join(' '), color, license };
+  const { distanceKm, durationMin, kind, province } = service.pricing || {};
+  return {
+    carType: service.type_car, price: Number(service.payment?.value), brand, model: model.join(' '), color, license,
+    route: Number.isFinite(distanceKm) ? { distanceKm, durationMin } : null, tripKind: kind || null, province: province || null,
+  };
 };
 
 export const useMapTrip = ({
@@ -85,6 +89,9 @@ export const useMapTrip = ({
     _version: null,
     // ISO string when the booking is for later; null books now.
     scheduledFor: null,
+    route: null,
+    tripKind: null,
+    province: null,
   });
 
   const tripDataRef = useRef(tripData);
@@ -681,6 +688,7 @@ export const useMapTrip = ({
           discount: user.discount?.active ? user.discount.percentage : null,
         },
         type_car: tripData.carType,
+        ...(tripData.route ? { route: tripData.route } : {}),
         requestKey,
         ...(scheduledFor ? { scheduledFor } : {}),
       };
@@ -720,7 +728,32 @@ export const useMapTrip = ({
       // to report as "not sent"; anything else must offer to check first,
       // never a silent assumption either way.
       const uncertain = !error.response || error.response.status >= 500;
-      if (uncertain) {
+      const code = error.response?.data?.code;
+      if (code === 'PRICE_CHANGED' && Number.isFinite(error.response.data.price)) {
+        // The server's price moved (a driver nearer or further away since the
+        // list was shown). Show it on the same sheet; one tap books it.
+        pendingBookingRef.current = null;
+        resetTimer();
+        const full = error.response.data.price;
+        const price = user.discount?.active ? full - full * (user.discount.percentage / 100) : full;
+        updateTripData({ price });
+        presentBottomSheet('payment');
+        showAlert({
+          type: 'info',
+          title: 'Preço atualizado',
+          message: `O preço deste reboque é agora ${Math.round(price).toLocaleString()} AOA. Confirme o pagamento para continuar.`,
+        });
+      } else if (code === 'SCHEDULE_REQUIRED') {
+        pendingBookingRef.current = null;
+        resetTimer();
+        updateTripData({ tripKind: 'interprovincial', scheduledFor: earliestSlot().toISOString() });
+        presentBottomSheet('payment');
+        showAlert({
+          type: 'info',
+          title: 'Reboque agendado',
+          message: 'Reboques entre províncias são agendados. Escolha quando quer a recolha e confirme.',
+        });
+      } else if (uncertain) {
         showAlert({
           type: 'error',
           title: 'Ainda não confirmámos o seu pedido',
@@ -908,6 +941,9 @@ export const useMapTrip = ({
       _lastDriverLegStatus: null,
       _version: null,
       scheduledFor: null,
+    route: null,
+    tripKind: null,
+    province: null,
     });
     resetTimer();
     noDriverAlertShownRef.current = false;

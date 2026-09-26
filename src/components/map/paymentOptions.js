@@ -37,6 +37,8 @@ const WhenToggle = ({ later, onChange }) => {
 const PaymentOptions = ({ handleConfirmPaymentPress, onScheduleChange, models }) => {
   const isSubmitting = !!models.isSubmittingBooking;
   const scheduledFor = models.scheduledFor ? new Date(models.scheduledFor) : null;
+  // Between provinces there is no "Agora": the tow is already set for later.
+  const longTrip = !!models.longTrip;
 
   const renderPaymentOption = (iconName, label, paymentType) => (
     <View key={paymentType} style={styles.paymentOptionContainer}>
@@ -75,15 +77,21 @@ const PaymentOptions = ({ handleConfirmPaymentPress, onScheduleChange, models })
       />
 
       <View style={styles.whenCard}>
-        <WhenToggle
-          later={!!scheduledFor}
-          onChange={(later) => onScheduleChange(later ? earliestSlot().toISOString() : null)}
-        />
+        {!longTrip && (
+          <WhenToggle
+            later={!!scheduledFor}
+            onChange={(later) => onScheduleChange(later ? earliestSlot().toISOString() : null)}
+          />
+        )}
         {scheduledFor && (
           <Animated.View entering={FadeIn.duration(160)}>
             <View style={styles.scheduleHint}>
-              <Icon name="auto-awesome" size={scale(16)} color={colors.primary} />
-              <Text style={styles.scheduleHintText}>Um motorista reserva o seu reboque e sai {SCHEDULE_DISPATCH_LEAD_MIN} min antes para chegar a horas.</Text>
+              <Icon name={longTrip ? "schedule" : "auto-awesome"} size={scale(16)} color={colors.primary} />
+              <Text style={styles.scheduleHintText}>
+                {longTrip
+                  ? "Reboques entre províncias são agendados. Escolha quando quer a recolha."
+                  : `Um motorista reserva o seu reboque e sai ${SCHEDULE_DISPATCH_LEAD_MIN} min antes para chegar a horas.`}
+              </Text>
             </View>
             <ScheduleWheel value={scheduledFor} onChange={(date) => onScheduleChange(date.toISOString())} />
           </Animated.View>

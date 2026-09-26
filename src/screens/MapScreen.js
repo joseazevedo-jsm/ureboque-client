@@ -775,10 +775,10 @@ const MapScreen = memo(() => {
   // times out after 10s and the sheet then sat on that text forever — no
   // price, no car types, no way to retry. Say what happened and offer the
   // retry instead.
-  const priceFetchFailed = models.pricesError && !models.prices;
+  const priceFetchFailed = models.quoteError && !models.quote;
   // Prices loaded but the list is empty (nothing configured on the server):
   // not a loading state, so don't say "a calcular" forever.
-  const noCarTypes = Array.isArray(models.prices) && models.prices.length === 0;
+  const noCarTypes = Array.isArray(models.quote?.options) && models.quote.options.length === 0;
   const carTypesEmptyMessage = sameOriginAndDestination
     ? 'O destino é praticamente o mesmo que o local de recolha. Escolha um destino diferente.'
     : priceFetchFailed
@@ -789,31 +789,27 @@ const MapScreen = memo(() => {
 
   // Memoized car types item renderer
   const renderCarTypesItem = useCallback(({ item }) => {
-    // Returning undefined here renders an empty list with no explanation. When
-    // the route cannot be computed (identical origin and destination, or a
-    // failed Directions call) that leaves the user on a dead-end sheet with no
-    // options, no price and no way to understand why — see ListEmptyComponent.
-    if (models.mapDirections && models.prices) {
-      const priceperkm =
-        Math.floor(models.mapDirections.distance) * 1000 + Number(item.price);
+    // The price is the server's (POST /prices/quote); only the client's own
+    // promotion is taken off here, as the booking checks.
+    const price = models.user?.discount?.active
+      ? item.price - item.price * (models.user?.discount?.percentage / 100)
+      : item.price;
+    const note = item.kind === 'interprovincial'
+      ? `Entre províncias · ${item.province} · agendado`
+      : item.kind === 'long' ? 'Longa distância · agendado' : null;
 
-      const price =
-        models.user?.discount?.active
-          ? priceperkm - priceperkm * (models.user?.discount?.percentage / 100)
-          : priceperkm;
-
-      return (
-        <CarTypes
-          typeCar={item.typeCar}
-          descr={item.descr}
-          descr2={item.descr2}
-          price={price}
-          route={models.mapDirections ? models.mapDirections : null}
-          onPress={operations.handleTypeCarPress(item.typeCar, price)}
-        />
-      );
-    }
-  }, [models.mapDirections, models.prices, models.user?.discount, operations.handleTypeCarPress]);
+    return (
+      <CarTypes
+        typeCar={item.typeCar}
+        descr={item.descr}
+        descr2={item.descr2}
+        price={price}
+        note={note}
+        route={models.mapDirections ? models.mapDirections : null}
+        onPress={operations.handleTypeCarPress(item.typeCar, price, item)}
+      />
+    );
+  }, [models.mapDirections, models.user?.discount, operations.handleTypeCarPress]);
 
   // Memoized cars around markers for performance
   const memoizedCarsAround = useMemo(() => {
@@ -988,12 +984,12 @@ const MapScreen = memo(() => {
               SELECIONE O TIPO DE CARRO
             </Text>
             <FlatList
-              data={models.mapDirections && models.prices ? models.prices : []}
+              data={models.mapDirections && models.quote?.options ? models.quote.options : []}
               renderItem={renderCarTypesItem}
               // The sheet is sized from this list's full height, so it lays
               // every row out instead of scrolling inside a fixed box.
               scrollEnabled={false}
-              keyExtractor={(item, index) => String(item?._id ?? `price-${index}`)}
+              keyExtractor={(item, index) => String(item?.typeCar ?? `price-${index}`)}
               ListEmptyComponent={
                 <View>
                   <Text style={styles.carTypesEmptyText}>
@@ -1002,7 +998,7 @@ const MapScreen = memo(() => {
                   {(priceFetchFailed || noCarTypes) && (
                     <TouchableOpacity
                       style={styles.carTypesRetryButton}
-                      onPress={operations.fetchPrices}
+                      onPress={operations.fetchQuote}
                       activeOpacity={0.8}
                     >
                       <Text style={styles.carTypesRetryText}>Tentar novamente</Text>

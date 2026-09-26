@@ -13,7 +13,7 @@ const imageMap = {
   DEFAULT: require("../../../resources/icons/UREB_TUR.png")
 };
 
-const CarTypes = memo(({ typeCar, descr, descr2, price, route, onPress }) => {
+const CarTypes = memo(({ typeCar, descr, descr2, price, note, route, onPress }) => {
   const logger = useLogger('CarTypes');
 
   const formattedPrice = useMemo(() => price.toLocaleString(), [price]);
@@ -37,6 +37,7 @@ const CarTypes = memo(({ typeCar, descr, descr2, price, route, onPress }) => {
             </Text>
             <Text style={styles.subtext}>{descr}</Text>
             <Text style={styles.subtext}>{descr2}</Text>
+            {note ? <Text style={styles.note} numberOfLines={1}>{note}</Text> : null}
           </View>
 
           <View style={styles.priceContainer}>
@@ -84,6 +85,11 @@ const styles = StyleSheet.create({
     fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
     color: colors.textSecondary,
     fontWeight: "500",
+  },
+  note: {
+    fontSize: typography.caption.fontSize, lineHeight: typography.caption.lineHeight,
+    color: colors.primary,
+    fontWeight: "700",
   },
   priceContainer: {
     alignItems: 'flex-end',

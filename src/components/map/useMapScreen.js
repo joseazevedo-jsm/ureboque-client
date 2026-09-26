@@ -12,6 +12,8 @@ import { useAlert } from '../../context/AlertContext';
 import { useLocationAccess } from '../../context/LocationAccessContext';
 import { useMapGeocoding } from '../../hooks/useMapGeocoding';
 import { useMapRouting } from '../../hooks/useMapRouting';
+import { useTripQuote } from '../../hooks/useTripQuote';
+import { earliestSlot } from '../../utils/scheduling';
 import { useMapDrivers } from '../../hooks/useMapDrivers';
 import { useMapTrip } from '../../hooks/useMapTrip';
 import api from '../../services/APIService';
@@ -285,6 +287,7 @@ export const useMapScreen = () => {
   const geocoding = useMapGeocoding();
 
   const routing = useMapRouting();
+  const tripQuote = useTripQuote({ markers, directions: routing.directions });
 
   const tripServiceForDriversRef = useRef(null);
   const drivers = useMapDrivers({
@@ -1160,21 +1163,30 @@ export const useMapScreen = () => {
     trip.updateTripData({ inputLocationObject: value });
   }, [trip]);
 
-  const handleTypeCarPress = useCallback((type, price) => () => {
+  // A tow between provinces is always booked for later: its payment sheet
+  // opens already on "Agendar", at the earliest time, with no extra step.
+  const handleTypeCarPress = useCallback((type, price, option) => () => {
     const defaultVehicle = user?.vehicles?.find((v) => v.isDefault);
+    const longTrip = !!option?.kind && option.kind !== 'city';
     trip.updateTripData({
       carType: type,
       price,
+      route: tripQuote.quote?.route || null,
+      tripKind: option?.kind || null,
+      province: option?.province || null,
+      ...(longTrip && !trip.tripDataRef.current.scheduledFor ? { scheduledFor: earliestSlot().toISOString() } : {}),
       brand: defaultVehicle?.brand || '',
       model: defaultVehicle?.model || '',
       license: defaultVehicle?.license || '',
       color: defaultVehicle?.color || '',
     });
     presentBottomSheet('userCarInfo');
-  }, [trip, presentBottomSheet, user?.vehicles]);
+  }, [trip, presentBottomSheet, user?.vehicles, tripQuote.quote?.route]);
 
-  // null books now; an ISO string books for later.
+  // null books now; an ISO string books for later. A long trip cannot be now.
   const handleScheduleChange = useCallback((scheduledFor) => {
+    const kind = trip.tripDataRef.current.tripKind;
+    if (!scheduledFor && kind && kind !== 'city') return;
     trip.updateTripData({ scheduledFor });
   }, [trip]);
 
@@ -1437,6 +1449,9 @@ export const useMapScreen = () => {
       userLocationFastestInterval,
       prices,
       pricesError,
+      quote: tripQuote.quote,
+      quoteError: tripQuote.quoteError,
+      longTrip: !!trip.tripData.tripKind && trip.tripData.tripKind !== 'city',
       tripData: trip.tripData,
       service: trip.tripData.service,
       driver: trip.tripData.driver,
@@ -1505,6 +1520,7 @@ export const useMapScreen = () => {
     },
     operations: {
       fetchPrices,
+      fetchQuote: tripQuote.fetchQuote,
       handleUserLocationChange,
       handleMapSearchBarPress,
       handlePreCancelButtonPress,
