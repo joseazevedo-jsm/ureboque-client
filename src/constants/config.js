@@ -6,6 +6,8 @@ export const MAP_LONGITUDE_DELTA = 0.013;
 export const DRIVER_SEARCH_RADIUS_M = 5000;
 export const DRIVER_POLL_INTERVAL_MS = 20000;
 export const DRIVER_ARRIVAL_THRESHOLD_KM = 0.3;
+// Wider than the arrival radius so the label does not flicker at its edge.
+export const DRIVER_DEPARTED_THRESHOLD_KM = 0.6;
 export const DRIVER_MOVE_THRESHOLD_M = 10;
 
 // Timers

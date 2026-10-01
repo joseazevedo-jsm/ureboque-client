@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogger } from './useLogger';
 import api from '../services/APIService';
 import ErrorService from '../services/ErrorService';
-import { SEARCH_TIMER_DURATION_S, DRIVER_ARRIVAL_THRESHOLD_KM, DRIVER_MOVE_THRESHOLD_M } from '../constants/config';
+import { SEARCH_TIMER_DURATION_S, DRIVER_ARRIVAL_THRESHOLD_KM, DRIVER_DEPARTED_THRESHOLD_KM, DRIVER_MOVE_THRESHOLD_M } from '../constants/config';
 import { getTripStatusFromDriverLeg } from '../utils/serviceState';
 import { acceptsTripSnapshot, reduceTripSnapshot } from '../utils/tripSnapshot';
 import { SCHEDULED_SEARCH_MAX_S, earliestSlot, formatScheduledFor } from '../utils/scheduling';
@@ -304,6 +304,12 @@ export const useMapTrip = ({
       updateTripData({ driverArrived: true });
       setDirections(null);
       if (!current.detailsInfo?.isViewingDetails) presentBottomSheet('driverArriving');
+    } else if (current.status === 'assigned' && current.driverArrived && isValidCoordinate(pickup) &&
+        getDistanceInKm(pickup, location) > DRIVER_DEPARTED_THRESHOLD_KM) {
+      // A pass near the pickup (going round the block, a GPS jump) must not
+      // leave the client told the tow is waiting while it is still driving.
+      updateTripData({ driverArrived: false });
+      if (!current.detailsInfo?.isViewingDetails) presentBottomSheet('tripStarted');
     }
   }, [setDriverLocation, getDistanceInKm, routeCoordinates, updateCurrentRoute, getSlicedRoute,
       setMapMarkers, updateTripData, setDirections, presentBottomSheet]);

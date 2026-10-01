@@ -19,8 +19,11 @@ export const useTextSearchQuery = (searchQuery) => {
     ? `${latitude.toFixed(3)},${longitude.toFixed(3)}`
     : 'none';
 
-  const requestUrl =
-    "https://maps.googleapis.com/maps/api/place/textsearch/json";
+  // Places API (New) with a field mask: the legacy textsearch endpoint always
+  // returned contact and atmosphere fields, which Google bills as extra SKUs.
+  const requestUrl = "https://places.googleapis.com/v1/places:searchText";
+  const fieldMask =
+    "places.id,places.displayName,places.formattedAddress,places.location";
 
   useEffect(() => {
     let debounceTimer = null;
@@ -41,20 +44,34 @@ export const useTextSearchQuery = (searchQuery) => {
         controller = new AbortController();
         (async () => {
           try {
-            const params = {
-              query: searchQuery,
-              key: googleMapsApiKey,
-            };
+            const body = { textQuery: searchQuery };
             if (hasValidLocation) {
-              params.location = `${latitude},${longitude}`;
+              body.locationBias = {
+                circle: { center: { latitude, longitude }, radius: 50000 },
+              };
             }
 
-            const { data } = await axios(requestUrl, {
+            const { data } = await axios.post(requestUrl, body, {
               signal: controller.signal,
-              params,
+              headers: {
+                "X-Goog-Api-Key": googleMapsApiKey,
+                "X-Goog-FieldMask": fieldMask,
+              },
             });
+            // Keep the legacy result shape the search screens already read.
+            const results = (data?.places || []).map((place) => ({
+              place_id: place.id,
+              name: place.displayName?.text,
+              formatted_address: place.formattedAddress,
+              geometry: {
+                location: {
+                  lat: place.location?.latitude,
+                  lng: place.location?.longitude,
+                },
+              },
+            }));
             if (active) {
-              setResponseData(data);
+              setResponseData({ results });
               setSearchFailed(false);
             }
           } catch (error) {

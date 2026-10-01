@@ -12,6 +12,7 @@ import { useAlert } from '../../context/AlertContext';
 import { useLocationAccess } from '../../context/LocationAccessContext';
 import { useMapGeocoding } from '../../hooks/useMapGeocoding';
 import { useMapRouting } from '../../hooks/useMapRouting';
+import { nextRouteRequest } from '../../utils/routeRequestPolicy';
 import { useTripQuote } from '../../hooks/useTripQuote';
 import { earliestSlot } from '../../utils/scheduling';
 import { useMapDrivers } from '../../hooks/useMapDrivers';
@@ -287,6 +288,9 @@ export const useMapScreen = () => {
   const geocoding = useMapGeocoding();
 
   const routing = useMapRouting();
+  // Read, not depended on: a newly drawn route must not trigger a request.
+  const drawnRouteRef = useRef(null);
+  drawnRouteRef.current = routing.routeCoordinates;
   const tripQuote = useTripQuote({ markers, directions: routing.directions });
 
   const tripServiceForDriversRef = useRef(null);
@@ -313,21 +317,16 @@ export const useMapScreen = () => {
     }
 
     setRouteMarkers((previous) => {
-      if (previous.length !== 2) {
-        lastRouteRequestAtRef.current = Date.now();
-        return markers;
-      }
-
-      const destinationChanged = previous[1].latitude !== markers[1].latitude || previous[1].longitude !== markers[1].longitude;
-      const originMovedKm = routing.getDistanceInKm(previous[0], markers[0]);
-      const routeAgeMs = Date.now() - lastRouteRequestAtRef.current;
-      if (destinationChanged || (originMovedKm >= 0.1 && routeAgeMs >= 60000)) {
-        lastRouteRequestAtRef.current = Date.now();
-        return markers;
-      }
-      return previous;
+      const points = markers.map((point) => ({ latitude: Number(point.latitude), longitude: Number(point.longitude) }));
+      const previousRequest = previous.length === 2
+        ? { at: lastRouteRequestAtRef.current, points: previous }
+        : null;
+      const request = nextRouteRequest(previousRequest, points, Date.now(), drawnRouteRef.current);
+      if (!request || request === previousRequest) return previous;
+      lastRouteRequestAtRef.current = request.at;
+      return request.points;
     });
-  }, [markers, routing.getDistanceInKm]);
+  }, [markers]);
 
   const onScheduledActiveRef = useRef(null);
   const [scheduledDetailsVisible, setScheduledDetailsVisible] = useState(false);
