@@ -695,6 +695,7 @@ export const useMapTrip = ({
         },
         type_car: tripData.carType,
         ...(tripData.route ? { route: tripData.route } : {}),
+        ...(tripData.quoteId ? { quoteId: tripData.quoteId } : {}),
         requestKey,
         ...(scheduledFor ? { scheduledFor } : {}),
       };

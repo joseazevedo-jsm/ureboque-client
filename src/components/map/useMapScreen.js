@@ -1185,6 +1185,8 @@ export const useMapScreen = () => {
       carType: type,
       price,
       route: tripQuote.quote?.route || null,
+      // The booking pays exactly the price shown while this quote lasts.
+      quoteId: tripQuote.quote?.quoteId || null,
       tripKind: option?.kind || null,
       province: option?.province || null,
       ...(longTrip && !trip.tripDataRef.current.scheduledFor ? { scheduledFor: earliestSlot().toISOString() } : {}),
