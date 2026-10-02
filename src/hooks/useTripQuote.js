@@ -37,7 +37,8 @@ export const useTripQuote = ({ markers, directions }) => {
       if (sequence === sequenceRef.current) setQuote(data);
     } catch (error) {
       logger.warn('Could not quote the trip', error?.response?.data || error?.message);
-      if (sequence === sequenceRef.current) setQuoteError(true);
+      // The server's code when it refused the trip (OUTSIDE_ANGOLA), else true.
+      if (sequence === sequenceRef.current) setQuoteError(error?.response?.data?.code || true);
     }
   }, [ready, pickup?.latitude, pickup?.longitude, dropoff?.latitude, dropoff?.longitude, distanceKm, durationMin]);
 

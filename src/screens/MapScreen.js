@@ -775,17 +775,20 @@ const MapScreen = memo(() => {
   // times out after 10s and the sheet then sat on that text forever — no
   // price, no car types, no way to retry. Say what happened and offer the
   // retry instead.
-  const priceFetchFailed = models.quoteError && !models.quote;
+  const outsideAngola = models.quoteError === 'OUTSIDE_ANGOLA';
+  const priceFetchFailed = Boolean(models.quoteError) && !models.quote && !outsideAngola;
   // Prices loaded but the list is empty (nothing configured on the server):
   // not a loading state, so don't say "a calcular" forever.
   const noCarTypes = Array.isArray(models.quote?.options) && models.quote.options.length === 0;
   const carTypesEmptyMessage = sameOriginAndDestination
     ? 'O destino é praticamente o mesmo que o local de recolha. Escolha um destino diferente.'
-    : priceFetchFailed
-      ? 'Não foi possível calcular o preço. Verifique a sua ligação à internet.'
-      : noCarTypes
-        ? 'De momento não há reboques disponíveis. Tente novamente mais tarde.'
-        : 'A calcular percurso...';
+    : outsideAngola
+      ? 'Só fazemos reboques dentro de Angola. Escolha um local de recolha e um destino em Angola.'
+      : priceFetchFailed
+        ? 'Não foi possível calcular o preço. Verifique a sua ligação à internet.'
+        : noCarTypes
+          ? 'De momento não há reboques disponíveis. Tente novamente mais tarde.'
+          : 'A calcular percurso...';
 
   // Memoized car types item renderer
   const renderCarTypesItem = useCallback(({ item }) => {
