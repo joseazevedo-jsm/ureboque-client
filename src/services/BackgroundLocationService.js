@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -46,7 +47,14 @@ export const getLastBackgroundLocation = async () => {
 export const startBackgroundLocation = async () => {
   const foreground = await Location.getForegroundPermissionsAsync();
   if (foreground.status !== 'granted') return false;
-  const background = await Location.requestBackgroundPermissionsAsync();
+  // Ask only when not granted yet, and only with the app on screen. A request
+  // opens Android's permission screen in the app's task even when it is
+  // already granted, so this ran on every trip status change and pulled the
+  // app in front of whatever the client had open (WhatsApp, the driver app).
+  let background = await Location.getBackgroundPermissionsAsync();
+  if (background.status !== 'granted' && background.canAskAgain && AppState.currentState === 'active') {
+    background = await Location.requestBackgroundPermissionsAsync();
+  }
   if (background.status !== 'granted') return false;
   const started = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
   if (!started) {
