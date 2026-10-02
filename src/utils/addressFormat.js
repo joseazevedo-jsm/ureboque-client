@@ -38,37 +38,49 @@ const namedRouteOf = (result) => {
 const isPlusCodeResult = (result) =>
   result?.types?.includes('plus_code') || PLUS_CODE.test(result?.formatted_address || '');
 
-const withPlace = (name, place) => (place && place !== name ? `${name}, ${place}` : name);
+// Google's "locality" for most of the capital is the whole city or the old
+// Belas municipality (Kilamba, Camama, Benfica and Mussulo all come back as
+// "Belas"), so those two only name a place when nothing closer is known.
+const BROAD_LOCALITIES = ['Luanda', 'Belas'];
+
+const unique = (names) => names.filter((name, i) => name && names.indexOf(name) === i);
+
+// The names of the area around the point, closest first: neighbourhood
+// (Maculusso, Golfe), district (Ingombota, Benfica), a precise town (Kilamba,
+// Cacuaco), commune (Viana Sede), then the city.
+const areaNames = (results) => {
+  const localities = unique(results.map((result) => componentOf(result, ['locality'])))
+    .filter((town) => !PLUS_CODE.test(town));
+  return unique([
+    firstComponent(results, ['neighborhood']),
+    firstComponent(results, ['sublocality_level_1', 'sublocality']),
+    ...localities.filter((town) => !BROAD_LOCALITIES.includes(town)),
+    firstComponent(results, ['administrative_area_level_3']),
+    ...localities,
+    firstComponent(results, ['postal_town', 'administrative_area_level_2']),
+  ]);
+};
 
 // The label for the point under a pin, from all of Google's reverse-geocode
-// results (most precise first): a street, else the neighbourhood, else the
-// town. Only the first result used to be read, and in Angola that is often
-// the Plus Code even when a later one names the street.
+// results: the street and the closest area name ("Rua 27, Villa Verde II"),
+// or with no named street the two closest ("Golfe, Kilamba Kiaxi"). Only the
+// first result used to be read, and in Angola that is often the Plus Code.
 export const formatReverseGeocodeResults = (results) => {
   const list = Array.isArray(results) ? results.filter(Boolean) : [];
   if (!list.length) return null;
-  const place = firstComponent(list, ['locality', 'postal_town', 'administrative_area_level_2']);
+  const areas = areaNames(list);
 
   const withRoute = list.find(namedRouteOf);
   if (withRoute) {
     const route = namedRouteOf(withRoute);
     const number = componentOf(withRoute, ['street_number']);
-    return withPlace(number ? `${route} ${number}` : route, place);
+    const street = number ? `${route} ${number}` : route;
+    const area = areas.find((name) => name !== route);
+    return area ? `${street}, ${area}` : street;
   }
+  if (areas.length) return areas.slice(0, 2).join(', ');
 
-  // No named street: the neighbourhood (Villa Verde II), a smaller town than
-  // the first one (Kilamba in Belas), else the commune (Benfica).
-  const otherTown = list.map((result) => componentOf(result, ['locality']))
-    .find((town) => town && town !== place);
-  const area = firstComponent(list, ['neighborhood'])
-    || firstComponent(list, ['sublocality_level_1', 'sublocality'])
-    || otherTown
-    || firstComponent(list, ['administrative_area_level_3']);
-  if (area) return withPlace(area, place);
-
-  // A named place without a road (a car park, a venue): Google's own text.
+  // Nothing but a Plus Code: Google's own text without it.
   const named = list.find((result) => !isPlusCodeResult(result) && result.formatted_address);
-  if (named) return cleanPlaceAddress(named.formatted_address) || place;
-
-  return place || cleanPlaceAddress(list[0].formatted_address) || null;
+  return cleanPlaceAddress((named || list[0]).formatted_address) || null;
 };
