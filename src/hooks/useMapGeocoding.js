@@ -2,38 +2,13 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import Geocoder from 'react-native-geocoding';
 import { useLogger } from './useLogger';
 import { GEOCODE_CACHE_MAX } from '../constants/config';
+import { formatReverseGeocodeResults } from '../utils/addressFormat';
 
 const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 if (googleMapsApiKey) {
   Geocoder.init(googleMapsApiKey);
 }
-
-const getAddressComponent = (components, type) =>
-  components.find((component) => component.types?.includes(type))?.long_name;
-
-// Reverse-geocode labels must describe the point under the pin. Returning the
-// locality first made every position inside a city display the same label (for
-// example, "Sevilla"), even though Google had returned a street-level result.
-const formatReverseGeocodeAddress = (result) => {
-  if (!result) return null;
-
-  const components = result.address_components || [];
-  const route = getAddressComponent(components, 'route');
-  const streetNumber = getAddressComponent(components, 'street_number');
-  const locality = getAddressComponent(components, 'locality')
-    || getAddressComponent(components, 'postal_town')
-    || getAddressComponent(components, 'administrative_area_level_2');
-
-  if (route) {
-    const street = streetNumber ? `${route} ${streetNumber}` : route;
-    return locality && locality !== street ? `${street}, ${locality}` : street;
-  }
-
-  // Places without a mapped road (car parks, venues, rural points) are still
-  // better represented by Google's full result than by a city-only label.
-  return result.formatted_address || locality || null;
-};
 
 export const useMapGeocoding = () => {
   const logger = useLogger('useMapGeocoding');
@@ -77,10 +52,7 @@ export const useMapGeocoding = () => {
     }
 
     const request = Geocoder.from(latitude, longitude)
-      .then((response) => {
-        const result = response.results?.[0];
-        return formatReverseGeocodeAddress(result);
-      })
+      .then((response) => formatReverseGeocodeResults(response.results))
       .then((address) => {
         if (address) {
           geocodeCache.set(key, address);

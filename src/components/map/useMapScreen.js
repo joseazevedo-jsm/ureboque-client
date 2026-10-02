@@ -997,14 +997,28 @@ export const useMapScreen = () => {
   }, [isCurrLocation, originCoords, originCity, locationSelection, userLocation, geocoding, fetchPrices, presentBottomSheet, updateModal, trip, showAlert]);
 
   const handleInitiateDragMarkerSelection = useCallback(() => async () => {
-    const initialCoords = userLocation && {
+    // The pin is drawn at the map's center, so the starting point is whatever
+    // is under it, not the user's position: the map is usually elsewhere, and
+    // confirming straight away used to set the destination to the pickup.
+    const camera = await mapRef.current?.getCamera?.().catch(() => null);
+    const center = camera?.center && {
+      latitude: Number(camera.center.latitude),
+      longitude: Number(camera.center.longitude),
+    };
+    const fromUser = userLocation && {
       latitude: Number(userLocation.latitude),
       longitude: Number(userLocation.longitude),
     };
+    const initialCoords = isValidCoordinate(center) ? center : fromUser;
+    // No center to read: bring the map to the user so the pin sits on the
+    // point it is seeded with.
+    if (!isValidCoordinate(center) && isValidCoordinate(fromUser)) {
+      mapRef.current?.animateToRegion({ ...fromUser, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+    }
     setLocationSelection((prev) => ({
       ...prev,
       activeInput: trip.tripData.inputLocationObject === 0 ? 'origin' : 'destination',
-      // Seed with the map's starting center (userLocation) so confirming without
+      // Seed with the point under the pin so confirming without
       // ever dragging the pin still has real coordinates — pendingDragLocation.coords
       // otherwise only gets set once handleDragMarkerPositionChange fires on a drag,
       // which previously let a null-coordinate marker through and crashed the map.

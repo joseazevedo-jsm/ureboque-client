@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from "react";
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, PixelRatio, StyleSheet, View } from 'react-native';
 import { AppText as Text } from '../common/AppText';
 import { AppPressable as TouchableOpacity } from '../common/AppPressable';
 
@@ -12,9 +12,14 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { colors, spacing, borderRadius, shadows, typography, sizes, animations } from "../../theme";
+import { cleanPlaceAddress } from "../../utils/addressFormat";
 
 // A compact destination card uses the same content rhythm as saved places.
 const CARD_WIDTH = sizes.placeCardWidth;
+// Every card keeps two address lines, so a one-line address is not a
+// shorter card than its neighbours. Line heights grow with the font scale.
+const DESCRIPTION_LINES = 2;
+const DESCRIPTION_HEIGHT = typography.caption.lineHeight * DESCRIPTION_LINES * PixelRatio.getFontScale();
 
 const CardSpots = memo(
   ({
@@ -85,14 +90,12 @@ const CardSpots = memo(
             ) : null}
 
             <View style={styles.textContainer}>
-              <Text style={styles.title}>
+              <Text style={styles.title} numberOfLines={1}>
                 {title}
               </Text>
-              {description ? (
-                <Text style={styles.description}>
-                  {description}
-                </Text>
-              ) : null}
+              <Text style={styles.description} numberOfLines={DESCRIPTION_LINES}>
+                {cleanPlaceAddress(description)}
+              </Text>
             </View>
           </Animated.View>
         </TouchableOpacity>
@@ -137,6 +140,7 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     marginTop: spacing.xs,
+    minHeight: DESCRIPTION_HEIGHT,
   },
 });
 
